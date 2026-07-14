@@ -14,3 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+"""Provider adapters used by the AI integration."""
+
+from superset.ai.providers.anthropic_provider import AnthropicProviderAdapter
+from superset.ai.providers.ollama_provider import OllamaProviderAdapter
+from superset.ai.providers.openai_provider import OpenAIProviderAdapter
+
+__all__ = [
+    "AnthropicProviderAdapter",
+    "OllamaProviderAdapter",
+    "OpenAIProviderAdapter",
+]

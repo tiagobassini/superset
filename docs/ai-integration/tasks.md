@@ -62,12 +62,12 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Escrever testes de autorização para cada permissão
 
 ### 1.3 Adaptadores de Provedor
-- [ ] Criar `AIProviderAdapter` (ABC) em `superset/ai/providers/base.py`
-- [ ] Implementar `OpenAIProviderAdapter` (OpenAI + DeepSeek + Codex via `base_url`)
-- [ ] Implementar `OllamaProviderAdapter` (API REST do Ollama)
-- [ ] Implementar `AnthropicProviderAdapter`
-- [ ] Método `test_connection()` em cada adapter
-- [ ] Testes unitários para cada adapter (com mock das APIs externas)
+- [x] Criar `AIProviderAdapter` (ABC) em `superset/ai/providers/base.py`
+- [x] Implementar `OpenAIProviderAdapter` (OpenAI + DeepSeek + Codex via `base_url`)
+- [x] Implementar `OllamaProviderAdapter` (API REST do Ollama)
+- [x] Implementar `AnthropicProviderAdapter`
+- [x] Método `test_connection()` em cada adapter
+- [x] Testes unitários para cada adapter (com mock das APIs externas)
 
 ### 1.4 Tool Registry
 - [ ] Criar `AITool` base class em `superset/ai/tools/base.py`
