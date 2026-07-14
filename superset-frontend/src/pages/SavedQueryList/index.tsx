@@ -65,7 +65,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
-import { makeUrl } from 'src/utils/pathUtils';
+//import { makeUrl } from 'src/utils/pathUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -223,7 +223,7 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      history.push(makeUrl('/sqllab?new=true'));
+      history.push('/sqllab?new=true');
     },
   });
 
@@ -233,7 +233,7 @@ function SavedQueryList({
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
     copyTextToClipboard(() =>
       Promise.resolve(
-        `${window.location.origin}${makeUrl(`/sqllab?savedQueryId=${id}`)}`,
+        `${window.location.origin}${`/sqllab?savedQueryId=${id}`}`,
       ),
     )
       .then(() => {
@@ -243,9 +243,9 @@ function SavedQueryList({
         addDangerToast(t('Sorry, your browser does not support copying.'));
       });
     if (openInNewWindow) {
-      window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
+      window.open(`/sqllab?savedQueryId=${id}`);
     } else {
-      history.push(makeUrl(`/sqllab?savedQueryId=${id}`));
+      history.push(`/sqllab?savedQueryId=${id}`);
     }
   };
 
@@ -339,7 +339,7 @@ function SavedQueryList({
             original: { id, label },
           },
         }: any) => (
-          <Link to={makeUrl(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
+          <Link to={(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
         ),
         id: 'label',
       },
