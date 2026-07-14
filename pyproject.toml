@@ -201,6 +201,16 @@ starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
 ydb = ["ydb-sqlalchemy>=0.1.2"]
+# AI Integration Plugin — optional providers
+# Install with: pip install apache-superset[ai]
+# - openai: used for OpenAI, DeepSeek, and Codex (OpenAI-compatible APIs)
+# - anthropic: used for Claude models
+# - httpx: used for Ollama (local self-hosted, no dedicated SDK needed)
+ai = [
+    "openai>=1.0.0, <2.0.0",
+    "anthropic>=0.20.0, <1.0.0",
+    "httpx>=0.25.0, <1.0.0",
+]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",

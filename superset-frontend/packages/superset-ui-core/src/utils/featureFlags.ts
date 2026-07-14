@@ -47,6 +47,7 @@ export enum FeatureFlag {
   EmbeddableCharts = 'EMBEDDABLE_CHARTS',
   EmbeddedSuperset = 'EMBEDDED_SUPERSET',
   EnableAdvancedDataTypes = 'ENABLE_ADVANCED_DATA_TYPES',
+  EnableAiIntegration = 'ENABLE_AI_INTEGRATION',
   EnableExtensions = 'ENABLE_EXTENSIONS',
   /** @deprecated */
   EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',

@@ -568,6 +568,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Superset extensions for custom functionality without modifying core
     # @lifecycle: development
     "ENABLE_EXTENSIONS": False,
+    # Enable the AI Integration plugin — adds a floating chat sidebar to interact with
+    # AI providers (OpenAI, Ollama, DeepSeek, Anthropic) and perform actions in Superset
+    # such as creating charts, dashboards, running SQL queries, and more.
+    # Disabled by default; enable in superset_config.py when ready to use.
+    # @lifecycle: development
+    "ENABLE_AI_INTEGRATION": False,
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
