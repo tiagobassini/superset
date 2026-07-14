@@ -31,6 +31,7 @@ x-superset-volumes: &superset-volumes
   - ./superset:/app/superset
   - ./superset-core:/app/superset-core
   - ./superset-frontend:/app/superset-frontend
+  - ./superset_config.py:/app/pythonpath/superset_config.py
   - superset_home:/app/superset_home
   - ./tests:/app/tests
   - superset_data:/app/data
@@ -105,7 +106,7 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
-
+    
   superset-websocket:
     build: ./superset-websocket
     ports:
@@ -258,10 +259,11 @@ services:
 
 volumes:
   superset_home:
-    external: false
+    external: false 
   db_home:
     external: false
   redis:
     external: false
   superset_data:
     external: false
+  

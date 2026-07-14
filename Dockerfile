@@ -194,7 +194,9 @@ RUN /app/docker/apt-install.sh \
       libsasl2-modules-gssapi-mit \
       libpq-dev \
       libecpg-dev \
-      libldap2-dev
+      libldap2-dev \
+      unixodbc \
+      unixodbc-dev
 
 # Create data directory for DuckDB examples database
 # The database file will be created at runtime when examples are loaded from Parquet files
@@ -211,6 +213,13 @@ RUN rm superset/translations/*/*/*.po
 # Merging translations from backend and frontend stages
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
+
+
+# add database drivers connector
+# DB Oracle
+RUN uv pip install oracledb
+# DB SQL Server
+RUN uv pip install pyodbc
 
 HEALTHCHECK CMD /app/docker/docker-healthcheck.sh
 CMD ["/app/docker/entrypoints/run-server.sh"]
