@@ -44,11 +44,11 @@ Tarefas de setup que desbloqueiam todas as demais.
 ## Fase 1 — Backend Core
 
 ### 1.1 Modelo de Dados e Migration
-- [ ] Criar `AIAgent` model em `superset/ai/models.py`
+- [x] Criar `AIAgent` model em `superset/ai/models.py`
   - Campos: `id` (UUID), `name`, `provider`, `model`, `base_url`, `api_key_encrypted`, `is_default`, `is_active`, `changed_on`, `created_on`
-- [ ] Criar tabela de associação `ai_agent_roles` (many-to-many com `ab_role`)
-- [ ] Criar migration Alembic: `superset/migrations/versions/YYYY-MM-DD_ai_agent.py`
-- [ ] Testar migration up/down
+- [x] Criar tabela de associação `ai_agent_roles` (many-to-many com `ab_role`)
+- [x] Criar migration Alembic: `superset/migrations/versions/2026-07-14_18-22_33c72567c98a_add_ai_agent.py`
+- [x] Testar migration up/down
 
 ### 1.2 Permissões
 - [ ] Registrar novas permissões no Flask-AppBuilder:
