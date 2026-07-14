@@ -51,15 +51,15 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Testar migration up/down
 
 ### 1.2 Permissões
-- [ ] Registrar novas permissões no Flask-AppBuilder:
+- [x] Registrar novas permissões no Flask-AppBuilder:
   - `can_use_ai_chat`
   - `can_manage_ai_agents`
   - `can_ai_run_sql`
   - `can_ai_create_charts` / `can_ai_edit_charts`
   - `can_ai_create_dashboards` / `can_ai_edit_dashboards`
   - `can_ai_create_datasets`
-- [ ] Adicionar permissões ao role `Admin` no `superset/security/manager.py`
-- [ ] Escrever testes de autorização para cada permissão
+- [x] Adicionar permissões ao role `Admin` no `superset/security/manager.py`
+- [x] Escrever testes de autorização para cada permissão
 
 ### 1.3 Adaptadores de Provedor
 - [ ] Criar `AIProviderAdapter` (ABC) em `superset/ai/providers/base.py`

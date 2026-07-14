@@ -310,6 +310,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        # AI Integration: the agent management resource is admin-only.
+        # Individual permissions (can_use_ai_chat, can_ai_*) can be granted
+        # by the admin to other roles, but the view menu itself is restricted
+        # so that non-admin users cannot enumerate or browse the resource.
+        "AIAgentResource",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
@@ -338,6 +343,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_grant_guest_token",
         "can_set_embedded",
         "can_warm_up_cache",
+        # AI Integration: only admins can create/edit/delete AI agents.
+        "can_manage_ai_agents",
     }
 
     READ_ONLY_PERMISSION = {
@@ -1243,6 +1250,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_drill", "Dashboard")
         self.add_permission_view_menu("can_tag", "Chart")
         self.add_permission_view_menu("can_tag", "Dashboard")
+
+        # AI Integration permissions.
+        # Registered only when the ENABLE_AI_INTEGRATION feature flag is active
+        # so that they remain invisible in plain Superset deployments.
+        from superset import is_feature_enabled  # pylint: disable=import-outside-toplevel
+
+        if is_feature_enabled("ENABLE_AI_INTEGRATION"):
+            # General chat access — granted to any role the admin chooses.
+            self.add_permission_view_menu("can_use_ai_chat", "AIAgentResource")
+            # Admin-only: manage agents via the Settings page.
+            self.add_permission_view_menu("can_manage_ai_agents", "AIAgentResource")
+            # Fine-grained action permissions — the admin can grant these
+            # selectively to roles (e.g. "AI Power User").
+            self.add_permission_view_menu("can_ai_run_sql", "AIAgentResource")
+            self.add_permission_view_menu("can_ai_create_charts", "AIAgentResource")
+            self.add_permission_view_menu("can_ai_edit_charts", "AIAgentResource")
+            self.add_permission_view_menu(
+                "can_ai_create_dashboards", "AIAgentResource"
+            )
+            self.add_permission_view_menu(
+                "can_ai_edit_dashboards", "AIAgentResource"
+            )
+            self.add_permission_view_menu("can_ai_create_datasets", "AIAgentResource")
 
     def create_missing_perms(self) -> None:
         """
