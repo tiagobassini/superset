@@ -14,12 +14,234 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-AI Integration Plugin — REST API
+"""REST endpoints for the feature-flagged AI integration."""
 
-Endpoints under /api/v1/ai/. Registered in superset/initialization/__init__.py
-only when the ENABLE_AI_INTEGRATION feature flag is active.
+from __future__ import annotations
 
-See docs/ai-integration/backend-api-tools.md for full specification.
-"""
-# TODO (Fase 1.6): implement AIRestApi
+from typing import Any
+
+from flask import g, jsonify, request, Response
+from flask_appbuilder.api import expose, protect, safe
+from marshmallow import ValidationError
+
+from superset import is_feature_enabled
+from superset.ai.crypto import encrypt_api_key
+from superset.ai.exceptions import AIActionExpiredError, AIProviderError
+from superset.ai.models import AIAgent
+from superset.ai.orchestrator import AIOrchestrator
+from superset.ai.providers import AnthropicProviderAdapter, OllamaProviderAdapter, OpenAIProviderAdapter
+from superset.ai.schemas import AgentSchema, ChatRequestSchema, ConfirmActionRequestSchema
+from superset.ai.tools.registry import create_default_registry
+from superset.extensions import db, security_manager
+from superset.views.base_api import BaseSupersetApi, requires_json
+
+
+class AIRestApi(BaseSupersetApi):
+    """Expose chat, approval, and administrator agent-management endpoints."""
+
+    resource_name = "ai"
+    allow_browser_login = True
+    class_permission_name = "AIAgentResource"
+    chat_schema = ChatRequestSchema()
+    confirm_schema = ConfirmActionRequestSchema()
+    agent_schema = AgentSchema()
+
+    @expose("/chat", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def chat(self) -> Response:
+        """Send a message to an accessible agent."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            payload = self.chat_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = self._get_agent(payload.get("agent_id"), accessible=True)
+        if agent is None:
+            return self._error("Agent not found", 404)
+        try:
+            result = AIOrchestrator(agent, create_default_registry(), g.user).chat(
+                payload["message"], payload["history"], payload["context"]
+            )
+        except AIProviderError as ex:
+            return self._error(str(ex), 502)
+        return jsonify(
+            {
+                "response": result.response,
+                "pending_actions": [action.__dict__ for action in result.pending_actions],
+            }
+        )
+
+    @expose("/confirm_action", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def confirm_action(self) -> Response:
+        """Execute a previously approved write action."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            payload = self.confirm_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = self._get_agent(payload.get("agent_id"), accessible=True)
+        if agent is None:
+            return self._error("Agent not found", 404)
+        try:
+            result = AIOrchestrator(agent, create_default_registry(), g.user).confirm_and_execute(
+                str(payload["action_id"])
+            )
+        except AIActionExpiredError as ex:
+            return self._error(str(ex), 404)
+        if not result.success:
+            return self._error(result.error or "Action failed", 400)
+        return jsonify({"status": "executed", "result": result.data})
+
+    @expose("/agents", methods=("GET",))
+    @protect()
+    @safe
+    def list_agents(self) -> Response:
+        """List active agents the caller may use."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        agents = [agent for agent in AIAgent.query.filter_by(is_active=True) if self._can_use(agent)]
+        return jsonify({"result": [self._serialize_agent(agent) for agent in agents]})
+
+    @expose("/agents/<string:agent_id>", methods=("GET",))
+    @protect()
+    @safe
+    def get_agent(self, agent_id: str) -> Response:
+        """Return administrator-only agent details without its API key."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        agent = self._get_agent(agent_id)
+        return jsonify({"result": self._serialize_agent(agent, detailed=True)}) if agent else self._error("Agent not found", 404)
+
+    @expose("/agents", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def create_agent(self) -> Response:
+        """Create an AI agent configuration."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        try:
+            payload = self.agent_schema.load(request.json)
+            required = {"name", "provider", "model"}
+            if missing := required - payload.keys():
+                return self._error(f"Missing fields: {', '.join(sorted(missing))}", 400)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        try:
+            attributes = self._agent_attributes(payload)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = AIAgent(**attributes)
+        db.session.add(agent)
+        db.session.commit()
+        return jsonify({"result": self._serialize_agent(agent, detailed=True)}), 201
+
+    @expose("/agents/<string:agent_id>", methods=("PUT",))
+    @protect()
+    @safe
+    @requires_json
+    def update_agent(self, agent_id: str) -> Response:
+        """Update a configuration while retaining omitted API keys."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        agent = self._get_agent(agent_id)
+        if agent is None:
+            return self._error("Agent not found", 404)
+        try:
+            payload = self.agent_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        try:
+            attributes = self._agent_attributes(payload)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        for key, value in attributes.items():
+            setattr(agent, key, value)
+        db.session.commit()
+        return jsonify({"result": self._serialize_agent(agent, detailed=True)})
+
+    @expose("/agents/<string:agent_id>", methods=("DELETE",))
+    @protect()
+    @safe
+    def delete_agent(self, agent_id: str) -> Response:
+        """Delete an agent configuration."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        agent = self._get_agent(agent_id)
+        if agent is None:
+            return self._error("Agent not found", 404)
+        db.session.delete(agent)
+        db.session.commit()
+        return jsonify({"message": "Deleted"})
+
+    @expose("/agents/<string:agent_id>/test", methods=("POST",))
+    @protect()
+    @safe
+    def test_agent(self, agent_id: str) -> Response:
+        """Test an agent endpoint without returning any secret."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        agent = self._get_agent(agent_id)
+        if agent is None:
+            return self._error("Agent not found", 404)
+        try:
+            ok = AIOrchestrator._build_provider(agent).test_connection()
+        except AIProviderError:
+            ok = False
+        return jsonify({"success": ok})
+
+    @staticmethod
+    def _error(message: str, status: int) -> tuple[Response, int]:
+        return jsonify({"message": message}), status
+
+    @staticmethod
+    def _require_enabled() -> None:
+        if not is_feature_enabled("ENABLE_AI_INTEGRATION"):
+            from werkzeug.exceptions import NotFound
+
+            raise NotFound()
+
+    @staticmethod
+    def _require(permission: str) -> None:
+        if not security_manager.can_access(permission, "AIAgentResource"):
+            from werkzeug.exceptions import Forbidden
+
+            raise Forbidden()
+
+    def _get_agent(self, agent_id: Any, accessible: bool = False) -> AIAgent | None:
+        agent = AIAgent.query.get(str(agent_id)) if agent_id else AIAgent.query.filter_by(is_default=True, is_active=True).first()
+        if agent is None or (accessible and (not agent.is_active or not self._can_use(agent))):
+            return None
+        return agent
+
+    @staticmethod
+    def _can_use(agent: AIAgent) -> bool:
+        if not agent.allowed_roles:
+            return True
+        return bool({role.id for role in agent.allowed_roles} & {role.id for role in g.user.roles})
+
+    @staticmethod
+    def _serialize_agent(agent: AIAgent, detailed: bool = False) -> dict[str, Any]:
+        result = {"id": agent.id, "name": agent.name, "provider": agent.provider, "model": agent.model, "is_default": agent.is_default, "is_active": agent.is_active}
+        if detailed:
+            result.update({"base_url": agent.base_url, "api_key_set": bool(agent.api_key_encrypted), "role_ids": [role.id for role in agent.allowed_roles]})
+        return result
+
+    @staticmethod
+    def _agent_attributes(payload: dict[str, Any]) -> dict[str, Any]:
+        attrs = {key: value for key, value in payload.items() if key not in {"api_key", "role_ids"}}
+        if "api_key" in payload:
+            attrs["api_key_encrypted"] = encrypt_api_key(payload["api_key"])
+        if "role_ids" in payload:
+            roles = security_manager.find_roles_by_id(payload["role_ids"])
+            if len(roles) != len(payload["role_ids"]):
+                raise ValidationError("One or more roles do not exist")
+            attrs["allowed_roles"] = roles
+        return attrs

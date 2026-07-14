@@ -28,14 +28,13 @@ from __future__ import annotations
 import uuid
 
 import sqlalchemy as sa
-from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, String, Table, Text
 from sqlalchemy.orm import relationship
 
 from superset import db
 from superset.models.helpers import AuditMixinNullable
 
-metadata = Model.metadata  # pylint: disable=no-member
+metadata = db.Model.metadata
 
 # Supported AI providers.
 # "openai" also covers DeepSeek/Codex via custom base_url.

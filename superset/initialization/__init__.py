@@ -278,6 +278,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             appbuilder.add_api(ExtensionsRestApi)
 
+        if feature_flag_manager.is_feature_enabled("ENABLE_AI_INTEGRATION"):
+            from superset.ai.api import AIRestApi
+
+            appbuilder.add_api(AIRestApi)
+
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.api import TaskRestApi
 

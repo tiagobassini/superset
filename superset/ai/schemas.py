@@ -14,12 +14,53 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-AI Integration Plugin — Marshmallow Schemas
+"""Request validation schemas for the AI REST API."""
 
-Request/response validation schemas for the /api/v1/ai/ endpoints.
-Also drives the auto-generated OpenAPI spec at /swagger/v1.
+from __future__ import annotations
 
-See docs/ai-integration/backend-api-tools.md for full specification.
-"""
-# TODO (Fase 1.6): implement schemas
+from marshmallow import Schema, fields, validate
+
+
+class PageContextSchema(Schema):
+    """Safe subset of the page information used by the system prompt."""
+
+    page = fields.String(required=True, validate=validate.Length(max=100))
+    resource_id = fields.Raw(allow_none=True)
+    resource_name = fields.String(allow_none=True, validate=validate.Length(max=200))
+    metadata = fields.Dict(keys=fields.String(), values=fields.Raw(), load_default=dict)
+
+
+class ChatHistorySchema(Schema):
+    """A provider-neutral conversation message accepted from the client."""
+
+    role = fields.String(required=True, validate=validate.OneOf(["user", "assistant"]))
+    content = fields.String(required=True, validate=validate.Length(max=10000))
+
+
+class ChatRequestSchema(Schema):
+    """Validate a chat request before any provider is contacted."""
+
+    message = fields.String(required=True, validate=validate.Length(min=1, max=10000))
+    agent_id = fields.UUID(allow_none=True)
+    context = fields.Nested(PageContextSchema, required=True)
+    history = fields.List(fields.Nested(ChatHistorySchema), load_default=list)
+
+
+class ConfirmActionRequestSchema(Schema):
+    """Validate an explicit approval for a pending action."""
+
+    action_id = fields.UUID(required=True)
+    agent_id = fields.UUID(allow_none=True)
+
+
+class AgentSchema(Schema):
+    """Validate agent create and update payloads without exposing secrets."""
+
+    name = fields.String(validate=validate.Length(min=1, max=256))
+    provider = fields.String(validate=validate.OneOf(["openai", "ollama", "anthropic"]))
+    model = fields.String(validate=validate.Length(min=1, max=128))
+    base_url = fields.URL(allow_none=True)
+    api_key = fields.String(load_only=True, validate=validate.Length(min=1, max=4096))
+    is_default = fields.Boolean()
+    is_active = fields.Boolean()
+    role_ids = fields.List(fields.Integer(), load_default=list)
