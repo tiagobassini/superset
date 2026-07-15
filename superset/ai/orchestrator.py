@@ -114,7 +114,9 @@ class AIOrchestrator:
             if not response.tool_calls:
                 return OrchestratorResult(response.content, pending_actions)
             messages.append(
-                self._assistant_message(response.content, response.tool_calls)
+                self.provider.build_assistant_message(
+                    response.content, response.tool_calls
+                )
             )
             for call in response.tool_calls:
                 tool = self.registry.get(call.name)
@@ -128,7 +130,9 @@ class AIOrchestrator:
                         )
                     )
                     continue
-                if tool.requires_confirmation and self._requires_confirmation(tool.name):
+                if tool.requires_confirmation and self._requires_confirmation(
+                    tool.name
+                ):
                     action = PendingAction(
                         id=str(uuid4()),
                         agent_id=str(self.agent.id),
@@ -185,24 +189,6 @@ class AIOrchestrator:
 
     def _cache_key(self, action_id: str) -> str:
         return f"ai_pending_action:{self.user.id}:{action_id}"
-
-    @staticmethod
-    def _assistant_message(content: str, tool_calls: list[Any]) -> dict[str, Any]:
-        return {
-            "role": "assistant",
-            "content": content,
-            "tool_calls": [
-                {
-                    "id": call.id,
-                    "type": "function",
-                    "function": {
-                        "name": call.name,
-                        "arguments": json.dumps(call.arguments),
-                    },
-                }
-                for call in tool_calls
-            ],
-        }
 
     @staticmethod
     def _system_prompt(context: dict[str, Any]) -> str:

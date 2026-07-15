@@ -80,6 +80,18 @@ def test_agent_schema_accepts_openai_compatible_providers() -> None:
     assert payload["provider"] == "deepseek"
 
 
+def test_agent_schema_accepts_docker_service_base_url() -> None:
+    payload = AgentSchema().load({"base_url": "http://ollama:11434"})
+
+    assert payload["base_url"] == "http://ollama:11434"
+
+
+@pytest.mark.parametrize("base_url", ["ollama:11434", "ftp://ollama:11434"])
+def test_agent_schema_rejects_non_http_base_url(base_url: str) -> None:
+    with pytest.raises(ValidationError):
+        AgentSchema().load({"base_url": base_url})
+
+
 def test_global_settings_schema_enforces_safe_limits() -> None:
     payload = GlobalAISettingsSchema().load(
         {"sql_confirmation_mode": "roles_only", "max_query_rows": 1000}

@@ -18,12 +18,12 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 from uuid import uuid4
 
 from superset.ai.exceptions import AIProviderError
 from superset.ai.providers.base import AIProviderAdapter, ProviderResponse, ToolCall
+from superset.utils import json
 
 
 class OllamaProviderAdapter(AIProviderAdapter):
@@ -84,6 +84,32 @@ class OllamaProviderAdapter(AIProviderAdapter):
         except Exception:
             return False
         return True
+
+    def build_assistant_message(
+        self,
+        content: str,
+        tool_calls: list[ToolCall],
+    ) -> dict[str, Any]:
+        """Return a native Ollama tool-call message for the next turn."""
+        return {
+            "role": "assistant",
+            "content": content,
+            "tool_calls": [
+                {
+                    "id": call.id,
+                    "function": {"name": call.name, "arguments": call.arguments},
+                }
+                for call in tool_calls
+            ],
+        }
+
+    def build_tool_message(
+        self,
+        tool_call_id: str,
+        result_json: str,
+    ) -> dict[str, Any]:
+        """Return Ollama's native tool-result message without OpenAI fields."""
+        return {"role": "tool", "content": result_json}
 
     @staticmethod
     def _to_tool_call(tool_call: dict[str, Any]) -> ToolCall:

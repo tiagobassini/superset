@@ -25,6 +25,7 @@ import pytest
 
 from superset.ai.exceptions import AIProviderError
 from superset.ai.providers.anthropic_provider import AnthropicProviderAdapter
+from superset.ai.providers.base import ToolCall
 from superset.ai.providers.ollama_provider import OllamaProviderAdapter
 from superset.ai.providers.openai_provider import OpenAIProviderAdapter
 
@@ -132,6 +133,29 @@ def test_ollama_adapter_tests_connection_without_raising() -> None:
 
     client.get.return_value.raise_for_status.side_effect = RuntimeError("offline")
     assert adapter.test_connection() is False
+
+
+def test_ollama_adapter_uses_native_messages_for_tool_results() -> None:
+    adapter = OllamaProviderAdapter(client=MagicMock())
+    tool_call = ToolCall("call_1", "list_dashboards", {"page": 0})
+
+    assert adapter.build_assistant_message("", [tool_call]) == {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "id": "call_1",
+                "function": {
+                    "name": "list_dashboards",
+                    "arguments": {"page": 0},
+                },
+            }
+        ],
+    }
+    assert adapter.build_tool_message("call_1", '{"success": true}') == {
+        "role": "tool",
+        "content": '{"success": true}',
+    }
 
 
 def test_anthropic_adapter_converts_tools_messages_and_response() -> None:

@@ -40,6 +40,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
+from superset.utils import json
 
 # ---------------------------------------------------------------------------
 # Shared data-transfer objects
@@ -177,6 +178,28 @@ class AIProviderAdapter(ABC):
     # ------------------------------------------------------------------
     # Helpers shared by all concrete adapters
     # ------------------------------------------------------------------
+
+    def build_assistant_message(
+        self,
+        content: str,
+        tool_calls: list[ToolCall],
+    ) -> dict[str, Any]:
+        """Return an OpenAI-compatible assistant tool-call message."""
+        return {
+            "role": "assistant",
+            "content": content,
+            "tool_calls": [
+                {
+                    "id": call.id,
+                    "type": "function",
+                    "function": {
+                        "name": call.name,
+                        "arguments": json.dumps(call.arguments),
+                    },
+                }
+                for call in tool_calls
+            ],
+        }
 
     def build_tool_message(
         self,

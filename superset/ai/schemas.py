@@ -16,7 +16,16 @@
 # under the License.
 """Request validation schemas for the AI REST API."""
 
-from marshmallow import fields, Schema, validate
+from urllib.parse import urlparse
+
+from marshmallow import fields, Schema, validate, ValidationError
+
+
+def validate_provider_base_url(value: str) -> None:
+    """Accept HTTP(S) endpoints, including Docker service hostnames."""
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValidationError("Not a valid HTTP(S) URL.")
 
 
 class PageContextSchema(Schema):
@@ -61,7 +70,10 @@ class AgentSchema(Schema):
         )
     )
     model = fields.String(validate=validate.Length(min=1, max=128))
-    base_url = fields.URL(allow_none=True)
+    base_url = fields.String(
+        allow_none=True,
+        validate=validate.And(validate.Length(max=512), validate_provider_base_url),
+    )
     api_key = fields.String(load_only=True, validate=validate.Length(min=1, max=4096))
     is_default = fields.Boolean()
     is_active = fields.Boolean()

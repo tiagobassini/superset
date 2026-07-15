@@ -40,7 +40,6 @@ const AIAgentsSettings = () => {
     deleteAgent,
     error,
     isLoading,
-    refresh,
     testConnection,
     updateAgent,
   } = useAgentsCRUD();
@@ -59,17 +58,21 @@ const AIAgentsSettings = () => {
   }, [addDangerToast, error]);
 
   useEffect(() => {
+    let mounted = true;
     const loadRoles = async () => {
       try {
         const { json } = await SupersetClient.get({
           endpoint: '/api/v1/security/roles/?q=(page:0,page_size:100)',
         });
-        setRoles((json as { result?: Role[] }).result ?? []);
+        if (mounted) setRoles((json as { result?: Role[] }).result ?? []);
       } catch {
-        setRoles([]);
+        if (mounted) setRoles([]);
       }
     };
     void loadRoles();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -92,23 +95,24 @@ const AIAgentsSettings = () => {
         onToggleActive={agent => {
           void updateAgent(agent.id, { is_active: !agent.is_active });
         }}
-        refresh={refresh}
       />
-      <AgentModal
-        agent={editingAgent}
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onSave={async values => {
-          try {
-            if (editingAgent) await updateAgent(editingAgent.id, values);
-            else await createAgent(values);
-          } catch (reason) {
-            addDangerToast(String(reason));
-            throw reason;
-          }
-        }}
-        onTestConnection={agent => testConnection(agent.id)}
-      />
+      {isModalOpen && (
+        <AgentModal
+          agent={editingAgent}
+          open
+          onCancel={() => setIsModalOpen(false)}
+          onSave={async values => {
+            try {
+              if (editingAgent) await updateAgent(editingAgent.id, values);
+              else await createAgent(values);
+            } catch (reason) {
+              addDangerToast(String(reason));
+              throw reason;
+            }
+          }}
+          onTestConnection={agent => testConnection(agent.id)}
+        />
+      )}
       <GlobalSettings
         isLoading={globalSettings.isLoading}
         roles={roles}

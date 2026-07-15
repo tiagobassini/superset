@@ -34,25 +34,33 @@ export const useAgentsCRUD = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | undefined>();
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (isMounted = () => true) => {
     setIsLoading(true);
     try {
       const { json } = await SupersetClient.get({ endpoint });
-      setAgents((json as AgentsResponse).result ?? []);
-      setError(undefined);
+      if (isMounted()) {
+        setAgents((json as AgentsResponse).result ?? []);
+        setError(undefined);
+      }
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason
-          : new Error('Unable to load AI agents'),
-      );
+      if (isMounted()) {
+        setError(
+          reason instanceof Error
+            ? reason
+            : new Error('Unable to load AI agents'),
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted()) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void refresh();
+    let mounted = true;
+    void refresh(() => mounted);
+    return () => {
+      mounted = false;
+    };
   }, [refresh]);
 
   const updateAgent = useCallback(

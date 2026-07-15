@@ -18,8 +18,12 @@
  */
 import { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Button, Switch } from '@superset-ui/core/components';
-import { ListView, type ListViewFetchDataConfig } from 'src/components';
+import {
+  Button,
+  Switch,
+  Table,
+  type ColumnsType,
+} from '@superset-ui/core/components';
 import type { AIAgentConfiguration } from '../types';
 
 const PAGE_SIZE = 25;
@@ -31,7 +35,6 @@ export interface AgentsListProps {
   onDelete: (agent: AIAgentConfiguration) => void;
   onEdit: (agent: AIAgentConfiguration) => void;
   onToggleActive: (agent: AIAgentConfiguration) => void;
-  refresh: () => Promise<void>;
 }
 
 /** Table of configured AI agents with status and management actions. */
@@ -42,78 +45,60 @@ export const AgentsList = ({
   onDelete,
   onEdit,
   onToggleActive,
-  refresh,
 }: AgentsListProps) => {
-  const columns = useMemo(
+  const columns = useMemo<ColumnsType<AIAgentConfiguration>>(
     () => [
-      { Header: t('Name'), accessor: 'name' },
-      { Header: t('Provider'), accessor: 'provider' },
-      { Header: t('Model'), accessor: 'model' },
+      { dataIndex: 'name', key: 'name', title: t('Name') },
+      { dataIndex: 'provider', key: 'provider', title: t('Provider') },
+      { dataIndex: 'model', key: 'model', title: t('Model') },
       {
-        Cell: ({
-          row: { original },
-        }: {
-          row: { original: AIAgentConfiguration };
-        }) => (
+        key: 'status',
+        render: (_value, agent) => (
           <Switch
-            aria-label={t('Toggle status for %s', original.name)}
-            checked={original.is_active}
-            onChange={() => onToggleActive(original)}
+            aria-label={t('Toggle status for %s', agent.name)}
+            checked={agent.is_active}
+            onChange={() => onToggleActive(agent)}
           />
         ),
-        Header: t('Status'),
-        id: 'status',
+        title: t('Status'),
       },
       {
-        Cell: ({
-          row: { original },
-        }: {
-          row: { original: AIAgentConfiguration };
-        }) => (
+        key: 'actions',
+        render: (_value, agent) => (
           <>
             <Button
               buttonSize="small"
               buttonStyle="tertiary"
-              onClick={() => onEdit(original)}
+              onClick={() => onEdit(agent)}
             >
               {t('Edit')}
             </Button>
             <Button
               buttonSize="small"
               buttonStyle="tertiary"
-              onClick={() => onDelete(original)}
+              onClick={() => onDelete(agent)}
             >
               {t('Delete')}
             </Button>
           </>
         ),
-        Header: t('Actions'),
-        id: 'actions',
+        title: t('Actions'),
       },
     ],
     [onDelete, onEdit, onToggleActive],
   );
 
-  const fetchData = async (config: ListViewFetchDataConfig) => {
-    void config;
-    return refresh();
-  };
-
   return (
     <>
       <Button onClick={onAdd}>{t('Add Agent')}</Button>
-      <ListView<AIAgentConfiguration>
-        addDangerToast={() => undefined}
-        addSuccessToast={() => undefined}
+      <Table<AIAgentConfiguration>
         columns={columns}
-        count={agents.length}
         data={agents}
-        emptyState={{ title: t('No AI agents have been configured') }}
-        fetchData={fetchData}
-        initialSort={[{ id: 'name', desc: false }]}
         loading={isLoading}
-        pageSize={PAGE_SIZE}
-        refreshData={refresh}
+        locale={{ emptyText: t('No AI agents have been configured') }}
+        defaultPageSize={PAGE_SIZE}
+        rowKey="id"
+        usePagination={agents.length > PAGE_SIZE}
       />
     </>
   );

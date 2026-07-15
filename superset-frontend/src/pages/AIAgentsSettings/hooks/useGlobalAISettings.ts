@@ -28,20 +28,24 @@ export const useGlobalAISettings = () => {
   const [settings, setSettings] = useState<AIGlobalSettings>();
   const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (isMounted = () => true) => {
     setIsLoading(true);
     try {
       const { json } = await SupersetClient.get({
         endpoint: '/api/v1/ai/settings',
       });
-      setSettings((json as SettingsResponse).result);
+      if (isMounted()) setSettings((json as SettingsResponse).result);
     } finally {
-      setIsLoading(false);
+      if (isMounted()) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void refresh();
+    let mounted = true;
+    void refresh(() => mounted);
+    return () => {
+      mounted = false;
+    };
   }, [refresh]);
 
   const save = useCallback(async (values: AIGlobalSettings) => {

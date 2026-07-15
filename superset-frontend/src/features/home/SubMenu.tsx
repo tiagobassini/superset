@@ -264,12 +264,14 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
           })}
         />
         <div className={navRightStyle}>
-          <Menu
-            mode="horizontal"
-            triggerSubMenuAction="click"
-            disabledOverflow
-            items={dropdownItems}
-          />
+          {dropdownItems?.length ? (
+            <Menu
+              mode="horizontal"
+              triggerSubMenuAction="click"
+              disabledOverflow
+              items={dropdownItems}
+            />
+          ) : null}
           {props.buttons?.map((btn, i) => (
             <Button
               key={i}

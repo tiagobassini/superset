@@ -60,6 +60,10 @@ class StubProvider:
         return self.responses.pop(0)
 
     @staticmethod
+    def build_assistant_message(content, tool_calls):
+        return {"role": "assistant", "content": content, "tool_calls": tool_calls}
+
+    @staticmethod
     def build_tool_message(tool_call_id: str, result_json: str) -> dict[str, str]:
         return {"role": "tool", "tool_call_id": tool_call_id, "content": result_json}
 
