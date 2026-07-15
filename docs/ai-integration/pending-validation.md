@@ -7,8 +7,6 @@ contexto por URL, carregamento de agentes e chamadas HTTP), porém **não está
 concluída**. Os seguintes itens precisam de implementação e testes:
 
 - Cobrir os quatro contextos do `useAIContext` com testes que usem o Redux real.
-- Testar `useAIChat` e implementar loading por mensagem, tratamento visível de
-  falhas e o fluxo completo de confirmar/cancelar ações pendentes.
 - Completar os componentes: bolhas distintas para usuário/assistente,
   confirmação integrada às mensagens, scroll automático, botão flutuante,
   minimizar, e componentes/tema padrão do Superset.

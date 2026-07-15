@@ -141,8 +141,8 @@ Tarefas de setup que desbloqueiam todas as demais.
   - [x] `confirmAction(actionId)` → POST /api/v1/ai/confirm_action
   - [x] `cancelAction(actionId)`
   - [x] Gerenciamento do histórico (sessionStorage)
-  - [ ] Estado de loading por mensagem — há apenas `isLoading` global; falta estado associado à mensagem/requisição.
-  - [ ] Testes unitários do hook, incluindo erro de rede, confirmação e cancelamento.
+  - [x] Estado de loading por mensagem.
+  - [x] Testes unitários do hook, incluindo erro de rede, confirmação e cancelamento.
 
 ### 2.5 Componentes do Chat
 - [ ] `ToggleButton.tsx` — existe, mas não é flutuante nem segue o sistema visual do Superset.
