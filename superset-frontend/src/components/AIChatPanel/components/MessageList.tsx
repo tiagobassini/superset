@@ -17,4 +17,5 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement MessageList component
-export {};
+import type { ChatMessage } from '../store/types';
+export const MessageList = ({ messages }: { messages: ChatMessage[] }) => <div aria-live="polite">{messages.map(message => <p key={message.id}>{message.content}</p>)}</div>;

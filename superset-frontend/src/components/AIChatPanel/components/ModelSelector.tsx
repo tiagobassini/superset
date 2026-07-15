@@ -17,4 +17,5 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement ModelSelector component
-export {};
+import type { AIAgent } from '../store/types';
+export const ModelSelector = ({ agents, value, onChange }: { agents: AIAgent[]; value: string | null; onChange: (id: string) => void }) => <select aria-label="Agente de IA" value={value ?? ''} onChange={event => onChange(event.target.value)}><option value="">Agente padrão</option>{agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select>;

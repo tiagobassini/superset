@@ -17,4 +17,4 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement ChatHeader component
-export {};
+export const ChatHeader = ({ onClose }: { onClose: () => void }) => <header>Assistente de IA <button type="button" onClick={onClose}>Fechar</button></header>;

@@ -17,4 +17,5 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement ActionConfirmation component
-export {};
+import type { PendingAction } from '../store/types';
+export const ActionConfirmation = ({ action, onConfirm, onCancel }: { action: PendingAction; onConfirm: () => void; onCancel: () => void }) => <section><p>{action.description}</p><button type="button" onClick={onConfirm}>Confirmar</button><button type="button" onClick={onCancel}>Cancelar</button></section>;

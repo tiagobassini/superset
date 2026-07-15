@@ -17,4 +17,4 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement MessageBubble component
-export {};
+export { MessageList as MessageBubble } from './MessageList';

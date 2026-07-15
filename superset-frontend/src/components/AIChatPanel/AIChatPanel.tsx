@@ -17,6 +17,17 @@
  * under the License.
  */
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from 'src/views/store';
+import { setOpen, setSelectedAgentId } from './store/aiChatSlice';
+import { ToggleButton } from './components/ToggleButton';
+import { ChatHeader } from './components/ChatHeader';
+import { ModelSelector } from './components/ModelSelector';
+import { ContextBadge } from './components/ContextBadge';
+import { MessageList } from './components/MessageList';
+import { ChatInput } from './components/ChatInput';
+import { useAgents } from './hooks/useAgents';
+import { useAIChat } from './hooks/useAIChat';
 
 /**
  * AIChatPanel — Floating AI assistant sidebar.
@@ -35,8 +46,6 @@ import React from 'react';
  *   - ChatInput
  *   - ToggleButton
  */
-const AIChatPanel: React.FC = () =>
-  // Placeholder — returns null until Fase 2 implementation.
-  null;
+const AIChatPanel: React.FC = () => { const dispatch = useDispatch(); const state = useSelector((root: RootState) => root.aiChat); const { agents } = useAgents(); const { messages, sendMessage } = useAIChat(); if (!state.isOpen) return <ToggleButton onClick={() => dispatch(setOpen(true))} />; return <aside role="complementary" aria-label="Assistente de IA"><ChatHeader onClose={() => dispatch(setOpen(false))} /><ModelSelector agents={agents} value={state.selectedAgentId} onChange={id => dispatch(setSelectedAgentId(id || null))} /><ContextBadge context={state.currentContext} /><MessageList messages={messages} /><ChatInput onSend={sendMessage} /></aside>; };
 
 export default AIChatPanel;

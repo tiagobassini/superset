@@ -17,4 +17,4 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement ToggleButton component
-export {};
+export const ToggleButton = ({ onClick }: { onClick: () => void }) => <button type="button" onClick={onClick}>IA</button>;

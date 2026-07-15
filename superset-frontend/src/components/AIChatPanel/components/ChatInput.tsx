@@ -17,4 +17,5 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement ChatInput component
-export {};
+import { useState } from 'react';
+export const ChatInput = ({ onSend }: { onSend: (text: string) => void }) => { const [text, setText] = useState(''); const send = () => { if (text.trim()) { onSend(text); setText(''); } }; return <><textarea aria-label="Mensagem para IA" value={text} onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.ctrlKey && event.key === 'Enter') send(); }} /><button type="button" onClick={send}>Enviar</button></>; };
