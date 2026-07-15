@@ -204,23 +204,23 @@ Tarefas de setup que desbloqueiam todas as demais.
 ## Fase 4 — Qualidade e Observabilidade
 
 ### 4.1 Testes
-- [ ] Cobertura de testes unitários ≥ 80% para `superset/ai/`
-- [ ] Testes de integração para todos os endpoints de API
-- [ ] Testes de componente React para `AIChatPanel` e `AIAgentsSettings`
-- [ ] Testes E2E (Playwright) para fluxo completo:
+- [x] Cobertura de testes unitários ≥ 80% para `superset/ai/`
+- [x] Testes de integração para todos os endpoints de API
+- [x] Testes de componente React para `AIChatPanel` e `AIAgentsSettings`
+- [x] Testes E2E (Playwright) para fluxo completo:
   - Abrir painel, enviar mensagem, confirmar ação, ver resultado
   - Criar agente na página de settings, testar conexão
 
 ### 4.2 Auditoria e Logging
-- [ ] Log de todas as ações de escrita executadas via IA
-- [ ] Log de falhas de autorização (tentativas bloqueadas)
-- [ ] Integrar com o `event_logger` existente do Superset
+- [x] Log de todas as ações de escrita executadas via IA
+- [x] Log de falhas de autorização (tentativas bloqueadas)
+- [x] Integrar com o `event_logger` existente do Superset
 
 ### 4.3 Documentação
-- [ ] Docstrings em todas as classes e métodos públicos Python
-- [ ] Comentários TSDoc nos hooks e componentes principais
-- [ ] Atualizar `UPDATING.md` com a nova feature flag
-- [ ] Guia de configuração rápida (primeiros passos para habilitar e configurar um agente)
+- [x] Docstrings em todas as classes e métodos públicos Python
+- [x] Comentários TSDoc nos hooks e componentes principais
+- [x] Atualizar `UPDATING.md` com a nova feature flag
+- [x] Guia de configuração rápida (primeiros passos para habilitar e configurar um agente)
 
 ---
 

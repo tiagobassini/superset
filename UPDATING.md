@@ -24,6 +24,9 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Added the feature-flagged AI Integration (`ENABLE_AI_INTEGRATION`) with agent
+  administration, confirmation-based write tools, auditing, and an assistant panel.
+
 ## 6.1.0
 
 ### ClickHouse minimum driver version bump
