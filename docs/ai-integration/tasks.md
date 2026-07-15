@@ -156,8 +156,8 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [ ] Testes unitários para componentes principais
 
 ### 2.6 Integração no Layout
-- [ ] Identificar o componente raiz de layout do Superset
-- [ ] Injetar `<AIChatPanel />` condicionado à feature flag
+- [x] Identificar o componente raiz de layout do Superset
+- [x] Injetar `<AIChatPanel />` condicionado à feature flag
 - [ ] Ajustar `padding-right` do layout quando painel estiver aberto
 - [ ] Garantir que o painel não sobreponha conteúdo em nenhuma resolução
 

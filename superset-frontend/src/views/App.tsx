@@ -26,6 +26,8 @@ import {
 import { bindActionCreators } from 'redux';
 import { css } from '@apache-superset/core/theme';
 import { Layout, Loading } from '@superset-ui/core/components';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import AIChatPanel from 'src/components/AIChatPanel';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
 import Menu from 'src/features/home/Menu';
@@ -106,6 +108,7 @@ const App = () => (
         </Switch>
       </ExtensionsStartup>
       <ToastContainer />
+      {isFeatureEnabled(FeatureFlag.EnableAiIntegration) && <AIChatPanel />}
     </RootContextProviders>
   </Router>
 );
