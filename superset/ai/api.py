@@ -27,7 +27,7 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled
 from superset.ai.crypto import encrypt_api_key
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
-from superset.ai.models import AIGlobalSettings, AIAgent, get_ai_global_settings
+from superset.ai.models import AIAgent, AIGlobalSettings, get_ai_global_settings
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.schemas import (
     AgentSchema,
@@ -155,7 +155,7 @@ class AIRestApi(BaseSupersetApi):
         include_inactive = request.args.get("include_inactive") == "true"
         if include_inactive:
             self._require("can_manage_ai_agents")
-            agents = AIAgent.query.order_by(AIAgent.name).all()
+            agents = db.session.query(AIAgent).order_by(AIAgent.name).all()
             return jsonify(
                 {
                     "count": len(agents),
@@ -167,7 +167,7 @@ class AIRestApi(BaseSupersetApi):
         self._require("can_use_ai_chat")
         agents = [
             agent
-            for agent in AIAgent.query.filter_by(is_active=True)
+            for agent in db.session.query(AIAgent).filter_by(is_active=True)
             if self._can_use(agent)
         ]
         return jsonify(
@@ -296,7 +296,11 @@ class AIRestApi(BaseSupersetApi):
     def _get_agent(self, agent_id: Any) -> AIAgent | None:
         if agent_id:
             return db.session.get(AIAgent, str(agent_id))
-        return AIAgent.query.filter_by(is_default=True, is_active=True).first()
+        return (
+            db.session.query(AIAgent)
+            .filter_by(is_default=True, is_active=True)
+            .first()
+        )
 
     @staticmethod
     def _can_use(agent: AIAgent) -> bool:
@@ -364,6 +368,6 @@ class AIRestApi(BaseSupersetApi):
     def _ensure_single_default(agent: AIAgent) -> None:
         """Clear the default marker from every other agent when requested."""
         if agent.is_default:
-            AIAgent.query.filter(AIAgent.id != agent.id).update(
+            db.session.query(AIAgent).filter(AIAgent.id != agent.id).update(
                 {"is_default": False}, synchronize_session=False
             )

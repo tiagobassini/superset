@@ -20,15 +20,10 @@ import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import {
-  styled,
-  SupersetTheme,
-  css,
-  useTheme,
-} from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import { Menu, MenuMode, MainNav } from '@superset-ui/core/components/Menu';
+import { Menu, MenuMode } from '@superset-ui/core/components/Menu';
 import {
   Button,
   Tooltip,
@@ -119,19 +114,6 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   }
 `;
 
-const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colorTextDisabled};
-  cursor: not-allowed;
-
-  &:hover {
-    color: ${theme.colorTextDisabled};
-  }
-
-  .ant-menu-item-selected {
-    background-color: ${theme.colorBgContainerDisabled};
-  }
-`;
-
 type MenuChild = {
   label: string;
   name: string;
@@ -166,12 +148,9 @@ export interface SubMenuProps {
   backgroundColor?: string;
 }
 
-const { SubMenu } = MainNav;
-
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
-  const theme = useTheme();
 
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
@@ -182,6 +161,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
     hasHistory = false;
   }
 
+  /* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change */
   useEffect(() => {
     function handleResize() {
       if (window.innerWidth <= 767) setMenu('inline');
@@ -207,6 +187,36 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
   }, [props.buttons]);
+  /* eslint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change */
+
+  const dropdownItems = props.dropDownLinks?.map(link => ({
+    key: link.label,
+    label: link.label,
+    icon: <Icons.CaretDownOutlined />,
+    children: link.childs?.flatMap(item => {
+      if (typeof item !== 'object') return [];
+      return [
+        {
+          key: item.label,
+          disabled: item.disable,
+          label: item.disable ? (
+            <Tooltip
+              placement="top"
+              title={t(
+                "Enable 'Allow file uploads to database' in any database's settings",
+              )}
+            >
+              {item.label}
+            </Tooltip>
+          ) : (
+            <Typography.Link href={item.url} onClick={item.onClick}>
+              {item.label}
+            </Typography.Link>
+          ),
+        },
+      ];
+    }),
+  }));
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
@@ -254,52 +264,12 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
           })}
         />
         <div className={navRightStyle}>
-          <Menu mode="horizontal" triggerSubMenuAction="click" disabledOverflow>
-            {props.dropDownLinks?.map((link, i) => (
-              <SubMenu
-                css={css`
-                  [data-icon='caret-down'] {
-                    color: ${theme.colorIcon};
-                    font-size: ${theme.fontSizeXS}px;
-                    margin-left: ${theme.sizeUnit}px;
-                  }
-                `}
-                key={i}
-                title={link.label}
-                icon={<Icons.CaretDownOutlined />}
-                popupOffset={[10, 20]}
-                className="dropdown-menu-links"
-              >
-                {link.childs?.map(item => {
-                  if (typeof item === 'object') {
-                    return item.disable ? (
-                      <MainNav.Item
-                        key={item.label}
-                        css={styledDisabled}
-                        disabled
-                      >
-                        <Tooltip
-                          placement="top"
-                          title={t(
-                            "Enable 'Allow file uploads to database' in any database's settings",
-                          )}
-                        >
-                          {item.label}
-                        </Tooltip>
-                      </MainNav.Item>
-                    ) : (
-                      <MainNav.Item key={item.label}>
-                        <Typography.Link href={item.url} onClick={item.onClick}>
-                          {item.label}
-                        </Typography.Link>
-                      </MainNav.Item>
-                    );
-                  }
-                  return null;
-                })}
-              </SubMenu>
-            ))}
-          </Menu>
+          <Menu
+            mode="horizontal"
+            triggerSubMenuAction="click"
+            disabledOverflow
+            items={dropdownItems}
+          />
           {props.buttons?.map((btn, i) => (
             <Button
               key={i}

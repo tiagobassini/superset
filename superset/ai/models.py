@@ -30,14 +30,15 @@ from types import SimpleNamespace
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Table, Text
+from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import Role
+from sqlalchemy import Boolean, Column, Enum, Integer, String, Table, Text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relationship
 
 from superset import db
-from superset.models.helpers import AuditMixinNullable
 
-metadata = db.Model.metadata
+metadata = Model.metadata
 
 # Supported AI providers. DeepSeek and Codex use the OpenAI-compatible adapter.
 AI_PROVIDER_ENUM = Enum(
@@ -57,21 +58,19 @@ ai_agent_roles = Table(
     metadata,
     Column("id", sa.Integer, primary_key=True),
     Column(
-        "agent_id",
-        String(36),
-        ForeignKey("ai_agent.id", ondelete="CASCADE"),
-        nullable=False,
+    "agent_id",
+    String(36),
+    nullable=False,
     ),
     Column(
-        "role_id",
-        sa.Integer,
-        ForeignKey("ab_role.id", ondelete="CASCADE"),
-        nullable=False,
+    "role_id",
+    sa.Integer,
+    nullable=False,
     ),
 )
 
 
-class AIAgent(AuditMixinNullable, db.Model):
+class AIAgent(Model):
     """Represents an AI provider configuration (agent) within Superset.
 
     Each agent stores the connection details for one AI model endpoint
@@ -110,8 +109,10 @@ class AIAgent(AuditMixinNullable, db.Model):
     # Many-to-many: which FAB roles may use this agent.
     # Empty → any role with can_use_ai_chat may use it.
     allowed_roles = relationship(
-        "Role",
+        Role,
         secondary=ai_agent_roles,
+        primaryjoin=lambda: AIAgent.id == ai_agent_roles.c.agent_id,
+        secondaryjoin=lambda: Role.id == ai_agent_roles.c.role_id,
         passive_deletes=True,
     )
 
@@ -119,7 +120,7 @@ class AIAgent(AuditMixinNullable, db.Model):
         return f"<AIAgent {self.name!r} provider={self.provider} model={self.model}>"
 
 
-class AIGlobalSettings(db.Model):
+class AIGlobalSettings(Model):
     """Singleton configuration controlling global AI integration behavior."""
 
     __tablename__ = "ai_global_settings"

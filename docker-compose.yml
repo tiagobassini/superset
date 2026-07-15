@@ -73,8 +73,8 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    #profiles:
-    #  - ai
+    profiles:
+      - ai
     restart: unless-stopped
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
@@ -112,8 +112,8 @@ services:
 
   ollama-pull:
     image: ollama/ollama:latest
-    #profiles:
-    #  - ai
+    profiles:
+      - ai
     restart: "no"
     entrypoint: ["/bin/sh", "-c"]
     command: ["ollama pull ${OLLAMA_MODEL:-qwen3:1.7b}"]
