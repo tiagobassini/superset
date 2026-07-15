@@ -115,3 +115,54 @@ test('confirms and cancels pending actions by id', async () => {
   act(() => getChat().cancelAction('cancel'));
   expect(getChat().messages[0].pendingActions?.[1].status).toBe('cancelled');
 });
+
+test('keeps the backend failure reason for the next assistant request', async () => {
+  sessionStorage.setItem(
+    'superset_ai_chat_history',
+    JSON.stringify([
+      {
+        id: 'message',
+        role: 'assistant',
+        content: 'Ação',
+        timestamp: 1,
+        pendingActions: [
+          {
+            id: 'confirm',
+            type: 'create_dataset',
+            description: 'Criar dataset',
+            params: {},
+            status: 'pending',
+          },
+        ],
+      },
+    ]),
+  );
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockRejectedValueOnce(new Error('Dataset parameters are invalid.'))
+    .mockResolvedValueOnce({
+      json: { response: 'Entendi', pending_actions: [] },
+    } as never);
+  const { getChat } = createWrapper();
+
+  await waitFor(() => expect(getChat().messages).toHaveLength(1));
+  await act(async () => getChat().confirmAction('confirm'));
+  await act(async () => getChat().sendMessage('Por que falhou?'));
+
+  expect(getChat().messages[0].pendingActions?.[0]).toMatchObject({
+    status: 'failed',
+    error: 'Dataset parameters are invalid.',
+  });
+  expect(post).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      endpoint: '/api/v1/ai/chat',
+      jsonPayload: expect.objectContaining({
+        history: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining('Dataset parameters are invalid.'),
+          }),
+        ]),
+      }),
+    }),
+  );
+});

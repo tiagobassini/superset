@@ -21,7 +21,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from flask import g
 from marshmallow import ValidationError
+from werkzeug.exceptions import Forbidden
 
 from superset.ai.api import AIRestApi
 from superset.ai.orchestrator import PendingAction
@@ -80,6 +82,14 @@ def test_agent_schema_accepts_openai_compatible_providers() -> None:
     assert payload["provider"] == "deepseek"
 
 
+def test_agent_schema_validates_response_language() -> None:
+    payload = AgentSchema().load({"response_language": "pt-BR"})
+
+    assert payload["response_language"] == "pt-BR"
+    with pytest.raises(ValidationError):
+        AgentSchema().load({"response_language": "de-DE"})
+
+
 def test_agent_schema_accepts_docker_service_base_url() -> None:
     payload = AgentSchema().load({"base_url": "http://ollama:11434"})
 
@@ -136,4 +146,22 @@ def test_pending_action_response_hides_internal_agent_binding() -> None:
     result = action.to_dict()
 
     assert result["type"] == "create_chart"
+    assert result["status"] == "pending"
     assert "agent_id" not in result
+
+
+def test_permission_denial_is_audited(app, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Blocked AI endpoint access must be visible in Superset's audit trail."""
+    from superset.ai import api
+
+    events: list[dict[str, object]] = []
+    monkeypatch.setattr(api.security_manager, "can_access", lambda *_: False)
+    monkeypatch.setattr(
+        "superset.extensions.event_logger.log", lambda **payload: events.append(payload)
+    )
+    with app.test_request_context("/api/v1/ai/agents"):
+        g.user = SimpleNamespace(id=9)
+        with pytest.raises(Forbidden):
+            AIRestApi._require("can_manage_ai_agents")
+
+    assert events[0]["action"] == "ai_authorization_denied"
