@@ -42,3 +42,11 @@ test('clears both the input and persisted chat history on user request', () => {
   expect(onClear).toHaveBeenCalledTimes(1);
   expect(input).toHaveValue('');
 });
+
+test('moves focus to the textarea when requested by the chat panel', () => {
+  render(<ChatInput autoFocus onClear={jest.fn()} onSend={jest.fn()} />);
+
+  expect(
+    screen.getByRole('textbox', { name: 'Mensagem para IA' }),
+  ).toHaveFocus();
+});

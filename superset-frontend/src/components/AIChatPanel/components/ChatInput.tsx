@@ -32,6 +32,7 @@ const Controls = styled.div`
 `;
 
 export interface ChatInputProps {
+  autoFocus?: boolean;
   disabled?: boolean;
   onClear: () => void;
   onSend: (text: string) => void;
@@ -39,6 +40,7 @@ export interface ChatInputProps {
 
 /** Input for a chat message; Ctrl+Enter sends without losing multiline support. */
 export const ChatInput = ({
+  autoFocus = false,
   disabled = false,
   onClear,
   onSend,
@@ -55,6 +57,7 @@ export const ChatInput = ({
     <Container>
       <Input.TextArea
         aria-label="Mensagem para IA"
+        autoFocus={autoFocus}
         autoSize={{ minRows: 2, maxRows: 6 }}
         disabled={disabled}
         onChange={event => setText(event.target.value)}

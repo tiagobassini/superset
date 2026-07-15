@@ -159,15 +159,15 @@ Tarefas de setup que desbloqueiam todas as demais.
 ### 2.6 Integração no Layout
 - [x] Identificar o componente raiz de layout do Superset
 - [x] Injetar `<AIChatPanel />` condicionado à feature flag
-- [ ] Ajustar `padding-right` do layout quando painel estiver aberto
-- [ ] Garantir que o painel não sobreponha conteúdo em nenhuma resolução
+- [x] Ajustar `padding-right` do layout quando painel estiver aberto (380 px em desktop)
+- [x] Garantir que o painel não sobreponha conteúdo em nenhuma resolução (em telas até 900 px o chat é uma visualização de tela cheia e o conteúdo principal é ocultado enquanto ele estiver aberto)
 
 ### 2.7 Acessibilidade
 - [x] `role="complementary"` e `aria-label` no painel
 - [x] `aria-live="polite"` na lista de mensagens
-- [ ] `Esc` fecha o painel
+- [x] `Esc` fecha o painel
 - [x] `Ctrl+Enter` envia mensagem
-- [ ] Foco movido para o input ao abrir o painel
+- [x] Foco movido para o input ao abrir o painel
 
 ---
 

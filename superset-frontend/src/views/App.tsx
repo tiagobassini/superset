@@ -29,6 +29,10 @@ import { css } from '@apache-superset/core/theme';
 import { Layout, Loading } from '@superset-ui/core/components';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import AIChatPanel from 'src/components/AIChatPanel';
+import {
+  AI_CHAT_MOBILE_BREAKPOINT,
+  getAIChatLayoutState,
+} from 'src/components/AIChatPanel/layout';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
 import Menu from 'src/features/home/Menu';
@@ -75,6 +79,8 @@ const LocationPathnameLogger = () => {
 
 const AppContent = () => {
   const isAIChatOpen = useSelector((state: RootState) => state.aiChat.isOpen);
+  const { desktopPaddingRight, hideContentOnMobile } =
+    getAIChatLayoutState(isAIChatOpen);
 
   return (
     <>
@@ -90,10 +96,11 @@ const AppContent = () => {
                 <Layout
                   css={css`
                     transition: padding-right 0.3s ease;
-                    padding-right: ${isAIChatOpen ? '380px' : '0'};
+                    padding-right: ${desktopPaddingRight};
 
-                    @media (max-width: 900px) {
+                    @media (max-width: ${AI_CHAT_MOBILE_BREAKPOINT}px) {
                       padding-right: 0;
+                      ${hideContentOnMobile && 'display: none;'}
                     }
                   `}
                 >

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { FC } from 'react';
+import { useCallback, useLayoutEffect, useState, type FC } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from 'src/views/store';
 import { setOpen, setSelectedAgentId } from './store/aiChatSlice';
-import { ToggleButton } from './components/ToggleButton';
+import { DEFAULT_TOGGLE_TOP, ToggleButton } from './components/ToggleButton';
 import { ChatHeader } from './components/ChatHeader';
 import { ModelSelector } from './components/ModelSelector';
 import { ContextBadge } from './components/ContextBadge';
@@ -29,6 +29,7 @@ import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { useAgents } from './hooks/useAgents';
 import { useAIChat } from './hooks/useAIChat';
+import { AI_CHAT_MOBILE_BREAKPOINT, AI_CHAT_PANEL_WIDTH } from './layout';
 
 /**
  * AIChatPanel — Floating AI assistant sidebar.
@@ -40,6 +41,7 @@ import { useAIChat } from './hooks/useAIChat';
  *
  */
 const Sidebar = styled.aside`
+  animation: slide-in 0.3s ease;
   background: ${({ theme }) => theme.colorBgContainer};
   border-left: 1px solid ${({ theme }) => theme.colorBorder};
   bottom: 0;
@@ -49,17 +51,28 @@ const Sidebar = styled.aside`
   position: fixed;
   right: 0;
   top: 0;
-  width: 380px;
+  width: ${AI_CHAT_PANEL_WIDTH}px;
   z-index: 1000;
 
-  @media (max-width: 900px) {
-    width: min(380px, 100vw);
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+    }
+
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @media (max-width: ${AI_CHAT_MOBILE_BREAKPOINT}px) {
+    width: 100vw;
   }
 `;
 
 const AIChatPanel: FC = () => {
   const dispatch = useDispatch();
   const state = useSelector((root: RootState) => root.aiChat);
+  const [toggleTop, setToggleTop] = useState(DEFAULT_TOGGLE_TOP);
   const { agents } = useAgents();
   const {
     messages,
@@ -69,17 +82,43 @@ const AIChatPanel: FC = () => {
     cancelAction,
     clearChatHistory,
   } = useAIChat();
+  const closePanel = useCallback(() => dispatch(setOpen(false)), [dispatch]);
+
+  useLayoutEffect(() => {
+    if (!state.isOpen) return undefined;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closePanel();
+      }
+    };
+
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [closePanel, state.isOpen]);
 
   if (!state.isOpen) {
-    return <ToggleButton onClick={() => dispatch(setOpen(true))} />;
+    return (
+      <ToggleButton
+        top={toggleTop}
+        onClick={() => dispatch(setOpen(true))}
+        onTopChange={setToggleTop}
+      />
+    );
   }
 
   return (
-    <Sidebar role="complementary" aria-label="Assistente de IA">
-      <ChatHeader
-        onClose={() => dispatch(setOpen(false))}
-        onMinimize={() => dispatch(setOpen(false))}
-      />
+    <Sidebar
+      role="complementary"
+      aria-label="Assistente de IA"
+      onKeyDown={event => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          closePanel();
+        }
+      }}
+    >
+      <ChatHeader onClose={closePanel} onMinimize={closePanel} />
       <ModelSelector
         agents={agents}
         value={state.selectedAgentId}
@@ -92,6 +131,7 @@ const AIChatPanel: FC = () => {
       />
       <ContextBadge context={state.currentContext} />
       <ChatInput
+        autoFocus
         disabled={isLoading}
         onClear={clearChatHistory}
         onSend={sendMessage}
