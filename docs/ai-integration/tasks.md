@@ -119,10 +119,10 @@ Tarefas de setup que desbloqueiam todas as demais.
 ## Fase 2 — Frontend Core
 
 ### 2.1 Store / State Management
-- [ ] Criar `aiChatSlice.ts` com estado: `isOpen`, `messages`, `selectedAgentId`, `isLoading`, `currentContext`
-- [ ] Adicionar slice ao Redux store do Superset
-- [ ] Criar `sessionStorage.ts` para persistência do histórico
-- [ ] Definir todos os tipos TypeScript em `store/types.ts`
+- [x] Criar `aiChatSlice.ts` com estado: `isOpen`, `messages`, `selectedAgentId`, `isLoading`, `currentContext`
+- [x] Adicionar slice ao Redux store do Superset
+- [x] Criar `sessionStorage.ts` para persistência do histórico
+- [x] Definir todos os tipos TypeScript em `store/types.ts`
 
 ### 2.2 Hook de Contexto
 - [ ] Implementar `useAIContext.ts` — extrai contexto da página atual via URL + Redux
