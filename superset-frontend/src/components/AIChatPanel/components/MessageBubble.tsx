@@ -38,6 +38,42 @@ const Sender = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
+const TypingIndicator = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+
+  span {
+    animation: ai-typing 1.2s infinite ease-in-out;
+    background: ${({ theme }) => theme.colorPrimary};
+    border-radius: 50%;
+    height: ${({ theme }) => theme.sizeUnit}px;
+    width: ${({ theme }) => theme.sizeUnit}px;
+  }
+
+  span:nth-of-type(2) {
+    animation-delay: 0.15s;
+  }
+
+  span:nth-of-type(3) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes ai-typing {
+    0%,
+    80%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.8);
+    }
+
+    40% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
+`;
+
 export interface MessageBubbleProps {
   message: ChatMessage;
   onConfirmAction: (actionId: string) => void;
@@ -52,7 +88,14 @@ export const MessageBubble = ({
 }: MessageBubbleProps) => (
   <Bubble $role={message.role} aria-label={`Mensagem ${message.role}`}>
     <Sender>{message.role === 'user' ? 'Você' : 'Assistente de IA'}</Sender>
-    {message.content || (message.isStreaming && 'Digitando…')}
+    {message.content ||
+      (message.isStreaming && (
+        <TypingIndicator aria-label="A IA está respondendo" role="status">
+          <span />
+          <span />
+          <span />
+        </TypingIndicator>
+      ))}
     {message.pendingActions?.map(action => (
       <ActionConfirmation
         key={action.id}

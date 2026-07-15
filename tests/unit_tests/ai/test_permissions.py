@@ -21,7 +21,7 @@ Verifies that:
 - All 8 AI permissions are registered in FAB when the feature flag is enabled.
 - No AI permissions are registered when the feature flag is disabled.
 - `can_manage_ai_agents` is treated as admin-only.
-- `AIAgentResource` view menu is treated as admin-only.
+- `can_manage_ai_agents` is the only AI permission restricted to administrators.
 - Non-admin-only AI permissions (can_use_ai_chat, can_ai_*) are NOT in
   ADMIN_ONLY_PERMISSIONS, so they can be granted to other roles.
 """
@@ -141,12 +141,12 @@ def test_other_ai_perms_not_in_admin_only_permissions(
 # ---------------------------------------------------------------------------
 
 
-def test_ai_agent_resource_is_in_admin_only_view_menus(
+def test_ai_agent_resource_is_not_admin_only_view_menu(
     app_context: None,
 ) -> None:
-    """AIAgentResource must be listed in ADMIN_ONLY_VIEW_MENUS."""
+    """Delegable chat/tool permissions must not inherit an admin-only view menu."""
     sm = SupersetSecurityManager(appbuilder)
-    assert AI_VIEW_MENU in sm.ADMIN_ONLY_VIEW_MENUS
+    assert AI_VIEW_MENU not in sm.ADMIN_ONLY_VIEW_MENUS
 
 
 # ---------------------------------------------------------------------------
@@ -163,16 +163,15 @@ def test_is_admin_only_returns_true_for_can_manage_ai_agents(
     assert sm._is_admin_only(pvm) is True
 
 
-def test_is_admin_only_returns_true_for_any_perm_on_ai_view_menu(
+def test_is_admin_only_returns_false_for_delegable_ai_permissions(
     app_context: None,
 ) -> None:
-    """Any permission on AIAgentResource is admin-only because the view menu
-    itself is in ADMIN_ONLY_VIEW_MENUS."""
+    """Chat and tool permissions may be assigned to non-admin AI roles."""
     sm = SupersetSecurityManager(appbuilder)
-    for perm in AI_PERMISSIONS:
+    for perm in AI_PERMISSIONS - {"can_manage_ai_agents"}:
         pvm = _make_pvm(perm, AI_VIEW_MENU)
-        assert sm._is_admin_only(pvm) is True, (
-            f"_is_admin_only should return True for ({perm!r}, {AI_VIEW_MENU!r})"
+        assert sm._is_admin_only(pvm) is False, (
+            f"_is_admin_only should return False for ({perm!r}, {AI_VIEW_MENU!r})"
         )
 
 

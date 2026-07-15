@@ -104,6 +104,8 @@ class AIAgent(Model):
     is_default = Column(Boolean, default=False, nullable=False)
     # Soft-disable an agent without deleting it.
     is_active = Column(Boolean, default=True, nullable=False)
+    # Language used by the provider when responding to the user.
+    response_language = Column(String(16), default="pt-BR", nullable=False)
     enabled_tools = Column(sa.JSON, nullable=True)
 
     # Many-to-many: which FAB roles may use this agent.

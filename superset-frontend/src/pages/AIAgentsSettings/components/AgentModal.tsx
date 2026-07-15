@@ -48,6 +48,7 @@ const TOOL_NAMES = [
   'list_charts',
   'list_dashboards',
   'list_saved_queries',
+  'get_saved_query',
   'run_sql_query',
   'save_sql_query',
   'create_chart',
@@ -108,6 +109,7 @@ export const AgentModal = ({
       name: agent?.name ?? '',
       provider: agent?.provider ?? 'openai',
       model: agent?.model ?? '',
+      response_language: agent?.response_language ?? 'pt-BR',
       base_url: agent?.base_url ?? undefined,
       role_ids: agent?.role_ids ?? [],
       is_active: agent?.is_active ?? true,
@@ -176,6 +178,20 @@ export const AgentModal = ({
           <Input />
         </Form.Item>
         <Form.Item
+          name="response_language"
+          label={t('Response language')}
+          rules={[{ required: true }]}
+        >
+          <Select
+            options={[
+              { label: 'Português do Brasil', value: 'pt-BR' },
+              { label: 'English', value: 'en-US' },
+              { label: 'Español', value: 'es-ES' },
+              { label: 'Français', value: 'fr-FR' },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item
           name="api_key"
           label={t('API Key')}
           rules={[
@@ -204,11 +220,22 @@ export const AgentModal = ({
           name="base_url"
           label={t('Base URL')}
           rules={[
-            { type: 'url' },
             {
               validator: async (_, value) => {
                 if (form.getFieldValue('provider') === 'ollama' && !value) {
                   throw new Error(t('Base URL is required for Ollama'));
+                }
+                if (!value) return;
+                try {
+                  const url = new URL(value);
+                  if (
+                    !['http:', 'https:'].includes(url.protocol) ||
+                    !url.hostname
+                  ) {
+                    throw new Error();
+                  }
+                } catch {
+                  throw new Error(t('Enter a valid HTTP(S) URL'));
                 }
               },
             },

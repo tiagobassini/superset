@@ -97,6 +97,7 @@ def test_default_registry_contains_all_mvp_tools() -> None:
         "edit_dashboard",
         "get_current_context",
         "get_dataset_schema",
+        "get_saved_query",
         "get_table_schema",
         "list_charts",
         "list_dashboards",
@@ -127,6 +128,7 @@ def test_registry_rejects_duplicate_tool_names() -> None:
         "list_charts",
         "list_dashboards",
         "list_saved_queries",
+        "get_saved_query",
         "get_current_context",
         "run_sql_query",
         "save_sql_query",
@@ -157,6 +159,7 @@ def test_every_builtin_tool_has_an_openai_schema(tool_name: str) -> None:
         "list_charts",
         "list_dashboards",
         "list_saved_queries",
+        "get_saved_query",
         "get_current_context",
         "run_sql_query",
         "save_sql_query",
@@ -283,6 +286,38 @@ def test_orchestrator_only_offers_tools_enabled_for_the_agent(
     assert provider.tools == [[]]
 
 
+def test_saved_query_lookup_is_available_with_saved_query_listing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    list_tool = StubTool()
+    list_tool.name = "list_saved_queries"
+    lookup_tool = StubTool()
+    lookup_tool.name = "get_saved_query"
+    registry.register(list_tool)
+    registry.register(lookup_tool)
+    provider = StubProvider([ProviderResponse("No tool required.")])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1",
+        provider="openai",
+        model="test",
+        api_key_encrypted=None,
+        enabled_tools=["list_saved_queries"],
+    )
+
+    AIOrchestrator(agent, registry, SimpleNamespace(id=42)).chat(
+        "Use minha consulta salva", [], {"page": "sql"}
+    )
+
+    assert {tool["function"]["name"] for tool in provider.tools[0]} == {
+        "list_saved_queries",
+        "get_saved_query",
+    }
+
+
 def test_orchestrator_defers_write_tool_until_confirmed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -401,8 +436,73 @@ def test_system_prompt_sanitizes_complete_context() -> None:
 
     assert "<script>" not in prompt
     assert "dashboard" in prompt
-    assert "ID: 12" in prompt
+    assert "id=12" in prompt
     assert "north" in prompt
+
+
+def test_ollama_system_prompt_requires_brazilian_portuguese() -> None:
+    prompt = AIOrchestrator._system_prompt({"page": "home"}, "ollama")
+
+    assert "Reply only in Brazilian Portuguese (pt-BR)" in prompt
+
+
+def test_system_prompt_uses_the_agent_response_language() -> None:
+    prompt = AIOrchestrator._system_prompt({"page": "home"}, "ollama", "en-US")
+
+    assert "Reply only in English (en-US)" in prompt
+
+
+def test_orchestrator_limits_tools_to_the_domains_named_in_a_request() -> None:
+    tools = [
+        {"function": {"name": name}}
+        for name in (
+            "list_databases",
+            "list_datasets",
+            "create_dataset",
+            "list_charts",
+            "create_chart",
+            "list_dashboards",
+            "add_chart_to_dashboard",
+            "run_sql_query",
+        )
+    ]
+
+    selected = AIOrchestrator._tools_for_message(
+        tools,
+        "Crie um dataset, gere um gráfico e adicione-o ao dashboard CBMES.",
+    )
+
+    assert {tool["function"]["name"] for tool in selected} == {
+        "list_databases",
+        "list_datasets",
+        "create_dataset",
+        "list_charts",
+        "create_chart",
+        "list_dashboards",
+        "add_chart_to_dashboard",
+    }
+
+
+def test_orchestrator_keeps_all_tools_when_no_domain_is_named() -> None:
+    tools = [
+        {"function": {"name": "list_charts"}},
+        {"function": {"name": "run_sql_query"}},
+    ]
+
+    assert AIOrchestrator._tools_for_message(tools, "Ajude-me") == tools
+
+
+def test_orchestrator_bounds_and_sanitizes_history() -> None:
+    history = [
+        {"role": "user", "content": "x" * 2_000},
+        {"role": "tool", "content": "must be ignored"},
+        *[{"role": "assistant", "content": str(index)} for index in range(7)],
+    ]
+
+    compact = AIOrchestrator._compact_history(history)
+
+    assert len(compact) == 6
+    assert compact[0] == {"role": "assistant", "content": "1"}
 
 
 def test_orchestrator_stops_an_endless_tool_loop(

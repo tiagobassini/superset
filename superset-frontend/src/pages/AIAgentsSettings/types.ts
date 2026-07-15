@@ -24,6 +24,8 @@ export type AIProvider =
   | 'ollama'
   | 'openai';
 
+export type AIResponseLanguage = 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR';
+
 export interface AIAgentConfiguration {
   api_key_set?: boolean;
   base_url?: string | null;
@@ -33,6 +35,7 @@ export interface AIAgentConfiguration {
   model: string;
   name: string;
   provider: AIProvider;
+  response_language?: AIResponseLanguage;
   role_ids?: number[];
   enabled_tools?: string[] | null;
 }
@@ -47,6 +50,7 @@ export type AIAgentUpdate = Partial<
     | 'model'
     | 'name'
     | 'provider'
+    | 'response_language'
   >
 > & {
   api_key?: string;

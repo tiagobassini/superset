@@ -121,8 +121,34 @@ def test_ollama_adapter_normalizes_native_tool_calls() -> None:
     assert result.tool_calls[0].id
     client.post.assert_called_once_with(
         "/api/chat",
-        json={"model": "llama3.2", "messages": [], "tools": [], "stream": False},
+        json={
+            "model": "llama3.2",
+            "messages": [],
+            "tools": [],
+            "stream": False,
+            "think": False,
+        },
     )
+
+
+def test_ollama_adapter_normalizes_qwen_content_tool_call() -> None:
+    client = MagicMock()
+    response = MagicMock()
+    response.json.return_value = {
+        "message": {
+            "content": '{"name":"list_database_tables","arguments":{"database_id":1}}'
+        }
+    }
+    client.post.return_value = response
+
+    result = OllamaProviderAdapter(client=client).chat_with_tools(
+        messages=[], tools=[], model="qwen3:1.7b"
+    )
+
+    assert result.content == ""
+    assert [(call.name, call.arguments) for call in result.tool_calls] == [
+        ("list_database_tables", {"database_id": 1})
+    ]
 
 
 def test_ollama_adapter_tests_connection_without_raising() -> None:

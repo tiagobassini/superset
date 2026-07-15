@@ -108,7 +108,7 @@ services:
     environment:
       ENABLE_AI_INTEGRATION: ${ENABLE_AI_INTEGRATION:-true}
     volumes: *superset-volumes
-    
+
   superset-websocket:
     build: ./superset-websocket
     ports:
@@ -261,11 +261,11 @@ services:
 
 volumes:
   superset_home:
-    external: false 
+    external: false
   db_home:
     external: false
   redis:
     external: false
   superset_data:
     external: false
-  
+

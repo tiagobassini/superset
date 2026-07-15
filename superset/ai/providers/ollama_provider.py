@@ -25,6 +25,8 @@ from superset.ai.exceptions import AIProviderError
 from superset.ai.providers.base import AIProviderAdapter, ProviderResponse, ToolCall
 from superset.utils import json
 
+OLLAMA_REQUEST_TIMEOUT_SECONDS = 120.0
+
 
 class OllamaProviderAdapter(AIProviderAdapter):
     """Adapt Ollama's ``/api/chat`` tool calling format to the common contract."""
@@ -43,7 +45,9 @@ class OllamaProviderAdapter(AIProviderAdapter):
                 "Ollama support requires the 'ai' optional dependency. "
                 "Install apache-superset[ai]."
             ) from ex
-        self.client = httpx.Client(base_url=base_url.rstrip("/"), timeout=30.0)
+        self.client = httpx.Client(
+            base_url=base_url.rstrip("/"), timeout=OLLAMA_REQUEST_TIMEOUT_SECONDS
+        )
 
     def chat_with_tools(
         self,
@@ -60,6 +64,9 @@ class OllamaProviderAdapter(AIProviderAdapter):
                     "messages": messages,
                     "tools": tools,
                     "stream": False,
+                    # Qwen3's hidden reasoning consumes output tokens and delays
+                    # tool calls without adding value to Superset operations.
+                    "think": False,
                 },
             )
             response.raise_for_status()
@@ -68,8 +75,13 @@ class OllamaProviderAdapter(AIProviderAdapter):
             tool_calls = [
                 self._to_tool_call(call) for call in message.get("tool_calls", [])
             ]
+            content = message.get("content") or ""
+            if not tool_calls:
+                tool_calls = self._tool_calls_from_content(content)
             return ProviderResponse(
-                content=message.get("content") or "", tool_calls=tool_calls, raw=payload
+                content="" if tool_calls else content,
+                tool_calls=tool_calls,
+                raw=payload,
             )
         except AIProviderError:
             raise
@@ -130,3 +142,32 @@ class OllamaProviderAdapter(AIProviderAdapter):
             name=function["name"],
             arguments=arguments,
         )
+
+    @staticmethod
+    def _tool_calls_from_content(content: str) -> list[ToolCall]:
+        """Handle Qwen models that serialise a tool call in message content.
+
+        Ollama normally returns ``message.tool_calls``. Some Qwen responses use
+        a JSON object in ``message.content`` instead, so accepting only the
+        native field makes a requested operation look like ordinary prose.
+        """
+        try:
+            value = json.loads(content)
+        except (TypeError, json.JSONDecodeError):
+            return []
+        calls = value.get("tool_calls", []) if isinstance(value, dict) else []
+        if isinstance(value, dict) and {"name", "arguments"} <= value.keys():
+            calls = [value]
+        parsed: list[ToolCall] = []
+        for call in calls:
+            if not isinstance(call, dict):
+                return []
+            if "function" in call:
+                parsed.append(OllamaProviderAdapter._to_tool_call(call))
+                continue
+            name = call.get("name")
+            arguments = call.get("arguments")
+            if not isinstance(name, str) or not isinstance(arguments, dict):
+                return []
+            parsed.append(ToolCall(id=str(uuid4()), name=name, arguments=arguments))
+        return parsed

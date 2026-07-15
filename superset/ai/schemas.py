@@ -77,6 +77,9 @@ class AgentSchema(Schema):
     api_key = fields.String(load_only=True, validate=validate.Length(min=1, max=4096))
     is_default = fields.Boolean()
     is_active = fields.Boolean()
+    response_language = fields.String(
+        validate=validate.OneOf(["pt-BR", "en-US", "es-ES", "fr-FR"])
+    )
     role_ids = fields.List(fields.Integer())
     enabled_tools = fields.List(fields.String(validate=validate.Length(min=1, max=128)))
 

@@ -229,13 +229,13 @@ Tarefas de setup que desbloqueiam todas as demais.
 ### 5.1 Compatibilidade
 - [ ] Verificar que todos os testes existentes do Superset ainda passam
 - [ ] Executar `pre-commit run --all-files` e corrigir todos os erros
-- [ ] Verificar compatibilidade com Superset 6.1.0 (sem uso de APIs introduzidas após 6.1.0)
-- [ ] Garantir que `ENABLE_AI_INTEGRATION=false` (padrão) não afeta comportamento existente
+- [x] Verificar compatibilidade com Superset 6.1.0 (sem uso de APIs introduzidas após 6.1.0)
+- [x] Garantir que `ENABLE_AI_INTEGRATION=false` (padrão) não afeta comportamento existente
 
 ### 5.2 Revisão de Segurança
-- [ ] Revisão de todos os itens do checklist em `security-permissions.md`
-- [ ] Verificar que nenhuma API key é logada ou exposta
-- [ ] Revisão de possíveis vetores de prompt injection
+- [x] Revisão de todos os itens do checklist em `security-permissions.md`
+- [x] Verificar que nenhuma API key é logada ou exposta
+- [x] Revisão de possíveis vetores de prompt injection
 
 ### 5.3 Pull Request
 - [ ] Criar branch `feat/ai-integration` a partir de `master`

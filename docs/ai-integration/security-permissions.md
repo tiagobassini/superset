@@ -241,15 +241,15 @@ event_logger.log(
 
 ## Checklist de Segurança para Implementação
 
-- [ ] Feature flag `ENABLE_AI_INTEGRATION` desabilitada por padrão
-- [ ] Todas as rotas `/api/v1/ai/*` protegidas por autenticação
-- [ ] API keys criptografadas com Fernet antes de persistir
-- [ ] Nenhuma rota retorna API keys em texto plano
-- [ ] Todas as tools verificam permissões antes de executar
-- [ ] `run_sql_query` tem `requires_confirmation=True` por padrão
-- [ ] Resultados de queries respeitam Row Level Security
-- [ ] Ações pendentes expiram após 10 minutos (TTL no cache)
-- [ ] Sanitização de strings externas antes de incluir no prompt
-- [ ] Log de auditoria para todas as ações de escrita
-- [ ] Aviso no UI para provedores externos
-- [ ] Testes de autorização para cada endpoint e tool
+- [x] Feature flag `ENABLE_AI_INTEGRATION` desabilitada por padrão
+- [x] Todas as rotas `/api/v1/ai/*` protegidas por autenticação
+- [x] API keys criptografadas com Fernet antes de persistir
+- [x] Nenhuma rota retorna API keys em texto plano
+- [x] Todas as tools verificam permissões antes de executar
+- [x] `run_sql_query` tem `requires_confirmation=True` por padrão
+- [x] Resultados de queries respeitam Row Level Security
+- [x] Ações pendentes expiram após 10 minutos (TTL no cache)
+- [x] Sanitização de strings externas antes de incluir no prompt
+- [x] Log de auditoria para todas as ações de escrita
+- [x] Aviso no UI para provedores externos
+- [x] Testes de autorização para cada endpoint e tool

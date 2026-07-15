@@ -42,6 +42,8 @@ export interface PendingAction {
   status: ActionStatus;
   /** Populated after successful execution (e.g. { id, url }) */
   result?: unknown;
+  /** Safe backend reason when the confirmed action could not be executed. */
+  error?: string;
 }
 
 export interface ChatMessage {

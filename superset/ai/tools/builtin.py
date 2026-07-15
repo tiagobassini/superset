@@ -86,7 +86,7 @@ def _list_database_tables(params: dict[str, Any]) -> list[dict[str, Any]]:
     database = db.session.get(Database, params["database_id"])
     if database is None:
         raise ValueError("Database not found")
-    schema = params.get("schema") or database.get_default_schema()
+    schema = params.get("schema") or database.get_default_schema(params.get("catalog"))
     if not schema:
         raise ValueError("A schema is required for this database")
     result = TablesDatabaseCommand(
@@ -108,7 +108,7 @@ def _get_table_schema(params: dict[str, Any]) -> dict[str, Any]:
     database = db.session.get(Database, params["database_id"])
     if database is None:
         raise ValueError("Database not found")
-    schema = params.get("schema") or database.get_default_schema()
+    schema = params.get("schema") or database.get_default_schema(params.get("catalog"))
     if not schema:
         raise ValueError("A schema is required for this database")
     tables = TablesDatabaseCommand(
@@ -206,6 +206,33 @@ def _list_saved_queries(_: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _get_saved_query(params: dict[str, Any]) -> dict[str, Any]:
+    """Return a saved query owned by the current user for a virtual dataset."""
+    from flask import g
+
+    from superset.extensions import db, security_manager
+    from superset.models.sql_lab import SavedQuery
+
+    query = db.session.get(SavedQuery, params["saved_query_id"])
+    if query is None or query.user_id != g.user.id:
+        raise ValueError("Saved query not found or access denied")
+    if (
+        query.database is None
+        or not security_manager.can_access_database(query.database)
+    ):
+        raise ValueError("Saved query database access denied")
+    if not query.sql:
+        raise ValueError("Saved query has no SQL")
+    return {
+        "id": query.id,
+        "label": query.label,
+        "database_id": query.db_id,
+        "schema": query.schema,
+        "catalog": query.catalog,
+        "sql": query.sql,
+    }
+
+
 def _get_current_context(_: dict[str, Any]) -> dict[str, Any]:
     """Return request metadata that is safe to expose to the model."""
     from flask import request
@@ -244,7 +271,33 @@ def _edit_dashboard(params: dict[str, Any]) -> dict[str, Any]:
 def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.dataset.create import CreateDatasetCommand
 
-    dataset = CreateDatasetCommand(params).run()
+    attributes = {
+        key: value
+        for key, value in params.items()
+        if key in {"database", "table_name", "schema", "catalog", "sql"}
+    }
+    if (saved_query_id := params.get("saved_query_id")) is not None:
+        saved_query = _get_saved_query({"saved_query_id": saved_query_id})
+        if attributes.get("database") not in (None, saved_query["database_id"]):
+            raise ValueError("Saved query belongs to a different database")
+        attributes.update(
+            {
+                "database": saved_query["database_id"],
+                "schema": saved_query["schema"],
+                "catalog": saved_query["catalog"],
+                "sql": saved_query["sql"],
+            }
+        )
+    if not attributes.get("sql"):
+        _get_table_schema(
+            {
+                "database_id": attributes["database"],
+                "table_name": attributes["table_name"],
+                "schema": attributes.get("schema"),
+                "catalog": attributes.get("catalog"),
+            }
+        )
+    dataset = CreateDatasetCommand(attributes).run()
     return {"id": dataset.id, "name": dataset.table_name}
 
 
@@ -252,10 +305,9 @@ def _run_sql_query(params: dict[str, Any]) -> dict[str, Any]:
     """Execute SQL through the exact command path used by SQL Lab's REST API."""
     from uuid import uuid4
 
+    from superset.ai.models import get_ai_global_settings
     from superset.sqllab.api import SqlLabRestApi
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-
-    from superset.ai.models import get_ai_global_settings
 
     max_query_rows = get_ai_global_settings().max_query_rows
     requested_limit = int(params.get("limit", max_query_rows))
@@ -348,6 +400,11 @@ def default_tools() -> list[AITool]:
         "properties": {"dataset_id": {"type": "integer"}},
         "required": ["dataset_id"],
     }
+    saved_query_schema = {
+        "type": "object",
+        "properties": {"saved_query_id": {"type": "integer"}},
+        "required": ["saved_query_id"],
+    }
     sql_schema = {
         "type": "object",
         "properties": {
@@ -414,8 +471,9 @@ def default_tools() -> list[AITool]:
             "schema": {"type": "string"},
             "catalog": {"type": "string"},
             "sql": {"type": "string"},
+            "saved_query_id": {"type": "integer"},
         },
-        "required": ["database", "table_name"],
+        "required": ["table_name"],
     }
     return [
         BuiltinTool(
@@ -459,6 +517,12 @@ def default_tools() -> list[AITool]:
             "List the current user's saved queries.",
             OBJECT_SCHEMA,
             _list_saved_queries,
+        ),
+        BuiltinTool(
+            "get_saved_query",
+            "Get an owned saved query for creating a virtual dataset.",
+            saved_query_schema,
+            _get_saved_query,
         ),
         BuiltinTool(
             "get_current_context",
@@ -524,7 +588,7 @@ def default_tools() -> list[AITool]:
         ),
         BuiltinTool(
             "create_dataset",
-            "Create a dataset.",
+            "Create a physical dataset or a virtual dataset from saved_query_id.",
             create_dataset_schema,
             _create_dataset,
             requires_confirmation=True,

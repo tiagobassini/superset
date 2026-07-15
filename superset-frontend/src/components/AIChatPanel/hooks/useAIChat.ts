@@ -44,10 +44,31 @@ import {
 type ChatResponse = { response?: string; pending_actions?: PendingAction[] };
 type ConfirmResponse = { status?: PendingAction['status']; result?: unknown };
 
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object' && 'message' in error) {
+    const { message } = error as { message?: unknown };
+    if (typeof message === 'string') return message;
+  }
+  return 'Não foi possível executar a ação.';
+};
+
 const toHistory = (messages: ChatMessage[]) =>
-  messages
-    .filter(message => message.role === 'user' || message.role === 'assistant')
-    .map(message => ({ role: message.role, content: message.content }));
+  messages.flatMap(message => {
+    if (message.role !== 'user' && message.role !== 'assistant') return [];
+    const actionResults = (message.pendingActions ?? [])
+      .filter(
+        action => action.status === 'executed' || action.status === 'failed',
+      )
+      .map(action => ({
+        role: 'assistant' as const,
+        content:
+          action.status === 'executed'
+            ? `Confirmed action ${action.type} executed: ${JSON.stringify(action.result ?? {})}`
+            : `Confirmed action ${action.type} failed: ${action.error ?? 'Unknown error'}`,
+      }));
+    return [{ role: message.role, content: message.content }, ...actionResults];
+  });
 
 export const useAIChat = () => {
   const dispatch = useDispatch();
@@ -157,8 +178,14 @@ export const useAIChat = () => {
             result: result.result,
           }),
         );
-      } catch {
-        dispatch(updatePendingAction({ ...action, status: 'failed' }));
+      } catch (error) {
+        dispatch(
+          updatePendingAction({
+            ...action,
+            status: 'failed',
+            error: errorMessage(error),
+          }),
+        );
       }
     },
     [dispatch, getAction, selectedAgentId],

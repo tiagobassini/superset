@@ -108,7 +108,10 @@ export const ActionConfirmation = ({
       {action.status === 'confirmed' && <span>Executando ação…</span>}
       {action.status === 'cancelled' && <span>Ação cancelada.</span>}
       {action.status === 'failed' && (
-        <span>Não foi possível executar a ação.</span>
+        <span>
+          Não foi possível executar a ação.
+          {action.error ? ` ${action.error}` : ''}
+        </span>
       )}
       {action.status === 'executed' && (
         <span>

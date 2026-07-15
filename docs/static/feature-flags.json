@@ -46,6 +46,12 @@
         "description": "Enables advanced data type support"
       },
       {
+        "name": "ENABLE_AI_INTEGRATION",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable the AI Integration plugin \u2014 adds a floating chat sidebar to interact with AI providers (OpenAI, Ollama, DeepSeek, Anthropic) and perform actions in Superset such as creating charts, dashboards, running SQL queries, and more. Disabled by default; enable in superset_config.py when ready to use."
+      },
+      {
         "name": "ENABLE_EXTENSIONS",
         "default": false,
         "lifecycle": "development",

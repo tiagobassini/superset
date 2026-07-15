@@ -310,11 +310,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
-        # AI Integration: the agent management resource is admin-only.
-        # Individual permissions (can_use_ai_chat, can_ai_*) can be granted
-        # by the admin to other roles, but the view menu itself is restricted
-        # so that non-admin users cannot enumerate or browse the resource.
-        "AIAgentResource",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {

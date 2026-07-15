@@ -69,6 +69,14 @@ const Sidebar = styled.aside`
   }
 `;
 
+const ExternalProviderNotice = styled.div`
+  background: ${({ theme }) => theme.colorWarningBg};
+  border-bottom: 1px solid ${({ theme }) => theme.colorWarningBorder};
+  color: ${({ theme }) => theme.colorWarningText};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
 const AIChatPanel: FC = () => {
   const dispatch = useDispatch();
   const state = useSelector((root: RootState) => root.aiChat);
@@ -83,6 +91,11 @@ const AIChatPanel: FC = () => {
     clearChatHistory,
   } = useAIChat();
   const closePanel = useCallback(() => dispatch(setOpen(false)), [dispatch]);
+  const selectedAgent = agents.find(
+    agent => agent.id === state.selectedAgentId,
+  );
+  const activeAgent = selectedAgent ?? agents.find(agent => agent.isDefault);
+  const usesExternalProvider = activeAgent && activeAgent.provider !== 'ollama';
 
   useLayoutEffect(() => {
     if (!state.isOpen) return undefined;
@@ -124,6 +137,12 @@ const AIChatPanel: FC = () => {
         value={state.selectedAgentId}
         onChange={id => dispatch(setSelectedAgentId(id || null))}
       />
+      {usesExternalProvider && (
+        <ExternalProviderNotice role="status">
+          Mensagens são enviadas a um provedor externo. Não inclua dados
+          confidenciais.
+        </ExternalProviderNotice>
+      )}
       <MessageList
         messages={messages}
         onConfirmAction={confirmAction}
