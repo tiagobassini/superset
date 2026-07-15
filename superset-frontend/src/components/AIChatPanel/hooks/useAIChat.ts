@@ -45,10 +45,10 @@ export const useAIChat = () => {
     const userMessage: ChatMessage = { id: nanoid(), role: 'user', content: text, timestamp: Date.now() };
     dispatch(addMessage(userMessage)); dispatch(setLoading(true));
     try {
-      const { json } = await SupersetClient.post({ endpoint: '/api/v1/ai/chat', json: {
+      const { json } = await SupersetClient.post({ endpoint: '/api/v1/ai/chat', jsonPayload: {
         message: text, agent_id: selectedAgentId ?? undefined, context,
         history: messages.map(({ role, content: previousContent }) => ({ role, content: previousContent })),
-      } });
+      }, stringify: false });
       const result = json as ChatResponse;
       dispatch(addMessage({ id: nanoid(), role: 'assistant', content: result.response ?? '', timestamp: Date.now(), pendingActions: result.pending_actions }));
     } finally { dispatch(setLoading(false)); }
@@ -57,7 +57,7 @@ export const useAIChat = () => {
   const confirmAction = useCallback(async (action: PendingAction) => {
     dispatch(updatePendingAction({ ...action, status: 'confirmed' }));
     try {
-      const { json } = await SupersetClient.post({ endpoint: '/api/v1/ai/confirm_action', json: { action_id: action.id, agent_id: selectedAgentId ?? undefined } });
+      const { json } = await SupersetClient.post({ endpoint: '/api/v1/ai/confirm_action', jsonPayload: { action_id: action.id, agent_id: selectedAgentId ?? undefined }, stringify: false });
       const result = json as ConfirmResponse;
       dispatch(updatePendingAction({ ...action, status: result.status ?? 'executed', result: result.result }));
     } catch { dispatch(updatePendingAction({ ...action, status: 'failed' })); }
