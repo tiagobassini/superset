@@ -126,9 +126,9 @@ Tarefas de setup que desbloqueiam todas as demais.
 
 ### 2.2 Hook de Contexto
 - [x] Implementar `useAIContext.ts` — extrai contexto da página atual via URL + Redux
-  - [x] Dashboard: `dashboard_id`, `dashboard_title`
+  - [ ] Dashboard: `dashboard_id`, `dashboard_title` — o ID é extraído; o título usa campos que não fazem parte do tipo do Redux e precisa ser validado/corrigido.
   - [x] Explore: `chart_id`, `datasource_id`, `viz_type`
-  - [x] SQL Lab: `database_id`, SQL atual
+  - [ ] SQL Lab: `database_id`, SQL atual — a seleção do editor usa `lastUpdatedActiveTab`, que não garante ser a aba ativa.
   - [x] Demais: `{ page: 'other' }`
 
 ### 2.3 Hook de Agentes
@@ -141,18 +141,19 @@ Tarefas de setup que desbloqueiam todas as demais.
   - [x] `confirmAction(actionId)` → POST /api/v1/ai/confirm_action
   - [x] `cancelAction(actionId)`
   - [x] Gerenciamento do histórico (sessionStorage)
-  - [x] Estado de loading por mensagem
+  - [ ] Estado de loading por mensagem — há apenas `isLoading` global; falta estado associado à mensagem/requisição.
+  - [ ] Testes unitários do hook, incluindo erro de rede, confirmação e cancelamento.
 
 ### 2.5 Componentes do Chat
-- [ ] `ToggleButton.tsx` — botão flutuante para abrir o painel
-- [ ] `ChatHeader.tsx` — título + botões fechar/minimizar
-- [ ] `ModelSelector.tsx` — dropdown de seleção de agente
-- [ ] `MessageBubble.tsx` — bolha de mensagem (user/assistant)
-- [ ] `ActionConfirmation.tsx` — card de confirmação com parâmetros + Confirmar/Cancelar
-- [ ] `ContextBadge.tsx` — exibe contexto atual (readonly)
-- [ ] `MessageList.tsx` — lista com scroll automático para última mensagem
-- [ ] `ChatInput.tsx` — textarea + botão enviar (Ctrl+Enter support)
-- [ ] `AIChatPanel.tsx` — componente principal que compõe todos os acima
+- [ ] `ToggleButton.tsx` — existe, mas não é flutuante nem segue o sistema visual do Superset.
+- [ ] `ChatHeader.tsx` — fecha o painel; falta minimizar e acabamento visual.
+- [ ] `ModelSelector.tsx` — funcional básico; falta filtrar agentes ativos e usar o componente padrão do Superset.
+- [ ] `MessageBubble.tsx` — não implementado como bolha; é apenas um reexport de `MessageList`.
+- [ ] `ActionConfirmation.tsx` — existe, mas não é integrado a mensagens nem chama os handlers do hook.
+- [x] `ContextBadge.tsx` — exibe o contexto atual como somente leitura.
+- [ ] `MessageList.tsx` — renderiza mensagens, mas não faz scroll automático e não inclui confirmações.
+- [x] `ChatInput.tsx` — envia por botão e por Ctrl+Enter.
+- [ ] `AIChatPanel.tsx` — composição básica existe; faltam confirmação de ações, tratamento de loading/erro e layout de sidebar.
 - [ ] Testes unitários para componentes principais
 
 ### 2.6 Integração no Layout
@@ -162,10 +163,10 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [ ] Garantir que o painel não sobreponha conteúdo em nenhuma resolução
 
 ### 2.7 Acessibilidade
-- [ ] `role="complementary"` e `aria-label` no painel
-- [ ] `aria-live="polite"` na lista de mensagens
+- [x] `role="complementary"` e `aria-label` no painel
+- [x] `aria-live="polite"` na lista de mensagens
 - [ ] `Esc` fecha o painel
-- [ ] `Ctrl+Enter` envia mensagem
+- [x] `Ctrl+Enter` envia mensagem
 - [ ] Foco movido para o input ao abrir o painel
 
 ---
