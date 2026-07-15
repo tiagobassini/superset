@@ -26,9 +26,12 @@ See docs/ai-integration/backend-api-tools.md for full specification.
 from __future__ import annotations
 
 import uuid
+from types import SimpleNamespace
+from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, String, Table, Text
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Table, Text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relationship
 
 from superset import db
@@ -114,3 +117,47 @@ class AIAgent(AuditMixinNullable, db.Model):
 
     def __repr__(self) -> str:
         return f"<AIAgent {self.name!r} provider={self.provider} model={self.model}>"
+
+
+class AIGlobalSettings(db.Model):
+    """Singleton configuration controlling global AI integration behavior."""
+
+    __tablename__ = "ai_global_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    sql_confirmation_mode = Column(String(32), nullable=False, default="always")
+    sql_confirmation_role_ids = Column(sa.JSON, nullable=False, default=list)
+    max_query_rows = Column(Integer, nullable=False, default=1000)
+    history_storage = Column(String(32), nullable=False, default="session")
+    history_retention_days = Column(Integer, nullable=False, default=30)
+    send_page_context = Column(Boolean, nullable=False, default=True)
+    include_datasets_in_prompt = Column(Boolean, nullable=False, default=True)
+    include_schema_in_prompt = Column(Boolean, nullable=False, default=False)
+
+
+AI_GLOBAL_SETTINGS_DEFAULTS = {
+    "sql_confirmation_mode": "always",
+    "sql_confirmation_role_ids": [],
+    "max_query_rows": 1000,
+    "history_storage": "session",
+    "history_retention_days": 30,
+    "send_page_context": True,
+    "include_datasets_in_prompt": True,
+    "include_schema_in_prompt": False,
+}
+
+
+def get_ai_global_settings() -> AIGlobalSettings | Any:
+    """Return the singleton settings row, falling back to secure defaults."""
+    try:
+        row = db.session.execute(
+            sa.select(AIGlobalSettings.__table__).where(
+                AIGlobalSettings.__table__.c.id == 1
+            )
+        ).mappings().first()
+    except OperationalError:
+        # Preserve the safe defaults while a deployment is awaiting migration.
+        row = None
+    if row is not None:
+        return SimpleNamespace(**dict(row))
+    return SimpleNamespace(id=1, **AI_GLOBAL_SETTINGS_DEFAULTS)

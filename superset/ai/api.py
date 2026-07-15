@@ -27,12 +27,13 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled
 from superset.ai.crypto import encrypt_api_key
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
-from superset.ai.models import AIAgent
+from superset.ai.models import AIGlobalSettings, AIAgent, get_ai_global_settings
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.schemas import (
     AgentSchema,
     ChatRequestSchema,
     ConfirmActionRequestSchema,
+    GlobalAISettingsSchema,
 )
 from superset.ai.tools.registry import create_default_registry
 from superset.extensions import db, security_manager
@@ -48,6 +49,43 @@ class AIRestApi(BaseSupersetApi):
     chat_schema = ChatRequestSchema()
     confirm_schema = ConfirmActionRequestSchema()
     agent_schema = AgentSchema()
+    global_settings_schema = GlobalAISettingsSchema()
+
+    @expose("/settings", methods=("GET",))
+    @protect()
+    @safe
+    def get_global_settings(self) -> Response:
+        """Return global AI preferences to an authorized administrator."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        return jsonify({"result": self._serialize_global_settings()})
+
+    @expose("/settings", methods=("PUT",))
+    @protect()
+    @safe
+    @requires_json
+    def update_global_settings(self) -> Response:
+        """Persist validated global AI preferences."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        try:
+            payload = self.global_settings_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        if "sql_confirmation_role_ids" in payload:
+            roles = security_manager.find_roles_by_id(
+                payload["sql_confirmation_role_ids"]
+            )
+            if len(roles) != len(payload["sql_confirmation_role_ids"]):
+                return self._error("One or more roles do not exist", 400)
+        settings = db.session.get(AIGlobalSettings, 1)
+        if settings is None:
+            settings = AIGlobalSettings(id=1)
+            db.session.add(settings)
+        for key, value in payload.items():
+            setattr(settings, key, value)
+        db.session.commit()
+        return jsonify({"result": self._serialize_global_settings(settings)})
 
     @expose("/chat", methods=("POST",))
     @protect()
@@ -289,6 +327,22 @@ class AIRestApi(BaseSupersetApi):
                 }
             )
         return result
+
+    @staticmethod
+    def _serialize_global_settings(
+        settings: AIGlobalSettings | None = None,
+    ) -> dict[str, Any]:
+        settings = settings or get_ai_global_settings()
+        return {
+            "sql_confirmation_mode": settings.sql_confirmation_mode,
+            "sql_confirmation_role_ids": settings.sql_confirmation_role_ids,
+            "max_query_rows": settings.max_query_rows,
+            "history_storage": settings.history_storage,
+            "history_retention_days": settings.history_retention_days,
+            "send_page_context": settings.send_page_context,
+            "include_datasets_in_prompt": settings.include_datasets_in_prompt,
+            "include_schema_in_prompt": settings.include_schema_in_prompt,
+        }
 
     @staticmethod
     def _agent_attributes(payload: dict[str, Any]) -> dict[str, Any]:

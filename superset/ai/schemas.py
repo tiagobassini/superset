@@ -67,3 +67,18 @@ class AgentSchema(Schema):
     is_active = fields.Boolean()
     role_ids = fields.List(fields.Integer())
     enabled_tools = fields.List(fields.String(validate=validate.Length(min=1, max=128)))
+
+
+class GlobalAISettingsSchema(Schema):
+    """Validate the administrator-managed AI integration preferences."""
+
+    sql_confirmation_mode = fields.String(
+        validate=validate.OneOf(["always", "roles_only"])
+    )
+    sql_confirmation_role_ids = fields.List(fields.Integer())
+    max_query_rows = fields.Integer(validate=validate.Range(min=1, max=100000))
+    history_storage = fields.String(validate=validate.OneOf(["session", "database"]))
+    history_retention_days = fields.Integer(validate=validate.Range(min=1, max=3650))
+    send_page_context = fields.Boolean()
+    include_datasets_in_prompt = fields.Boolean()
+    include_schema_in_prompt = fields.Boolean()

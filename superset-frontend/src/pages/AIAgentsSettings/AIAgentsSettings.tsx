@@ -19,12 +19,17 @@
 import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { DeleteModal } from '@superset-ui/core/components';
+import { SupersetClient } from '@superset-ui/core';
 import SubMenu from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { AgentsList } from './components/AgentsList';
 import { AgentModal } from './components/AgentModal';
+import { GlobalSettings } from './components/GlobalSettings';
 import { useAgentsCRUD } from './hooks/useAgentsCRUD';
+import { useGlobalAISettings } from './hooks/useGlobalAISettings';
 import type { AIAgentConfiguration } from './types';
+
+type Role = { id: number; name: string };
 
 /** Lists AI agents and exposes their management actions to administrators. */
 const AIAgentsSettings = () => {
@@ -39,6 +44,7 @@ const AIAgentsSettings = () => {
     testConnection,
     updateAgent,
   } = useAgentsCRUD();
+  const globalSettings = useGlobalAISettings();
   const [editingAgent, setEditingAgent] = useState<
     AIAgentConfiguration | undefined
   >();
@@ -46,10 +52,25 @@ const AIAgentsSettings = () => {
   const [agentToDelete, setAgentToDelete] = useState<
     AIAgentConfiguration | undefined
   >();
+  const [roles, setRoles] = useState<Role[]>([]);
 
   useEffect(() => {
     if (error) addDangerToast(error.message);
   }, [addDangerToast, error]);
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const { json } = await SupersetClient.get({
+          endpoint: '/api/v1/security/roles/?q=(page:0,page_size:100)',
+        });
+        setRoles((json as { result?: Role[] }).result ?? []);
+      } catch {
+        setRoles([]);
+      }
+    };
+    void loadRoles();
+  }, []);
 
   return (
     <>
@@ -87,6 +108,19 @@ const AIAgentsSettings = () => {
           }
         }}
         onTestConnection={agent => testConnection(agent.id)}
+      />
+      <GlobalSettings
+        isLoading={globalSettings.isLoading}
+        roles={roles}
+        settings={globalSettings.settings}
+        onSave={async settings => {
+          try {
+            await globalSettings.save(settings);
+          } catch (reason) {
+            addDangerToast(String(reason));
+            throw reason;
+          }
+        }}
       />
       {agentToDelete && (
         <DeleteModal

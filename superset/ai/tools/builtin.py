@@ -255,6 +255,10 @@ def _run_sql_query(params: dict[str, Any]) -> dict[str, Any]:
     from superset.sqllab.api import SqlLabRestApi
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
+    from superset.ai.models import get_ai_global_settings
+
+    max_query_rows = get_ai_global_settings().max_query_rows
+    requested_limit = int(params.get("limit", max_query_rows))
     context = SqlJsonExecutionContext(
         {
             "database_id": params["database_id"],
@@ -262,7 +266,7 @@ def _run_sql_query(params: dict[str, Any]) -> dict[str, Any]:
             "schema": params.get("schema"),
             "sql": params["sql"],
             "runAsync": False,
-            "queryLimit": params.get("limit", 1000),
+            "queryLimit": min(requested_limit, max_query_rows),
             "status": "running",
             "client_id": str(uuid4()),
             "sql_editor_id": str(uuid4()),

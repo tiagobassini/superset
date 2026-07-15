@@ -29,6 +29,7 @@ from superset.ai.schemas import (
     AgentSchema,
     ChatRequestSchema,
     ConfirmActionRequestSchema,
+    GlobalAISettingsSchema,
 )
 
 
@@ -77,6 +78,16 @@ def test_agent_schema_accepts_openai_compatible_providers() -> None:
     payload = AgentSchema().load({"provider": "deepseek"})
 
     assert payload["provider"] == "deepseek"
+
+
+def test_global_settings_schema_enforces_safe_limits() -> None:
+    payload = GlobalAISettingsSchema().load(
+        {"sql_confirmation_mode": "roles_only", "max_query_rows": 1000}
+    )
+
+    assert payload["sql_confirmation_mode"] == "roles_only"
+    with pytest.raises(ValidationError):
+        GlobalAISettingsSchema().load({"max_query_rows": 0})
 
 
 def test_agent_serialization_never_exposes_encrypted_api_key() -> None:

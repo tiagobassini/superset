@@ -25,7 +25,7 @@ from uuid import uuid4
 
 from superset.ai.crypto import decrypt_api_key
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
-from superset.ai.models import AIAgent
+from superset.ai.models import AIAgent, get_ai_global_settings
 from superset.ai.providers import (
     AnthropicProviderAdapter,
     OllamaProviderAdapter,
@@ -92,6 +92,9 @@ class AIOrchestrator:
         context: dict[str, Any],
     ) -> OrchestratorResult:
         """Execute the provider loop until text or an approval is required."""
+        settings = get_ai_global_settings()
+        if not settings.send_page_context:
+            context = {}
         messages = [
             {"role": "system", "content": self._system_prompt(context)},
             *history[-20:],
@@ -125,7 +128,7 @@ class AIOrchestrator:
                         )
                     )
                     continue
-                if tool.requires_confirmation:
+                if tool.requires_confirmation and self._requires_confirmation(tool.name):
                     action = PendingAction(
                         id=str(uuid4()),
                         agent_id=str(self.agent.id),
@@ -145,6 +148,16 @@ class AIOrchestrator:
             if pending_actions:
                 return OrchestratorResult(response.content, pending_actions)
         raise AIProviderError("AI provider exceeded the maximum number of tool calls")
+
+    def _requires_confirmation(self, tool_name: str) -> bool:
+        """Allow SQL auto-execution only for explicitly configured roles."""
+        if tool_name != "run_sql_query":
+            return True
+        settings = get_ai_global_settings()
+        if settings.sql_confirmation_mode != "roles_only":
+            return True
+        allowed_roles = set(settings.sql_confirmation_role_ids or [])
+        return not bool(allowed_roles & {role.id for role in self.user.roles})
 
     def confirm_and_execute(self, action_id: str) -> ToolResult:
         """Execute an unexpired action owned by this user exactly once."""

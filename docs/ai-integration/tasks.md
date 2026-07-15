@@ -188,11 +188,11 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Validação de formulário (campo obrigatórios, URL válida)
 
 ### 3.3 Configurações Globais
-- [ ] `GlobalSettings.tsx` com opções de comportamento
-- [ ] Modo de confirmação de SQL (sempre / por role)
-- [ ] Limite de linhas de query
-- [ ] Storage do histórico (session / banco)
-- [ ] Opções de contexto enviado ao modelo
+- [x] `GlobalSettings.tsx` com opções de comportamento
+- [x] Modo de confirmação de SQL (sempre / por role)
+- [x] Limite de linhas de query
+- [x] Storage do histórico (session / banco)
+- [x] Opções de contexto enviado ao modelo
 
 ### 3.4 Integração no Menu Settings
 - [ ] Adicionar item "AI Agents" no menu Settings do Superset

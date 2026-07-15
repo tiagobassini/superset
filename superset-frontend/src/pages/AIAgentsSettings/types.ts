@@ -52,3 +52,14 @@ export type AIAgentUpdate = Partial<
   api_key?: string;
   role_ids?: number[];
 };
+
+export interface AIGlobalSettings {
+  history_retention_days: number;
+  history_storage: 'database' | 'session';
+  include_datasets_in_prompt: boolean;
+  include_schema_in_prompt: boolean;
+  max_query_rows: number;
+  send_page_context: boolean;
+  sql_confirmation_mode: 'always' | 'roles_only';
+  sql_confirmation_role_ids: number[];
+}
