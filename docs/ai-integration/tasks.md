@@ -125,11 +125,11 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Definir todos os tipos TypeScript em `store/types.ts`
 
 ### 2.2 Hook de Contexto
-- [ ] Implementar `useAIContext.ts` — extrai contexto da página atual via URL + Redux
-  - Dashboard: `dashboard_id`, `dashboard_title`
-  - Explore: `chart_id`, `datasource_id`, `viz_type`
-  - SQL Lab: `database_id`, SQL atual
-  - Demais: `{ page: 'other' }`
+- [x] Implementar `useAIContext.ts` — extrai contexto da página atual via URL + Redux
+  - [x] Dashboard: `dashboard_id`, `dashboard_title`
+  - [x] Explore: `chart_id`, `datasource_id`, `viz_type`
+  - [x] SQL Lab: `database_id`, SQL atual
+  - [x] Demais: `{ page: 'other' }`
 
 ### 2.3 Hook de Agentes
 - [ ] Implementar `useAgents.ts` — carrega lista de agentes de `GET /api/v1/ai/agents`

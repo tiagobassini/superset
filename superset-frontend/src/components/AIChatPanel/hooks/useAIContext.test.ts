@@ -1,0 +1,56 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { getAIPageContext } from './useAIContext';
+
+test('creates dashboard context from Redux data', () => {
+  expect(
+    getAIPageContext('/dashboard/sales/', '', {
+      dashboard: { id: 10, dashboard_title: 'Sales' },
+    }),
+  ).toMatchObject({
+    page: 'dashboard',
+    resourceId: 10,
+    resourceName: 'Sales',
+    metadata: { dashboard_id: 10, dashboard_title: 'Sales' },
+  });
+});
+
+test('creates Explore and SQL Lab contexts', () => {
+  expect(
+    getAIPageContext('/explore/', '?slice_id=5', {
+      explore: { datasourceId: 3, vizType: 'bar' },
+    }),
+  ).toMatchObject({
+    page: 'explore',
+    resourceId: 5,
+    metadata: { chart_id: 5, datasource_id: 3, viz_type: 'bar' },
+  });
+  expect(
+    getAIPageContext('/superset/sqllab', '', {
+      sqlLab: { databaseId: 4, sql: 'SELECT 1' },
+    }),
+  ).toMatchObject({
+    page: 'sqllab',
+    metadata: { database_id: 4, sql: 'SELECT 1' },
+  });
+});
+
+test('uses other context outside AI-aware pages', () => {
+  expect(getAIPageContext('/chart/list/', '', {})).toEqual({ page: 'other' });
+});
