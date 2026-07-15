@@ -16,5 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO (Fase 2.5): implement ChatHeader component
-export const ChatHeader = ({ onClose }: { onClose: () => void }) => <header>Assistente de IA <button type="button" onClick={onClose}>Fechar</button></header>;
+import { styled } from '@apache-superset/core/theme';
+
+const Header = styled.header`
+  align-items: center;
+  border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
+  display: flex;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  justify-content: space-between;
+  padding: ${({ theme }) => theme.sizeUnit * 3}px;
+`;
+
+export const ChatHeader = ({ onClose }: { onClose: () => void }) => (
+  <Header>
+    Assistente de IA
+    <button type="button" onClick={onClose}>Fechar</button>
+  </Header>
+);

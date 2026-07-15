@@ -17,5 +17,17 @@
  * under the License.
  */
 // TODO (Fase 2.5): implement MessageList component
+import { styled } from '@apache-superset/core/theme';
 import type { ChatMessage } from '../store/types';
-export const MessageList = ({ messages }: { messages: ChatMessage[] }) => <div aria-live="polite">{messages.map(message => <p key={message.id}>{message.content}</p>)}</div>;
+
+const List = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: ${({ theme }) => theme.sizeUnit * 3}px;
+`;
+
+export const MessageList = ({ messages }: { messages: ChatMessage[] }) => (
+  <List aria-live="polite">
+    {messages.map(message => <p key={message.id}>{message.content}</p>)}
+  </List>
+);

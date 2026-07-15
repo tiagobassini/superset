@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Suspense, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import {
   BrowserRouter as Router,
   Switch,
@@ -39,7 +40,7 @@ import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
-import { store } from 'src/views/store';
+import { RootState, store } from 'src/views/store';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
@@ -72,11 +73,13 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-const App = () => (
-  <Router basename={applicationRoot()}>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
+const AppContent = () => {
+  const isAIChatOpen = useSelector(
+    (state: RootState) => state.aiChat.isOpen,
+  );
+
+  return (
+    <>
       <Menu
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
@@ -86,7 +89,16 @@ const App = () => (
           {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
             <Route path={path} key={path}>
               <Suspense fallback={<Fallback />}>
-                <Layout>
+                <Layout
+                  css={css`
+                    transition: padding-right 0.3s ease;
+                    padding-right: ${isAIChatOpen ? '380px' : '0'};
+
+                    @media (max-width: 900px) {
+                      padding-right: 0;
+                    }
+                  `}
+                >
                   <Layout.Content
                     css={css`
                       display: flex;
@@ -109,6 +121,16 @@ const App = () => (
       </ExtensionsStartup>
       <ToastContainer />
       {isFeatureEnabled(FeatureFlag.EnableAiIntegration) && <AIChatPanel />}
+    </>
+  );
+};
+
+const App = () => (
+  <Router basename={applicationRoot()}>
+    <ScrollToTop />
+    <LocationPathnameLogger />
+    <RootContextProviders>
+      <AppContent />
     </RootContextProviders>
   </Router>
 );

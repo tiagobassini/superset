@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { styled } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from 'src/views/store';
 import { setOpen, setSelectedAgentId } from './store/aiChatSlice';
@@ -46,6 +47,47 @@ import { useAIChat } from './hooks/useAIChat';
  *   - ChatInput
  *   - ToggleButton
  */
-const AIChatPanel: React.FC = () => { const dispatch = useDispatch(); const state = useSelector((root: RootState) => root.aiChat); const { agents } = useAgents(); const { messages, sendMessage } = useAIChat(); if (!state.isOpen) return <ToggleButton onClick={() => dispatch(setOpen(true))} />; return <aside role="complementary" aria-label="Assistente de IA"><ChatHeader onClose={() => dispatch(setOpen(false))} /><ModelSelector agents={agents} value={state.selectedAgentId} onChange={id => dispatch(setSelectedAgentId(id || null))} /><ContextBadge context={state.currentContext} /><MessageList messages={messages} /><ChatInput onSend={sendMessage} /></aside>; };
+const Sidebar = styled.aside`
+  background: ${({ theme }) => theme.colorBgContainer};
+  border-left: 1px solid ${({ theme }) => theme.colorBorder};
+  bottom: 0;
+  box-shadow: ${({ theme }) => theme.boxShadowSecondary};
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 380px;
+  z-index: 1000;
+
+  @media (max-width: 900px) {
+    width: min(380px, 100vw);
+  }
+`;
+
+const AIChatPanel: React.FC = () => {
+  const dispatch = useDispatch();
+  const state = useSelector((root: RootState) => root.aiChat);
+  const { agents } = useAgents();
+  const { messages, sendMessage } = useAIChat();
+
+  if (!state.isOpen) {
+    return <ToggleButton onClick={() => dispatch(setOpen(true))} />;
+  }
+
+  return (
+    <Sidebar role="complementary" aria-label="Assistente de IA">
+      <ChatHeader onClose={() => dispatch(setOpen(false))} />
+      <ModelSelector
+        agents={agents}
+        value={state.selectedAgentId}
+        onChange={id => dispatch(setSelectedAgentId(id || null))}
+      />
+      <MessageList messages={messages} />
+      <ContextBadge context={state.currentContext} />
+      <ChatInput onSend={sendMessage} />
+    </Sidebar>
+  );
+};
 
 export default AIChatPanel;

@@ -16,5 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO (Fase 2.5): implement ToggleButton component
-export const ToggleButton = ({ onClick }: { onClick: () => void }) => <button type="button" onClick={onClick}>IA</button>;
+import { styled } from '@apache-superset/core/theme';
+
+const FloatingButton = styled.button`
+  background: ${({ theme }) => theme.colorPrimary};
+  border: 0;
+  border-radius: 50%;
+  bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+  box-shadow: ${({ theme }) => theme.boxShadowSecondary};
+  color: ${({ theme }) => theme.colorWhite};
+  cursor: pointer;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  height: 48px;
+  position: fixed;
+  right: ${({ theme }) => theme.sizeUnit * 4}px;
+  width: 48px;
+  z-index: 1001;
+`;
+
+export const ToggleButton = ({ onClick }: { onClick: () => void }) => (
+  <FloatingButton type="button" onClick={onClick} aria-label="Abrir assistente de IA">
+    IA
+  </FloatingButton>
+);
