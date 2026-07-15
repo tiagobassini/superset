@@ -35,7 +35,11 @@ const FloatingButton = styled.button`
 `;
 
 export const ToggleButton = ({ onClick }: { onClick: () => void }) => (
-  <FloatingButton type="button" onClick={onClick} aria-label="Abrir assistente de IA">
+  <FloatingButton
+    type="button"
+    onClick={onClick}
+    aria-label="Abrir assistente de IA"
+  >
     IA
   </FloatingButton>
 );

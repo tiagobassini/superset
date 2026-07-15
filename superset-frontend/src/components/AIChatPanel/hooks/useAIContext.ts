@@ -66,7 +66,8 @@ export const getAIPageContext = (
   }
 
   if (pathname.startsWith('/explore')) {
-    const chartId = data.explore?.chartId ?? getNumericQueryParam(parameters, 'slice_id');
+    const chartId =
+      data.explore?.chartId ?? getNumericQueryParam(parameters, 'slice_id');
     return {
       page: 'explore',
       resourceId: chartId,
@@ -78,7 +79,10 @@ export const getAIPageContext = (
     };
   }
 
-  if (pathname.startsWith('/superset/sqllab') || pathname.startsWith('/sqllab')) {
+  if (
+    pathname.startsWith('/superset/sqllab') ||
+    pathname.startsWith('/sqllab')
+  ) {
     return {
       page: 'sqllab',
       metadata: {

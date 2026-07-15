@@ -145,16 +145,16 @@ Tarefas de setup que desbloqueiam todas as demais.
   - [x] Testes unitários do hook, incluindo erro de rede, confirmação e cancelamento.
 
 ### 2.5 Componentes do Chat
-- [ ] `ToggleButton.tsx` — existe, mas não é flutuante nem segue o sistema visual do Superset.
-- [ ] `ChatHeader.tsx` — fecha o painel; falta minimizar e acabamento visual.
-- [ ] `ModelSelector.tsx` — funcional básico; falta filtrar agentes ativos e usar o componente padrão do Superset.
-- [ ] `MessageBubble.tsx` — não implementado como bolha; é apenas um reexport de `MessageList`.
-- [ ] `ActionConfirmation.tsx` — existe, mas não é integrado a mensagens nem chama os handlers do hook.
+- [x] `ToggleButton.tsx` — botão flutuante para abrir o painel, estilizado com tokens do tema.
+- [x] `ChatHeader.tsx` — controles para minimizar e fechar o painel.
+- [x] `ModelSelector.tsx` — usa `Select` padrão e apresenta apenas agentes ativos.
+- [x] `MessageBubble.tsx` — renderiza bolhas por papel da mensagem e as ações pendentes associadas.
+- [x] `ActionConfirmation.tsx` — apresenta parâmetros, estados de execução, resultado e ações de confirmar/cancelar integradas ao hook.
 - [x] `ContextBadge.tsx` — exibe o contexto atual como somente leitura.
-- [ ] `MessageList.tsx` — renderiza mensagens, mas não faz scroll automático e não inclui confirmações.
-- [x] `ChatInput.tsx` — envia por botão e por Ctrl+Enter.
-- [ ] `AIChatPanel.tsx` — composição básica existe; faltam confirmação de ações, tratamento de loading/erro e layout de sidebar.
-- [ ] Testes unitários para componentes principais
+- [x] `MessageList.tsx` — lista rolável com scroll automático e confirmações inline.
+- [x] `ChatInput.tsx` — textarea padrão, envio por botão/Ctrl+Enter, limpeza de histórico e bloqueio durante carregamento.
+- [x] `AIChatPanel.tsx` — integra confirmação de ações, estados de carregamento/erro do hook e sidebar lateral.
+- [x] Testes unitários para componentes principais
 
 ### 2.6 Integração no Layout
 - [x] Identificar o componente raiz de layout do Superset

@@ -16,5 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO (Fase 2.5): implement MessageBubble component
-export { MessageList as MessageBubble } from './MessageList';
+import { styled } from '@apache-superset/core/theme';
+import { ActionConfirmation } from './ActionConfirmation';
+import type { ChatMessage } from '../store/types';
+
+const Bubble = styled.article<{ $role: ChatMessage['role'] }>`
+  align-self: ${({ $role }) => ($role === 'user' ? 'flex-end' : 'flex-start')};
+  background: ${({ theme, $role }) =>
+    $role === 'user' ? theme.colorPrimaryBg : theme.colorFillQuaternary};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
+  border-radius: ${({ theme }) => theme.borderRadiusLG}px;
+  max-width: 92%;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+`;
+
+const Sender = styled.div`
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+export interface MessageBubbleProps {
+  message: ChatMessage;
+  onConfirmAction: (actionId: string) => void;
+  onCancelAction: (actionId: string) => void;
+}
+
+/** Renders a chat message and its optional confirmation cards. */
+export const MessageBubble = ({
+  message,
+  onConfirmAction,
+  onCancelAction,
+}: MessageBubbleProps) => (
+  <Bubble $role={message.role} aria-label={`Mensagem ${message.role}`}>
+    <Sender>{message.role === 'user' ? 'Você' : 'Assistente de IA'}</Sender>
+    {message.content || (message.isStreaming && 'Digitando…')}
+    {message.pendingActions?.map(action => (
+      <ActionConfirmation
+        key={action.id}
+        action={action}
+        onConfirm={onConfirmAction}
+        onCancel={onCancelAction}
+      />
+    ))}
+  </Bubble>
+);

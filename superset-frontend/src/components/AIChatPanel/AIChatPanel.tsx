@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import type { FC } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from 'src/views/store';
@@ -38,14 +38,6 @@ import { useAIChat } from './hooks/useAIChat';
  *
  * See docs/ai-integration/frontend-chat-sidebar.md for full specification.
  *
- * TODO (Fase 2): implement full component tree:
- *   - ChatHeader
- *   - ModelSelector
- *   - MessageList / MessageBubble
- *   - ActionConfirmation
- *   - ContextBadge
- *   - ChatInput
- *   - ToggleButton
  */
 const Sidebar = styled.aside`
   background: ${({ theme }) => theme.colorBgContainer};
@@ -65,11 +57,18 @@ const Sidebar = styled.aside`
   }
 `;
 
-const AIChatPanel: React.FC = () => {
+const AIChatPanel: FC = () => {
   const dispatch = useDispatch();
   const state = useSelector((root: RootState) => root.aiChat);
   const { agents } = useAgents();
-  const { messages, sendMessage } = useAIChat();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    confirmAction,
+    cancelAction,
+    clearChatHistory,
+  } = useAIChat();
 
   if (!state.isOpen) {
     return <ToggleButton onClick={() => dispatch(setOpen(true))} />;
@@ -77,15 +76,26 @@ const AIChatPanel: React.FC = () => {
 
   return (
     <Sidebar role="complementary" aria-label="Assistente de IA">
-      <ChatHeader onClose={() => dispatch(setOpen(false))} />
+      <ChatHeader
+        onClose={() => dispatch(setOpen(false))}
+        onMinimize={() => dispatch(setOpen(false))}
+      />
       <ModelSelector
         agents={agents}
         value={state.selectedAgentId}
         onChange={id => dispatch(setSelectedAgentId(id || null))}
       />
-      <MessageList messages={messages} />
+      <MessageList
+        messages={messages}
+        onConfirmAction={confirmAction}
+        onCancelAction={cancelAction}
+      />
       <ContextBadge context={state.currentContext} />
-      <ChatInput onSend={sendMessage} />
+      <ChatInput
+        disabled={isLoading}
+        onClear={clearChatHistory}
+        onSend={sendMessage}
+      />
     </Sidebar>
   );
 };

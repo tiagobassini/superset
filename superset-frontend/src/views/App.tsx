@@ -74,9 +74,7 @@ const LocationPathnameLogger = () => {
 };
 
 const AppContent = () => {
-  const isAIChatOpen = useSelector(
-    (state: RootState) => state.aiChat.isOpen,
-  );
+  const isAIChatOpen = useSelector((state: RootState) => state.aiChat.isOpen);
 
   return (
     <>

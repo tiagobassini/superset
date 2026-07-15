@@ -16,6 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO (Fase 2.5): implement ModelSelector component
+import { styled } from '@apache-superset/core/theme';
+import { Select } from '@superset-ui/core/components';
 import type { AIAgent } from '../store/types';
-export const ModelSelector = ({ agents, value, onChange }: { agents: AIAgent[]; value: string | null; onChange: (id: string) => void }) => <select aria-label="Agente de IA" value={value ?? ''} onChange={event => onChange(event.target.value)}><option value="">Agente padrão</option>{agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select>;
+
+const Container = styled.div`
+  border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+export interface ModelSelectorProps {
+  agents: AIAgent[];
+  value: string | null;
+  onChange: (id: string) => void;
+}
+
+/** Selects an active AI agent, or lets the backend resolve the default agent. */
+export const ModelSelector = ({
+  agents,
+  value,
+  onChange,
+}: ModelSelectorProps) => {
+  const activeAgents = agents.filter(agent => agent.isActive);
+  const options = [
+    { label: 'Agente padrão', value: '' },
+    ...activeAgents.map(agent => ({
+      label: `${agent.name} (${agent.model})`,
+      value: agent.id,
+    })),
+  ];
+
+  return (
+    <Container>
+      <Select
+        ariaLabel="Agente de IA"
+        onChange={selected => onChange(String(selected ?? ''))}
+        options={options}
+        placeholder="Agente padrão"
+        value={value ?? ''}
+      />
+    </Container>
+  );
+};

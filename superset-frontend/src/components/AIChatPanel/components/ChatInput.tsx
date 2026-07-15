@@ -16,6 +16,77 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO (Fase 2.5): implement ChatInput component
 import { useState } from 'react';
-export const ChatInput = ({ onSend }: { onSend: (text: string) => void }) => { const [text, setText] = useState(''); const send = () => { if (text.trim()) { onSend(text); setText(''); } }; return <><textarea aria-label="Mensagem para IA" value={text} onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.ctrlKey && event.key === 'Enter') send(); }} /><button type="button" onClick={send}>Enviar</button></>; };
+import { styled } from '@apache-superset/core/theme';
+import { Button, Input } from '@superset-ui/core/components';
+
+const Container = styled.div`
+  border-top: 1px solid ${({ theme }) => theme.colorBorder};
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+const Controls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+export interface ChatInputProps {
+  disabled?: boolean;
+  onClear: () => void;
+  onSend: (text: string) => void;
+}
+
+/** Input for a chat message; Ctrl+Enter sends without losing multiline support. */
+export const ChatInput = ({
+  disabled = false,
+  onClear,
+  onSend,
+}: ChatInputProps) => {
+  const [text, setText] = useState('');
+  const send = () => {
+    const content = text.trim();
+    if (!content || disabled) return;
+    onSend(content);
+    setText('');
+  };
+
+  return (
+    <Container>
+      <Input.TextArea
+        aria-label="Mensagem para IA"
+        autoSize={{ minRows: 2, maxRows: 6 }}
+        disabled={disabled}
+        onChange={event => setText(event.target.value)}
+        onKeyDown={event => {
+          if (event.ctrlKey && event.key === 'Enter') {
+            event.preventDefault();
+            send();
+          }
+        }}
+        placeholder="Digite sua mensagem…"
+        value={text}
+      />
+      <Controls>
+        <Button
+          buttonSize="small"
+          buttonStyle="tertiary"
+          disabled={!text || disabled}
+          onClick={() => {
+            setText('');
+            onClear();
+          }}
+        >
+          Limpar
+        </Button>
+        <Button
+          buttonSize="small"
+          disabled={!text.trim() || disabled}
+          onClick={send}
+        >
+          Enviar
+        </Button>
+      </Controls>
+    </Container>
+  );
+};

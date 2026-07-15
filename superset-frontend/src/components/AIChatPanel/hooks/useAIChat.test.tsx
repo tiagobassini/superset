@@ -35,7 +35,11 @@ const createWrapper = () => {
     chat = useAIChat();
     return null;
   };
-  render(<Provider store={store}><Harness /></Provider>);
+  render(
+    <Provider store={store}>
+      <Harness />
+    </Provider>,
+  );
   return { store, getChat: () => chat! };
 };
 
@@ -52,14 +56,15 @@ test('sends history and replaces the loading response with the AI response', asy
 
   await act(async () => getChat().sendMessage('Olá'));
 
-  expect(post).toHaveBeenCalledWith(expect.objectContaining({
-    endpoint: '/api/v1/ai/chat',
-    jsonPayload: expect.objectContaining({ message: 'Olá', history: [] }),
-  }));
-  expect(getChat().messages.map((message: ChatMessage) => message.content)).toEqual([
-    'Olá',
-    'Resposta',
-  ]);
+  expect(post).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: '/api/v1/ai/chat',
+      jsonPayload: expect.objectContaining({ message: 'Olá', history: [] }),
+    }),
+  );
+  expect(
+    getChat().messages.map((message: ChatMessage) => message.content),
+  ).toEqual(['Olá', 'Resposta']);
   expect(getChat().isLoading).toBe(false);
 });
 
@@ -73,13 +78,33 @@ test('shows an assistant error message when chat request fails', async () => {
 });
 
 test('confirms and cancels pending actions by id', async () => {
-  sessionStorage.setItem('superset_ai_chat_history', JSON.stringify([{
-    id: 'message', role: 'assistant', content: 'Ação', timestamp: 1,
-    pendingActions: [
-      { id: 'confirm', type: 'create_chart', description: 'Criar', params: {}, status: 'pending' },
-      { id: 'cancel', type: 'run_sql_query', description: 'Cancelar', params: {}, status: 'pending' },
-    ],
-  }]));
+  sessionStorage.setItem(
+    'superset_ai_chat_history',
+    JSON.stringify([
+      {
+        id: 'message',
+        role: 'assistant',
+        content: 'Ação',
+        timestamp: 1,
+        pendingActions: [
+          {
+            id: 'confirm',
+            type: 'create_chart',
+            description: 'Criar',
+            params: {},
+            status: 'pending',
+          },
+          {
+            id: 'cancel',
+            type: 'run_sql_query',
+            description: 'Cancelar',
+            params: {},
+            status: 'pending',
+          },
+        ],
+      },
+    ]),
+  );
   const { getChat } = createWrapper();
   jest.spyOn(SupersetClient, 'post').mockResolvedValue({
     json: { status: 'executed', result: { id: 1 } },

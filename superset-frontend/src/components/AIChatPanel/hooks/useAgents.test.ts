@@ -3,12 +3,32 @@ import { SupersetClient } from '@superset-ui/core';
 import { fetchAIAgents } from './useAgents';
 
 test('loads and caches active AI agents', async () => {
-  const get = jest.spyOn(SupersetClient, 'get').mockResolvedValue({ json: { result: [
-    { id: 'id', name: 'Default', provider: 'openai', model: 'gpt', is_default: true, is_active: true },
-  ] } } as never);
-  await expect(fetchAIAgents(true)).resolves.toEqual([{
-    id: 'id', name: 'Default', provider: 'openai', model: 'gpt', isDefault: true, isActive: true,
-  }]);
+  const get = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue({
+      json: {
+        result: [
+          {
+            id: 'id',
+            name: 'Default',
+            provider: 'openai',
+            model: 'gpt',
+            is_default: true,
+            is_active: true,
+          },
+        ],
+      },
+    } as never);
+  await expect(fetchAIAgents(true)).resolves.toEqual([
+    {
+      id: 'id',
+      name: 'Default',
+      provider: 'openai',
+      model: 'gpt',
+      isDefault: true,
+      isActive: true,
+    },
+  ]);
   await fetchAIAgents();
   expect(get).toHaveBeenCalledTimes(1);
 });

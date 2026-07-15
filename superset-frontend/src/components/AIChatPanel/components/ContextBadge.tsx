@@ -18,4 +18,6 @@
  */
 // TODO (Fase 2.5): implement ContextBadge component
 import type { PageContext } from '../store/types';
-export const ContextBadge = ({ context }: { context: PageContext }) => <span>Contexto: {context.resourceName ?? context.page}</span>;
+export const ContextBadge = ({ context }: { context: PageContext }) => (
+  <span>Contexto: {context.resourceName ?? context.page}</span>
+);

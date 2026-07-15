@@ -17,6 +17,7 @@
  * under the License.
  */
 import { styled } from '@apache-superset/core/theme';
+import { Button } from '@superset-ui/core/components';
 
 const Header = styled.header`
   align-items: center;
@@ -27,9 +28,36 @@ const Header = styled.header`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
-export const ChatHeader = ({ onClose }: { onClose: () => void }) => (
+const Controls = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+export interface ChatHeaderProps {
+  onClose: () => void;
+  onMinimize: () => void;
+}
+
+export const ChatHeader = ({ onClose, onMinimize }: ChatHeaderProps) => (
   <Header>
     Assistente de IA
-    <button type="button" onClick={onClose}>Fechar</button>
+    <Controls>
+      <Button
+        buttonSize="xsmall"
+        buttonStyle="tertiary"
+        onClick={onMinimize}
+        aria-label="Minimizar assistente de IA"
+      >
+        −
+      </Button>
+      <Button
+        buttonSize="xsmall"
+        buttonStyle="tertiary"
+        onClick={onClose}
+        aria-label="Fechar assistente de IA"
+      >
+        ×
+      </Button>
+    </Controls>
   </Header>
 );
