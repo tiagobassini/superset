@@ -73,19 +73,22 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    profiles:
-      - ai
+    #profiles:
+    #  - ai
     restart: unless-stopped
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
     environment:
-      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-0}
       OLLAMA_MAX_LOADED_MODELS: "1"
-      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-8192}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-1024}
       OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_QUEUE: "10"
     volumes:
       - ollama:/root/.ollama
-    gpus: all
+    cpus: "8.0"
+    mem_limit: 3750m
+    mem_reservation: 2g
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
@@ -94,10 +97,11 @@ services:
 
   ollama-pull:
     image: ollama/ollama:latest
-    profiles:
-      - ai
+    #profiles:
+    #  - ai
     restart: "no"
-    command: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-qwen3:8b}"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama pull ${OLLAMA_MODEL:-qwen3:1.7b}"]
     depends_on:
       ollama:
         condition: service_healthy
