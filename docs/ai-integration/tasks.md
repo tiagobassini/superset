@@ -180,12 +180,12 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Toggle ativar/desativar sem deletar
 
 ### 3.2 Modal Criar/Editar Agente
-- [ ] `AgentModal.tsx` com formulário completo
-- [ ] Campos: Nome, Provedor, Modelo, API Key (mascarada), URL Base
-- [ ] Seção de Roles com permissão
-- [ ] Checkboxes de Tools habilitadas
-- [ ] Botão "Testar Conexão" com feedback
-- [ ] Validação de formulário (campo obrigatórios, URL válida)
+- [x] `AgentModal.tsx` com formulário completo
+- [x] Campos: Nome, Provedor, Modelo, API Key (mascarada), URL Base
+- [x] Seção de Roles com permissão
+- [x] Checkboxes de Tools habilitadas
+- [x] Botão "Testar Conexão" com feedback
+- [x] Validação de formulário (campo obrigatórios, URL válida)
 
 ### 3.3 Configurações Globais
 - [ ] `GlobalSettings.tsx` com opções de comportamento

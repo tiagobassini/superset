@@ -55,10 +55,15 @@ class AgentSchema(Schema):
     """Validate agent create and update payloads without exposing secrets."""
 
     name = fields.String(validate=validate.Length(min=1, max=256))
-    provider = fields.String(validate=validate.OneOf(["openai", "ollama", "anthropic"]))
+    provider = fields.String(
+        validate=validate.OneOf(
+            ["openai", "ollama", "anthropic", "deepseek", "codex"]
+        )
+    )
     model = fields.String(validate=validate.Length(min=1, max=128))
     base_url = fields.URL(allow_none=True)
     api_key = fields.String(load_only=True, validate=validate.Length(min=1, max=4096))
     is_default = fields.Boolean()
     is_active = fields.Boolean()
     role_ids = fields.List(fields.Integer())
+    enabled_tools = fields.List(fields.String(validate=validate.Length(min=1, max=128)))

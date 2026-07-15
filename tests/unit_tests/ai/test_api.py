@@ -73,6 +73,12 @@ def test_agent_schema_rejects_unsupported_provider() -> None:
         AgentSchema().load({"provider": "unsupported"})
 
 
+def test_agent_schema_accepts_openai_compatible_providers() -> None:
+    payload = AgentSchema().load({"provider": "deepseek"})
+
+    assert payload["provider"] == "deepseek"
+
+
 def test_agent_serialization_never_exposes_encrypted_api_key() -> None:
     agent = SimpleNamespace(
         id="agent-1",
@@ -84,6 +90,7 @@ def test_agent_serialization_never_exposes_encrypted_api_key() -> None:
         base_url=None,
         api_key_encrypted="secret-ciphertext",
         allowed_roles=[SimpleNamespace(id=3)],
+        enabled_tools=["list_datasets"],
     )
 
     result = AIRestApi._serialize_agent(agent, detailed=True)
@@ -91,6 +98,7 @@ def test_agent_serialization_never_exposes_encrypted_api_key() -> None:
     assert result["api_key_set"] is True
     assert "api_key_encrypted" not in result
     assert "secret-ciphertext" not in result.values()
+    assert result["enabled_tools"] == ["list_datasets"]
 
 
 def test_pending_action_response_hides_internal_agent_binding() -> None:

@@ -52,9 +52,11 @@ class StubProvider:
     def __init__(self, responses: list[ProviderResponse]) -> None:
         self.responses = responses
         self.messages: list[list[dict[str, Any]]] = []
+        self.tools: list[list[dict[str, Any]]] = []
 
     def chat_with_tools(self, messages, tools, model):
         self.messages.append(messages)
+        self.tools.append(tools)
         return self.responses.pop(0)
 
     @staticmethod
@@ -251,6 +253,30 @@ def test_orchestrator_executes_read_tool_and_continues_to_final_answer(
     assert result.pending_actions == []
     assert tool.calls == [{"value": "sales"}]
     assert provider.messages[1][-1]["role"] == "tool"
+
+
+def test_orchestrator_only_offers_tools_enabled_for_the_agent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    registry.register(StubTool())
+    provider = StubProvider([ProviderResponse("No tool required.")])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1",
+        provider="openai",
+        model="test",
+        api_key_encrypted=None,
+        enabled_tools=[],
+    )
+
+    AIOrchestrator(agent, registry, SimpleNamespace(id=42)).chat(
+        "Find sales", [], {"page": "sql"}
+    )
+
+    assert provider.tools == [[]]
 
 
 def test_orchestrator_defers_write_tool_until_confirmed(

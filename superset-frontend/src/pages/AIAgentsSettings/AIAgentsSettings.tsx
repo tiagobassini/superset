@@ -16,17 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { DeleteModal } from '@superset-ui/core/components';
 import SubMenu from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { AgentsList } from './components/AgentsList';
+import { AgentModal } from './components/AgentModal';
 import { useAgentsCRUD } from './hooks/useAgentsCRUD';
+import type { AIAgentConfiguration } from './types';
 
 /** Lists AI agents and exposes their management actions to administrators. */
 const AIAgentsSettings = () => {
   const { addDangerToast } = useToasts();
-  const { agents, error, isLoading, refresh, updateAgent } = useAgentsCRUD();
+  const {
+    agents,
+    createAgent,
+    deleteAgent,
+    error,
+    isLoading,
+    refresh,
+    testConnection,
+    updateAgent,
+  } = useAgentsCRUD();
+  const [editingAgent, setEditingAgent] = useState<
+    AIAgentConfiguration | undefined
+  >();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<
+    AIAgentConfiguration | undefined
+  >();
 
   useEffect(() => {
     if (error) addDangerToast(error.message);
@@ -38,14 +57,52 @@ const AIAgentsSettings = () => {
       <AgentsList
         agents={agents}
         isLoading={isLoading}
-        onAdd={() => undefined}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
+        onAdd={() => {
+          setEditingAgent(undefined);
+          setIsModalOpen(true);
+        }}
+        onDelete={agent => {
+          setAgentToDelete(agent);
+        }}
+        onEdit={agent => {
+          setEditingAgent(agent);
+          setIsModalOpen(true);
+        }}
         onToggleActive={agent => {
           void updateAgent(agent.id, { is_active: !agent.is_active });
         }}
         refresh={refresh}
       />
+      <AgentModal
+        agent={editingAgent}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        onSave={async values => {
+          try {
+            if (editingAgent) await updateAgent(editingAgent.id, values);
+            else await createAgent(values);
+          } catch (reason) {
+            addDangerToast(String(reason));
+            throw reason;
+          }
+        }}
+        onTestConnection={agent => testConnection(agent.id)}
+      />
+      {agentToDelete && (
+        <DeleteModal
+          description={t('This action permanently deletes the AI agent.')}
+          name={agentToDelete.name}
+          open
+          title={t('Delete AI agent?')}
+          onConfirm={() => {
+            void deleteAgent(agentToDelete.id).catch(reason =>
+              addDangerToast(String(reason)),
+            );
+            setAgentToDelete(undefined);
+          }}
+          onHide={() => setAgentToDelete(undefined)}
+        />
+      )}
     </>
   );
 };

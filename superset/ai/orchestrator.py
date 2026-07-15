@@ -99,6 +99,13 @@ class AIOrchestrator:
         ]
         pending_actions: list[PendingAction] = []
         tools = self.registry.openai_tools_for_user(self.user)
+        enabled_tools = getattr(self.agent, "enabled_tools", None)
+        if enabled_tools is not None:
+            tools = [
+                tool
+                for tool in tools
+                if tool.get("function", {}).get("name") in enabled_tools
+            ]
         for _ in range(MAX_TOOL_ROUNDS):
             response = self.provider.chat_with_tools(messages, tools, self.agent.model)
             if not response.tool_calls:

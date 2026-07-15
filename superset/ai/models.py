@@ -36,12 +36,13 @@ from superset.models.helpers import AuditMixinNullable
 
 metadata = db.Model.metadata
 
-# Supported AI providers.
-# "openai" also covers DeepSeek/Codex via custom base_url.
+# Supported AI providers. DeepSeek and Codex use the OpenAI-compatible adapter.
 AI_PROVIDER_ENUM = Enum(
     "openai",
     "ollama",
     "anthropic",
+    "deepseek",
+    "codex",
     name="ai_provider",
 )
 
@@ -101,6 +102,7 @@ class AIAgent(AuditMixinNullable, db.Model):
     is_default = Column(Boolean, default=False, nullable=False)
     # Soft-disable an agent without deleting it.
     is_active = Column(Boolean, default=True, nullable=False)
+    enabled_tools = Column(sa.JSON, nullable=True)
 
     # Many-to-many: which FAB roles may use this agent.
     # Empty → any role with can_use_ai_chat may use it.

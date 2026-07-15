@@ -17,7 +17,12 @@
  * under the License.
  */
 
-export type AIProvider = 'anthropic' | 'ollama' | 'openai';
+export type AIProvider =
+  | 'anthropic'
+  | 'codex'
+  | 'deepseek'
+  | 'ollama'
+  | 'openai';
 
 export interface AIAgentConfiguration {
   api_key_set?: boolean;
@@ -29,12 +34,19 @@ export interface AIAgentConfiguration {
   name: string;
   provider: AIProvider;
   role_ids?: number[];
+  enabled_tools?: string[] | null;
 }
 
 export type AIAgentUpdate = Partial<
   Pick<
     AIAgentConfiguration,
-    'base_url' | 'is_active' | 'is_default' | 'model' | 'name' | 'provider'
+    | 'base_url'
+    | 'enabled_tools'
+    | 'is_active'
+    | 'is_default'
+    | 'model'
+    | 'name'
+    | 'provider'
   >
 > & {
   api_key?: string;

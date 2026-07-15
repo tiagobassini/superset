@@ -285,6 +285,7 @@ class AIRestApi(BaseSupersetApi):
                     "base_url": agent.base_url,
                     "api_key_set": bool(agent.api_key_encrypted),
                     "role_ids": [role.id for role in agent.allowed_roles],
+                    "enabled_tools": getattr(agent, "enabled_tools", None),
                 }
             )
         return result

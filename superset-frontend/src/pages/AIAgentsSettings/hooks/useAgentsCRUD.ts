@@ -66,5 +66,40 @@ export const useAgentsCRUD = () => {
     [refresh],
   );
 
-  return { agents, error, isLoading, refresh, updateAgent };
+  const createAgent = useCallback(
+    async (agent: AIAgentUpdate) => {
+      await SupersetClient.post({
+        endpoint: '/api/v1/ai/agents',
+        jsonPayload: agent,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteAgent = useCallback(
+    async (agentId: string) => {
+      await SupersetClient.delete({ endpoint: `/api/v1/ai/agents/${agentId}` });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const testConnection = useCallback(async (agentId: string) => {
+    const { json } = await SupersetClient.post({
+      endpoint: `/api/v1/ai/agents/${agentId}/test`,
+    });
+    return Boolean((json as { success?: boolean }).success);
+  }, []);
+
+  return {
+    agents,
+    createAgent,
+    deleteAgent,
+    error,
+    isLoading,
+    refresh,
+    testConnection,
+    updateAgent,
+  };
 };
