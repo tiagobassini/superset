@@ -174,10 +174,10 @@ Tarefas de setup que desbloqueiam todas as demais.
 ## Fase 3 — Settings Page
 
 ### 3.1 Página de Listagem de Agentes
-- [ ] Criar `AIAgentsSettings.tsx` usando `ListView` do Superset
-- [ ] Colunas: Nome, Provedor, Modelo, Status, Ações (editar/deletar)
-- [ ] Botão "Add Agent"
-- [ ] Toggle ativar/desativar sem deletar
+- [x] Criar `AIAgentsSettings.tsx` usando `ListView` do Superset
+- [x] Colunas: Nome, Provedor, Modelo, Status, Ações (editar/deletar)
+- [x] Botão "Add Agent"
+- [x] Toggle ativar/desativar sem deletar
 
 ### 3.2 Modal Criar/Editar Agente
 - [ ] `AgentModal.tsx` com formulário completo

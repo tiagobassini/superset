@@ -112,15 +112,32 @@ class AIRestApi(BaseSupersetApi):
     @protect()
     @safe
     def list_agents(self) -> Response:
-        """List active agents the caller may use."""
+        """List accessible chat agents or every agent for an administrator."""
         self._require_enabled()
+        include_inactive = request.args.get("include_inactive") == "true"
+        if include_inactive:
+            self._require("can_manage_ai_agents")
+            agents = AIAgent.query.order_by(AIAgent.name).all()
+            return jsonify(
+                {
+                    "count": len(agents),
+                    "result": [
+                        self._serialize_agent(agent, detailed=True) for agent in agents
+                    ],
+                }
+            )
         self._require("can_use_ai_chat")
         agents = [
             agent
             for agent in AIAgent.query.filter_by(is_active=True)
             if self._can_use(agent)
         ]
-        return jsonify({"result": [self._serialize_agent(agent) for agent in agents]})
+        return jsonify(
+            {
+                "count": len(agents),
+                "result": [self._serialize_agent(agent) for agent in agents],
+            }
+        )
 
     @expose("/agents/<string:agent_id>", methods=("GET",))
     @protect()

@@ -16,18 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useEffect } from 'react';
+import { t } from '@apache-superset/core/translation';
+import SubMenu from 'src/features/home/SubMenu';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { AgentsList } from './components/AgentsList';
+import { useAgentsCRUD } from './hooks/useAgentsCRUD';
 
-/**
- * AIAgentsSettings — Settings page for managing AI agents.
- *
- * Accessible from Settings > AI Agents (requires can_manage_ai_agents permission).
- * Lets admins create, edit, and delete AI provider configurations.
- *
- * See docs/ai-integration/settings-agents-page.md for full specification.
- *
- * TODO (Fase 3): implement full page with AgentsList, AgentModal, GlobalSettings.
- */
-const AIAgentsSettings: React.FC = () => null;
+/** Lists AI agents and exposes their management actions to administrators. */
+const AIAgentsSettings = () => {
+  const { addDangerToast } = useToasts();
+  const { agents, error, isLoading, refresh, updateAgent } = useAgentsCRUD();
+
+  useEffect(() => {
+    if (error) addDangerToast(error.message);
+  }, [addDangerToast, error]);
+
+  return (
+    <>
+      <SubMenu name={t('AI Agents')} />
+      <AgentsList
+        agents={agents}
+        isLoading={isLoading}
+        onAdd={() => undefined}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onToggleActive={agent => {
+          void updateAgent(agent.id, { is_active: !agent.is_active });
+        }}
+        refresh={refresh}
+      />
+    </>
+  );
+};
 
 export default AIAgentsSettings;
