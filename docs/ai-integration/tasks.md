@@ -70,48 +70,48 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Testes unitários para cada adapter (com mock das APIs externas)
 
 ### 1.4 Tool Registry
-- [ ] Criar `AITool` base class em `superset/ai/tools/base.py`
-- [ ] Criar `ToolRegistry` singleton em `superset/ai/tools/registry.py`
-- [ ] Implementar tools de **consulta** (sem confirmação):
-  - [ ] `ListDatabasesTool`
-  - [ ] `ListDatabaseTablesTool` — lista tabelas de um banco via API de schema do Superset (mesmo endpoint usado pelo SQL Lab para autocomplete)
-  - [ ] `GetTableSchemaTool` — retorna colunas/tipos de uma tabela do banco sem precisar de dataset configurado
-  - [ ] `ListDatasetsTool`
-  - [ ] `GetDatasetSchemaTool`
-  - [ ] `ListChartsTool`
-  - [ ] `ListDashboardsTool`
-  - [ ] `ListSavedQueriesTool`
-- [ ] Implementar tools de **escrita** (com confirmação):
-  - [ ] `RunSQLQueryTool` — usa API do SQL Lab
-  - [ ] `SaveSQLQueryTool`
-  - [ ] `CreateChartTool`
-  - [ ] `EditChartTool`
-  - [ ] `CreateDashboardTool`
-  - [ ] `EditDashboardTool`
-  - [ ] `AddChartToDashboardTool`
-  - [ ] `CreateDatasetTool`
-- [ ] Testes unitários para cada tool (verificar autorização + execução)
+- [x] Criar `AITool` base class em `superset/ai/tools/base.py`
+- [x] Criar `ToolRegistry` singleton em `superset/ai/tools/registry.py`
+- [x] Implementar tools de **consulta** (sem confirmação):
+  - [x] `ListDatabasesTool`
+  - [x] `ListDatabaseTablesTool` — lista tabelas de um banco via API de schema do Superset (mesmo endpoint usado pelo SQL Lab para autocomplete)
+  - [x] `GetTableSchemaTool` — retorna colunas/tipos de uma tabela do banco sem precisar de dataset configurado
+  - [x] `ListDatasetsTool`
+  - [x] `GetDatasetSchemaTool`
+  - [x] `ListChartsTool`
+  - [x] `ListDashboardsTool`
+  - [x] `ListSavedQueriesTool`
+- [x] Implementar tools de **escrita** (com confirmação):
+  - [x] `RunSQLQueryTool` — usa API do SQL Lab
+  - [x] `SaveSQLQueryTool`
+  - [x] `CreateChartTool`
+  - [x] `EditChartTool`
+  - [x] `CreateDashboardTool`
+  - [x] `EditDashboardTool`
+  - [x] `AddChartToDashboardTool`
+  - [x] `CreateDatasetTool`
+- [x] Testes unitários para cada tool (verificar autorização + execução)
 
 ### 1.5 AI Orchestrator
-- [ ] Implementar `AIOrchestrator` em `superset/ai/orchestrator.py`
-- [ ] Lógica de montagem do system prompt com contexto dinâmico
-- [ ] Loop de tool calling (executar tools sem confirmação, acumular tools com confirmação)
-- [ ] Cache de `PendingAction` com TTL de 10 min (usando cache do Superset)
-- [ ] Método `confirm_and_execute(action_id)` para execução pós-confirmação
-- [ ] Sanitização de strings externas antes de incluir no prompt
-- [ ] Testes unitários com mocks do provedor
+- [x] Implementar `AIOrchestrator` em `superset/ai/orchestrator.py`
+- [x] Lógica de montagem do system prompt com contexto dinâmico
+- [x] Loop de tool calling (executar tools sem confirmação, acumular tools com confirmação)
+- [x] Cache de `PendingAction` com TTL de 10 min (usando cache do Superset)
+- [x] Método `confirm_and_execute(action_id)` para execução pós-confirmação
+- [x] Sanitização de strings externas antes de incluir no prompt
+- [x] Testes unitários com mocks do provedor
 
 ### 1.6 API REST
-- [ ] Implementar `AIRestApi` em `superset/ai/api.py` (herdar de `BaseSupersetView`)
-- [ ] `POST /api/v1/ai/chat` — com validação de schema via Marshmallow
-- [ ] `POST /api/v1/ai/confirm_action`
-- [ ] `GET /api/v1/ai/agents`
-- [ ] `GET /api/v1/ai/agents/<id>` (admin)
-- [ ] `POST /api/v1/ai/agents` (admin)
-- [ ] `PUT /api/v1/ai/agents/<id>` (admin)
-- [ ] `DELETE /api/v1/ai/agents/<id>` (admin)
-- [ ] `POST /api/v1/ai/agents/<id>/test` (admin)
-- [ ] Registrar `AIRestApi` no `superset/app.py` (condicionado à feature flag)
+- [x] Implementar `AIRestApi` em `superset/ai/api.py` (herdar de `BaseSupersetView`)
+- [x] `POST /api/v1/ai/chat` — com validação de schema via Marshmallow
+- [x] `POST /api/v1/ai/confirm_action`
+- [x] `GET /api/v1/ai/agents`
+- [x] `GET /api/v1/ai/agents/<id>` (admin)
+- [x] `POST /api/v1/ai/agents` (admin)
+- [x] `PUT /api/v1/ai/agents/<id>` (admin)
+- [x] `DELETE /api/v1/ai/agents/<id>` (admin)
+- [x] `POST /api/v1/ai/agents/<id>/test` (admin)
+- [x] Registrar `AIRestApi` no `superset/app.py` (condicionado à feature flag)
 - [ ] Testes de integração para todos os endpoints
 
 ---

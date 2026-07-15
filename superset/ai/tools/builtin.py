@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from superset.ai.tools.base import AITool, ToolResult
+from superset.utils import json
 
 OBJECT_SCHEMA: dict[str, Any] = {"type": "object", "properties": {}}
 
@@ -48,6 +49,13 @@ class BuiltinTool(AITool):
     def execute(self, user: Any, params: dict[str, Any]) -> ToolResult:
         """Run the handler and turn expected failures into safe tool results."""
         try:
+            if self.required_permission:
+                from superset.extensions import security_manager
+
+                if not security_manager.can_access(
+                    self.required_permission, "AIAgentResource"
+                ):
+                    return ToolResult(False, None, "Tool access denied")
             return ToolResult(success=True, data=self.handler(params))
         except Exception as ex:
             return ToolResult(success=False, data=None, error=str(ex))
@@ -58,17 +66,24 @@ def _list_databases(_: dict[str, Any]) -> list[dict[str, Any]]:
     from superset.models.core import Database
 
     return [
-        {"id": database.id, "name": database.database_name, "backend": database.backend}
-        for database in db.session.query(Database).order_by(Database.database_name).all()
+        {
+            "id": database.id,
+            "name": database.database_name,
+            "backend": database.backend,
+        }
+        for database in db.session.query(Database)
+        .order_by(Database.database_name)
+        .all()
         if security_manager.can_access_database(database)
     ]
 
 
 def _list_database_tables(params: dict[str, Any]) -> list[dict[str, Any]]:
     from superset.commands.database.tables import TablesDatabaseCommand
+    from superset.extensions import db
     from superset.models.core import Database
 
-    database = Database.get(params["database_id"])
+    database = db.session.get(Database, params["database_id"])
     if database is None:
         raise ValueError("Database not found")
     schema = params.get("schema") or database.get_default_schema()
@@ -84,28 +99,29 @@ def _list_database_tables(params: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _get_table_schema(params: dict[str, Any]) -> dict[str, Any]:
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.extensions import db, security_manager
+    from superset.commands.database.tables import TablesDatabaseCommand
+    from superset.databases.utils import get_table_metadata
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.sql.parse import Table
 
-    table = (
-        db.session.query(SqlaTable)
-        .filter_by(
-            database_id=params["database_id"],
-            table_name=params["table_name"],
-            schema=params.get("schema"),
-        )
-        .one_or_none()
-    )
-    if table is None or not security_manager.can_access_datasource(table):
+    database = db.session.get(Database, params["database_id"])
+    if database is None:
+        raise ValueError("Database not found")
+    schema = params.get("schema") or database.get_default_schema()
+    if not schema:
+        raise ValueError("A schema is required for this database")
+    tables = TablesDatabaseCommand(
+        database.id, params.get("catalog"), schema, False
+    ).run()
+    if params["table_name"] not in {item["value"] for item in tables["result"]}:
         raise ValueError("Table not found or access denied")
-    return {
-        "table": table.table_name,
-        "schema": table.schema,
-        "columns": [
-            {"name": column.column_name, "type": column.type, "nullable": column.is_nullable}
-            for column in table.columns
-        ],
-    }
+    return dict(
+        get_table_metadata(
+            database,
+            Table(params["table_name"], schema, params.get("catalog")),
+        )
+    )
 
 
 def _list_datasets(params: dict[str, Any]) -> list[dict[str, Any]]:
@@ -114,7 +130,11 @@ def _list_datasets(params: dict[str, Any]) -> list[dict[str, Any]]:
 
     search = (params.get("search") or "").lower()
     return [
-        {"id": dataset.id, "name": dataset.table_name, "database": dataset.database.database_name}
+        {
+            "id": dataset.id,
+            "name": dataset.table_name,
+            "database": dataset.database.database_name,
+        }
         for dataset in db.session.query(SqlaTable).all()
         if search in dataset.table_name.lower()
         and security_manager.can_access_datasource(dataset)
@@ -132,7 +152,11 @@ def _get_dataset_schema(params: dict[str, Any]) -> dict[str, Any]:
         "id": dataset.id,
         "name": dataset.table_name,
         "columns": [
-            {"name": column.column_name, "type": column.type, "nullable": column.is_nullable}
+            {
+                "name": column.column_name,
+                "type": column.type,
+                "nullable": column.is_nullable,
+            }
             for column in dataset.columns
         ],
     }
@@ -146,7 +170,8 @@ def _list_charts(params: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {"id": chart.id, "name": chart.slice_name, "viz_type": chart.viz_type}
         for chart in db.session.query(Slice).all()
-        if search in chart.slice_name.lower() and security_manager.can_access_chart(chart)
+        if search in chart.slice_name.lower()
+        and security_manager.can_access_chart(chart)
     ]
 
 
@@ -156,7 +181,11 @@ def _list_dashboards(params: dict[str, Any]) -> list[dict[str, Any]]:
 
     search = (params.get("search") or "").lower()
     return [
-        {"id": dashboard.id, "title": dashboard.dashboard_title, "slug": dashboard.slug}
+        {
+            "id": dashboard.id,
+            "title": dashboard.dashboard_title,
+            "slug": dashboard.slug,
+        }
         for dashboard in db.session.query(Dashboard).all()
         if search in dashboard.dashboard_title.lower()
         and security_manager.can_access_dashboard(dashboard)
@@ -165,12 +194,15 @@ def _list_dashboards(params: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _list_saved_queries(_: dict[str, Any]) -> list[dict[str, Any]]:
     from flask import g
+
     from superset.extensions import db
     from superset.models.sql_lab import SavedQuery
 
     return [
         {"id": query.id, "label": query.label, "database_id": query.db_id}
-        for query in db.session.query(SavedQuery).filter(SavedQuery.user_id == g.user.id)
+        for query in db.session.query(SavedQuery).filter(
+            SavedQuery.user_id == g.user.id
+        )
     ]
 
 
@@ -217,28 +249,34 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _run_sql_query(params: dict[str, Any]) -> dict[str, Any]:
-    """Execute SQL through the same secured Database API used by MCP tools."""
-    from superset.extensions import db, security_manager
-    from superset.models.core import Database
-    from superset_core.queries.types import QueryOptions
+    """Execute SQL through the exact command path used by SQL Lab's REST API."""
+    from uuid import uuid4
 
-    database = db.session.get(Database, params["database_id"])
-    if database is None or not security_manager.can_access_database(database):
-        raise ValueError("Database not found or access denied")
-    result = database.execute(
-        params["sql"],
-        QueryOptions(
-            catalog=params.get("catalog"),
-            schema=params.get("schema"),
-            limit=params.get("limit", 1000),
-            timeout_seconds=params.get("timeout", 60),
-        ),
+    from superset.sqllab.api import SqlLabRestApi
+    from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+
+    context = SqlJsonExecutionContext(
+        {
+            "database_id": params["database_id"],
+            "catalog": params.get("catalog"),
+            "schema": params.get("schema"),
+            "sql": params["sql"],
+            "runAsync": False,
+            "queryLimit": params.get("limit", 1000),
+            "status": "running",
+            "client_id": str(uuid4()),
+            "sql_editor_id": str(uuid4()),
+            "tab": "AI Assistant",
+            "templateParams": json.dumps(params.get("template_params", {})),
+        }
     )
-    return {"status": str(result.status), "data": str(result.data)[:100000]}
+    result = SqlLabRestApi._create_sql_json_command(context, None).run()
+    return result["payload"]
 
 
 def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
     from flask import g
+
     from superset.daos.query import SavedQueryDAO
     from superset.extensions import db, security_manager
     from superset.models.core import Database
@@ -270,7 +308,9 @@ def _add_chart_to_dashboard(params: dict[str, Any]) -> dict[str, Any]:
     chart = db.session.get(Slice, params["chart_id"])
     if dashboard is None or chart is None:
         raise ValueError("Dashboard or chart not found")
-    if not security_manager.is_owner(dashboard) or not security_manager.can_access_chart(chart):
+    if not security_manager.is_owner(
+        dashboard
+    ) or not security_manager.can_access_chart(chart):
         raise ValueError("Access denied")
     if chart not in dashboard.slices:
         dashboard.slices.append(chart)
@@ -283,25 +323,207 @@ def default_tools() -> list[AITool]:
     search_schema = {"type": "object", "properties": {"search": {"type": "string"}}}
     database_schema = {
         "type": "object",
-        "properties": {"database_id": {"type": "integer"}, "schema": {"type": "string"}},
+        "properties": {
+            "database_id": {"type": "integer"},
+            "catalog": {"type": "string"},
+            "schema": {"type": "string"},
+            "search": {"type": "string"},
+        },
         "required": ["database_id"],
     }
+    table_schema = {
+        **database_schema,
+        "properties": {
+            **database_schema["properties"],
+            "table_name": {"type": "string"},
+        },
+        "required": ["database_id", "table_name"],
+    }
+    dataset_schema = {
+        "type": "object",
+        "properties": {"dataset_id": {"type": "integer"}},
+        "required": ["dataset_id"],
+    }
+    sql_schema = {
+        "type": "object",
+        "properties": {
+            "database_id": {"type": "integer"},
+            "sql": {"type": "string"},
+            "catalog": {"type": "string"},
+            "schema": {"type": "string"},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 10000},
+            "template_params": {"type": "object"},
+        },
+        "required": ["database_id", "sql"],
+    }
+    save_query_schema = {
+        **sql_schema,
+        "properties": {
+            **sql_schema["properties"],
+            "label": {"type": "string"},
+            "description": {"type": "string"},
+        },
+        "required": ["database_id", "sql", "label"],
+    }
+    chart_schema = {
+        "type": "object",
+        "properties": {
+            "datasource_id": {"type": "integer"},
+            "datasource_type": {"type": "string"},
+            "slice_name": {"type": "string"},
+            "viz_type": {"type": "string"},
+            "params": {"type": "string"},
+        },
+        "required": ["datasource_id", "datasource_type", "slice_name", "viz_type"],
+    }
+    edit_chart_schema = {
+        "type": "object",
+        "properties": {"chart_id": {"type": "integer"}, "data": {"type": "object"}},
+        "required": ["chart_id", "data"],
+    }
+    dashboard_schema = {
+        "type": "object",
+        "properties": {
+            "dashboard_title": {"type": "string"},
+            "slug": {"type": "string"},
+        },
+        "required": ["dashboard_title"],
+    }
+    edit_dashboard_schema = {
+        "type": "object",
+        "properties": {"dashboard_id": {"type": "integer"}, "data": {"type": "object"}},
+        "required": ["dashboard_id", "data"],
+    }
+    add_chart_schema = {
+        "type": "object",
+        "properties": {
+            "dashboard_id": {"type": "integer"},
+            "chart_id": {"type": "integer"},
+        },
+        "required": ["dashboard_id", "chart_id"],
+    }
+    create_dataset_schema = {
+        "type": "object",
+        "properties": {
+            "database": {"type": "integer"},
+            "table_name": {"type": "string"},
+            "schema": {"type": "string"},
+            "catalog": {"type": "string"},
+            "sql": {"type": "string"},
+        },
+        "required": ["database", "table_name"],
+    }
     return [
-        BuiltinTool("list_databases", "List accessible databases.", OBJECT_SCHEMA, _list_databases),
-        BuiltinTool("list_database_tables", "List accessible database tables.", database_schema, _list_database_tables),
-        BuiltinTool("get_table_schema", "Get an accessible table schema.", {**database_schema, "properties": {**database_schema["properties"], "table_name": {"type": "string"}}, "required": ["database_id", "table_name"]}, _get_table_schema),
-        BuiltinTool("list_datasets", "List accessible datasets.", search_schema, _list_datasets),
-        BuiltinTool("get_dataset_schema", "Get an accessible dataset schema.", {"type": "object", "properties": {"dataset_id": {"type": "integer"}}, "required": ["dataset_id"]}, _get_dataset_schema),
-        BuiltinTool("list_charts", "List accessible charts.", search_schema, _list_charts),
-        BuiltinTool("list_dashboards", "List accessible dashboards.", search_schema, _list_dashboards),
-        BuiltinTool("list_saved_queries", "List the current user's saved queries.", OBJECT_SCHEMA, _list_saved_queries),
-        BuiltinTool("get_current_context", "Get the current Superset request context.", OBJECT_SCHEMA, _get_current_context),
-        BuiltinTool("run_sql_query", "Execute a SQL query through SQL Lab.", OBJECT_SCHEMA, _run_sql_query, requires_confirmation=True, required_permission="can_ai_run_sql"),
-        BuiltinTool("save_sql_query", "Save a SQL query in SQL Lab.", OBJECT_SCHEMA, _save_sql_query, requires_confirmation=True, required_permission="can_ai_run_sql"),
-        BuiltinTool("create_chart", "Create a chart.", OBJECT_SCHEMA, _create_chart, requires_confirmation=True, required_permission="can_ai_create_charts"),
-        BuiltinTool("edit_chart", "Edit a chart.", OBJECT_SCHEMA, _edit_chart, requires_confirmation=True, required_permission="can_ai_edit_charts"),
-        BuiltinTool("create_dashboard", "Create a dashboard.", OBJECT_SCHEMA, _create_dashboard, requires_confirmation=True, required_permission="can_ai_create_dashboards"),
-        BuiltinTool("edit_dashboard", "Edit a dashboard.", OBJECT_SCHEMA, _edit_dashboard, requires_confirmation=True, required_permission="can_ai_edit_dashboards"),
-        BuiltinTool("add_chart_to_dashboard", "Add a chart to a dashboard.", OBJECT_SCHEMA, _add_chart_to_dashboard, requires_confirmation=True, required_permission="can_ai_edit_dashboards"),
-        BuiltinTool("create_dataset", "Create a dataset.", OBJECT_SCHEMA, _create_dataset, requires_confirmation=True, required_permission="can_ai_create_datasets"),
+        BuiltinTool(
+            "list_databases",
+            "List accessible databases.",
+            OBJECT_SCHEMA,
+            _list_databases,
+        ),
+        BuiltinTool(
+            "list_database_tables",
+            "List accessible database tables.",
+            database_schema,
+            _list_database_tables,
+        ),
+        BuiltinTool(
+            "get_table_schema",
+            "Get an accessible table schema.",
+            table_schema,
+            _get_table_schema,
+        ),
+        BuiltinTool(
+            "list_datasets", "List accessible datasets.", search_schema, _list_datasets
+        ),
+        BuiltinTool(
+            "get_dataset_schema",
+            "Get an accessible dataset schema.",
+            dataset_schema,
+            _get_dataset_schema,
+        ),
+        BuiltinTool(
+            "list_charts", "List accessible charts.", search_schema, _list_charts
+        ),
+        BuiltinTool(
+            "list_dashboards",
+            "List accessible dashboards.",
+            search_schema,
+            _list_dashboards,
+        ),
+        BuiltinTool(
+            "list_saved_queries",
+            "List the current user's saved queries.",
+            OBJECT_SCHEMA,
+            _list_saved_queries,
+        ),
+        BuiltinTool(
+            "get_current_context",
+            "Get the current Superset request context.",
+            OBJECT_SCHEMA,
+            _get_current_context,
+        ),
+        BuiltinTool(
+            "run_sql_query",
+            "Execute a SQL query through SQL Lab.",
+            sql_schema,
+            _run_sql_query,
+            requires_confirmation=True,
+            required_permission="can_ai_run_sql",
+        ),
+        BuiltinTool(
+            "save_sql_query",
+            "Save a SQL query in SQL Lab.",
+            save_query_schema,
+            _save_sql_query,
+            requires_confirmation=True,
+            required_permission="can_ai_run_sql",
+        ),
+        BuiltinTool(
+            "create_chart",
+            "Create a chart.",
+            chart_schema,
+            _create_chart,
+            requires_confirmation=True,
+            required_permission="can_ai_create_charts",
+        ),
+        BuiltinTool(
+            "edit_chart",
+            "Edit a chart.",
+            edit_chart_schema,
+            _edit_chart,
+            requires_confirmation=True,
+            required_permission="can_ai_edit_charts",
+        ),
+        BuiltinTool(
+            "create_dashboard",
+            "Create a dashboard.",
+            dashboard_schema,
+            _create_dashboard,
+            requires_confirmation=True,
+            required_permission="can_ai_create_dashboards",
+        ),
+        BuiltinTool(
+            "edit_dashboard",
+            "Edit a dashboard.",
+            edit_dashboard_schema,
+            _edit_dashboard,
+            requires_confirmation=True,
+            required_permission="can_ai_edit_dashboards",
+        ),
+        BuiltinTool(
+            "add_chart_to_dashboard",
+            "Add a chart to a dashboard.",
+            add_chart_schema,
+            _add_chart_to_dashboard,
+            requires_confirmation=True,
+            required_permission="can_ai_edit_dashboards",
+        ),
+        BuiltinTool(
+            "create_dataset",
+            "Create a dataset.",
+            create_dataset_schema,
+            _create_dataset,
+            requires_confirmation=True,
+            required_permission="can_ai_create_datasets",
+        ),
     ]

@@ -26,7 +26,8 @@ import pytest
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.providers.base import ProviderResponse, ToolCall
 from superset.ai.tools.base import AITool, ToolResult
-from superset.ai.tools.registry import ToolRegistry, create_default_registry
+from superset.ai.tools.builtin import BuiltinTool
+from superset.ai.tools.registry import create_default_registry, ToolRegistry
 
 
 class StubTool(AITool):
@@ -66,9 +67,11 @@ class StubCache:
 
     def __init__(self) -> None:
         self.values: dict[str, Any] = {}
+        self.timeouts: dict[str, int] = {}
 
     def set(self, key: str, value: Any, timeout: int) -> None:
         self.values[key] = value
+        self.timeouts[key] = timeout
 
     def get(self, key: str) -> Any:
         return self.values.get(key)
@@ -107,6 +110,116 @@ def test_registry_rejects_duplicate_tool_names() -> None:
         registry.register(StubTool())
 
 
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "list_databases",
+        "list_database_tables",
+        "get_table_schema",
+        "list_datasets",
+        "get_dataset_schema",
+        "list_charts",
+        "list_dashboards",
+        "list_saved_queries",
+        "get_current_context",
+        "run_sql_query",
+        "save_sql_query",
+        "create_chart",
+        "edit_chart",
+        "create_dashboard",
+        "edit_dashboard",
+        "add_chart_to_dashboard",
+        "create_dataset",
+    ],
+)
+def test_every_builtin_tool_has_an_openai_schema(tool_name: str) -> None:
+    tool = create_default_registry().get(tool_name)
+    assert tool is not None
+    schema = tool.to_openai_tool()
+    assert schema["function"]["name"] == tool_name
+    assert schema["function"]["parameters"]["type"] == "object"
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "list_databases",
+        "list_database_tables",
+        "get_table_schema",
+        "list_datasets",
+        "get_dataset_schema",
+        "list_charts",
+        "list_dashboards",
+        "list_saved_queries",
+        "get_current_context",
+        "run_sql_query",
+        "save_sql_query",
+        "create_chart",
+        "edit_chart",
+        "create_dashboard",
+        "edit_dashboard",
+        "add_chart_to_dashboard",
+        "create_dataset",
+    ],
+)
+def test_every_builtin_tool_executes_its_registered_handler(
+    tool_name: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset.extensions import security_manager
+
+    tool = create_default_registry().get(tool_name)
+    assert isinstance(tool, BuiltinTool)
+    monkeypatch.setattr(security_manager, "can_access", lambda *_: True)
+    monkeypatch.setattr(tool, "handler", lambda params: {"tool": tool_name, **params})
+
+    assert tool.execute(SimpleNamespace(), {"value": "ok"}) == ToolResult(
+        True, {"tool": tool_name, "value": "ok"}
+    )
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "run_sql_query",
+        "save_sql_query",
+        "create_chart",
+        "edit_chart",
+        "create_dashboard",
+        "edit_dashboard",
+        "add_chart_to_dashboard",
+        "create_dataset",
+    ],
+)
+def test_each_write_tool_requires_confirmation_and_its_permission(
+    tool_name: str,
+) -> None:
+    tool = create_default_registry().get(tool_name)
+    assert tool is not None
+    assert tool.requires_confirmation is True
+    assert tool.required_permission is not None
+
+
+def test_write_tool_rechecks_permission_before_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset.extensions import security_manager
+
+    tool = BuiltinTool(
+        "write",
+        "write data",
+        {"type": "object", "properties": {}},
+        lambda _: {"changed": True},
+        requires_confirmation=True,
+        required_permission="can_ai_create_charts",
+    )
+    monkeypatch.setattr(security_manager, "can_access", lambda *_: False)
+
+    result = tool.execute(SimpleNamespace(), {})
+
+    assert result == ToolResult(False, None, "Tool access denied")
+
+
 def test_orchestrator_executes_read_tool_and_continues_to_final_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -122,11 +235,17 @@ def test_orchestrator_executes_read_tool_and_continues_to_final_answer(
             ProviderResponse("Sales dataset found."),
         ]
     )
-    monkeypatch.setattr(AIOrchestrator, "_build_provider", staticmethod(lambda _: provider))
-    agent = SimpleNamespace(provider="openai", model="test", api_key_encrypted=None)
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
     user = SimpleNamespace(id=42)
 
-    result = AIOrchestrator(agent, registry, user).chat("Find sales", [], {"page": "sql"})
+    result = AIOrchestrator(agent, registry, user).chat(
+        "Find sales", [], {"page": "sql"}
+    )
 
     assert result.response == "Sales dataset found."
     assert result.pending_actions == []
@@ -141,11 +260,22 @@ def test_orchestrator_defers_write_tool_until_confirmed(
     tool = StubTool(requires_confirmation=True)
     registry.register(tool)
     provider = StubProvider(
-        [ProviderResponse("I can do that.", [ToolCall("call_1", "lookup", {"value": "x"})])]
+        [
+            ProviderResponse(
+                "I can do that.", [ToolCall("call_1", "lookup", {"value": "x"})]
+            )
+        ]
     )
     cache = StubCache()
-    monkeypatch.setattr(AIOrchestrator, "_build_provider", staticmethod(lambda _: provider))
-    agent = SimpleNamespace(provider="openai", model="test", api_key_encrypted=None)
+    from superset.extensions import event_logger
+
+    monkeypatch.setattr(event_logger, "log", lambda **_: None)
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
     user = SimpleNamespace(id=42)
     orchestrator = AIOrchestrator(agent, registry, user, cache=cache)
 
@@ -154,5 +284,119 @@ def test_orchestrator_defers_write_tool_until_confirmed(
     assert tool.calls == []
     action = result.pending_actions[0]
     assert action.type == "lookup"
+    assert action.agent_id == "agent-1"
+    assert cache.timeouts[orchestrator._cache_key(action.id)] == 600
     assert orchestrator.confirm_and_execute(action.id).data == {"value": "x"}
     assert tool.calls == [{"value": "x"}]
+
+
+def test_orchestrator_accumulates_multiple_pending_actions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    registry.register(StubTool(requires_confirmation=True))
+    provider = StubProvider(
+        [
+            ProviderResponse(
+                "Two changes need approval.",
+                [
+                    ToolCall("call_1", "lookup", {"value": "a"}),
+                    ToolCall("call_2", "lookup", {"value": "b"}),
+                ],
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    orchestrator = AIOrchestrator(
+        SimpleNamespace(id="agent-1", model="test", api_key_encrypted=None),
+        registry,
+        SimpleNamespace(id=42),
+        cache=StubCache(),
+    )
+
+    result = orchestrator.chat("Change both", [], {"page": "dashboard"})
+
+    assert [action.params for action in result.pending_actions] == [
+        {"value": "a"},
+        {"value": "b"},
+    ]
+
+
+def test_orchestrator_rejects_expired_or_wrong_agent_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    registry.register(StubTool(requires_confirmation=True))
+    provider = StubProvider(
+        [ProviderResponse("", [ToolCall("call_1", "lookup", {"value": "x"})])]
+    )
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    cache = StubCache()
+    source = AIOrchestrator(
+        SimpleNamespace(id="agent-1", model="test", api_key_encrypted=None),
+        registry,
+        SimpleNamespace(id=42),
+        cache=cache,
+    )
+    action = source.chat("Change", [], {"page": "dashboard"}).pending_actions[0]
+    target = AIOrchestrator(
+        SimpleNamespace(id="agent-2", model="test", api_key_encrypted=None),
+        registry,
+        SimpleNamespace(id=42),
+        cache=cache,
+    )
+
+    from superset.ai.exceptions import AIActionExpiredError
+
+    with pytest.raises(AIActionExpiredError, match="another agent"):
+        target.confirm_and_execute(action.id)
+    cache.delete(source._cache_key(action.id))
+    with pytest.raises(AIActionExpiredError, match="not found"):
+        source.confirm_and_execute(action.id)
+
+
+def test_system_prompt_sanitizes_complete_context() -> None:
+    prompt = AIOrchestrator._system_prompt(
+        {
+            "page": "<b>dashboard</b>\x00",
+            "resource_id": 12,
+            "resource_name": "<script>Sales</script>",
+            "metadata": {"note": "\x01north"},
+        }
+    )
+
+    assert "<script>" not in prompt
+    assert "dashboard" in prompt
+    assert "ID: 12" in prompt
+    assert "north" in prompt
+
+
+def test_orchestrator_stops_an_endless_tool_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    registry.register(StubTool())
+    provider = StubProvider(
+        [
+            ProviderResponse("", [ToolCall(str(index), "lookup", {"value": "x"})])
+            for index in range(8)
+        ]
+    )
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    orchestrator = AIOrchestrator(
+        SimpleNamespace(id="agent-1", model="test", api_key_encrypted=None),
+        registry,
+        SimpleNamespace(id=42),
+        cache=StubCache(),
+    )
+
+    from superset.ai.exceptions import AIProviderError
+
+    with pytest.raises(AIProviderError, match="maximum number"):
+        orchestrator.chat("Loop", [], {"page": "other"})

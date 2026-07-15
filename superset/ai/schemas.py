@@ -16,9 +16,7 @@
 # under the License.
 """Request validation schemas for the AI REST API."""
 
-from __future__ import annotations
-
-from marshmallow import Schema, fields, validate
+from marshmallow import fields, Schema, validate
 
 
 class PageContextSchema(Schema):
@@ -63,4 +61,4 @@ class AgentSchema(Schema):
     api_key = fields.String(load_only=True, validate=validate.Length(min=1, max=4096))
     is_default = fields.Boolean()
     is_active = fields.Boolean()
-    role_ids = fields.List(fields.Integer(), load_default=list)
+    role_ids = fields.List(fields.Integer())

@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 from superset.ai.tools.base import AITool
@@ -59,8 +60,9 @@ class ToolRegistry:
         return security_manager.can_access(tool.required_permission, "AIAgentResource")
 
 
+@lru_cache(maxsize=1)
 def create_default_registry() -> ToolRegistry:
-    """Build the standard registry once per orchestration request."""
+    """Return the process-wide immutable registry of built-in tools."""
     from superset.ai.tools.builtin import default_tools
 
     registry = ToolRegistry()
