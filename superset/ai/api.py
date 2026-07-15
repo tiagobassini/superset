@@ -291,6 +291,19 @@ class AIRestApi(BaseSupersetApi):
         if not security_manager.can_access(permission, "AIAgentResource"):
             from werkzeug.exceptions import Forbidden
 
+            from superset.extensions import event_logger
+
+            event_logger.log(
+                user_id=getattr(getattr(g, "user", None), "id", None),
+                action="ai_authorization_denied",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
+                curated_payload={"permission": permission},
+                curated_form_data=None,
+            )
+
             raise Forbidden()
 
     def _get_agent(self, agent_id: Any) -> AIAgent | None:
@@ -326,6 +339,7 @@ class AIRestApi(BaseSupersetApi):
                 {
                     "base_url": agent.base_url,
                     "api_key_set": bool(agent.api_key_encrypted),
+                    "response_language": getattr(agent, "response_language", "pt-BR"),
                     "role_ids": [role.id for role in agent.allowed_roles],
                     "enabled_tools": getattr(agent, "enabled_tools", None),
                 }
