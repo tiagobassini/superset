@@ -132,8 +132,8 @@ Tarefas de setup que desbloqueiam todas as demais.
   - [x] Demais: `{ page: 'other' }`
 
 ### 2.3 Hook de Agentes
-- [ ] Implementar `useAgents.ts` — carrega lista de agentes de `GET /api/v1/ai/agents`
-- [ ] Cache local dos agentes (evitar requests repetidos)
+- [x] Implementar `useAgents.ts` — carrega lista de agentes de `GET /api/v1/ai/agents`
+- [x] Cache local dos agentes (evitar requests repetidos)
 
 ### 2.4 Hook Central do Chat
 - [ ] Implementar `useAIChat.ts`:
