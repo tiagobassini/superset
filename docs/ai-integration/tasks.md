@@ -136,12 +136,12 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Cache local dos agentes (evitar requests repetidos)
 
 ### 2.4 Hook Central do Chat
-- [ ] Implementar `useAIChat.ts`:
-  - `sendMessage(text)` → POST /api/v1/ai/chat
-  - `confirmAction(actionId)` → POST /api/v1/ai/confirm_action
-  - `cancelAction(actionId)`
-  - Gerenciamento do histórico (sessionStorage)
-  - Estado de loading por mensagem
+- [x] Implementar `useAIChat.ts`:
+  - [x] `sendMessage(text)` → POST /api/v1/ai/chat
+  - [x] `confirmAction(actionId)` → POST /api/v1/ai/confirm_action
+  - [x] `cancelAction(actionId)`
+  - [x] Gerenciamento do histórico (sessionStorage)
+  - [x] Estado de loading por mensagem
 
 ### 2.5 Componentes do Chat
 - [ ] `ToggleButton.tsx` — botão flutuante para abrir o painel
