@@ -25,6 +25,7 @@ import {
   LazyExoticComponent,
 } from 'react';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 // not lazy loaded since this is the home page.
@@ -67,6 +68,13 @@ const CssTemplateList = lazy(
 
 const ThemeList = lazy(
   () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
+);
+
+const AIAgentsSettings = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AIAgentsSettings" */ 'src/pages/AIAgentsSettings'
+    ),
 );
 
 const DashboardList = lazy(
@@ -370,6 +378,16 @@ if (isAdmin) {
       Component: Extensions,
     });
   }
+}
+
+if (
+  isFeatureEnabled(FeatureFlag.EnableAiIntegration) &&
+  findPermission('can_manage_ai_agents', 'AIAgentResource', user?.roles)
+) {
+  routes.push({
+    path: '/settings/ai/agents',
+    Component: AIAgentsSettings,
+  });
 }
 
 if (authRegistrationEnabled) {

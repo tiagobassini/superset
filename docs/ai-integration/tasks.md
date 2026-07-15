@@ -195,9 +195,9 @@ Tarefas de setup que desbloqueiam todas as demais.
 - [x] Opções de contexto enviado ao modelo
 
 ### 3.4 Integração no Menu Settings
-- [ ] Adicionar item "AI Agents" no menu Settings do Superset
-- [ ] Visível apenas com `ENABLE_AI_INTEGRATION=true` e `can_manage_ai_agents`
-- [ ] Rota `/settings/ai/agents` registrada no router
+- [x] Adicionar item "AI Agents" no menu Settings do Superset
+- [x] Visível apenas com `ENABLE_AI_INTEGRATION=true` e `can_manage_ai_agents`
+- [x] Rota `/settings/ai/agents` registrada no router
 
 ---
 

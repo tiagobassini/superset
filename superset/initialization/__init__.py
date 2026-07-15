@@ -188,6 +188,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
         from superset.themes.api import ThemeRestApi
+        from superset.views.ai_agents import AIAgentsSettingsView
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
@@ -282,6 +283,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             from superset.ai.api import AIRestApi
 
             appbuilder.add_api(AIRestApi)
+            appbuilder.add_view(
+                AIAgentsSettingsView,
+                "AI Agents",
+                href="/settings/ai/agents",
+                category="Manage",
+                category_label=_("Manage"),
+                icon="fa-robot",
+            )
 
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.api import TaskRestApi
