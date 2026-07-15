@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getAIPageContext } from './useAIContext';
+import { getActiveQueryEditor, getAIPageContext } from './useAIContext';
 
 test('creates dashboard context from Redux data', () => {
   expect(
@@ -53,4 +53,15 @@ test('creates Explore and SQL Lab contexts', () => {
 
 test('uses other context outside AI-aware pages', () => {
   expect(getAIPageContext('/chart/list/', '', {})).toEqual({ page: 'other' });
+});
+
+test('uses the most recently selected SQL Lab tab', () => {
+  const editors = [
+    { id: 'first', tabViewId: 'first-tab' },
+    { id: 'second', tabViewId: 'second-tab' },
+  ];
+
+  expect(
+    getActiveQueryEditor(editors as never, ['first-tab', 'second-tab']),
+  ).toMatchObject({ id: 'second' });
 });

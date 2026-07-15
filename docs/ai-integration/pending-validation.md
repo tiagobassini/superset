@@ -6,8 +6,7 @@ A Fase 2 possui fundação funcional (slice Redux, persistência de sessão,
 contexto por URL, carregamento de agentes e chamadas HTTP), porém **não está
 concluída**. Os seguintes itens precisam de implementação e testes:
 
-- Corrigir a obtenção do título de dashboard e da aba ativa do SQL Lab no
-  `useAIContext`; cobrir os quatro contextos com testes que usem o Redux real.
+- Cobrir os quatro contextos do `useAIContext` com testes que usem o Redux real.
 - Testar `useAIChat` e implementar loading por mensagem, tratamento visível de
   falhas e o fluxo completo de confirmar/cancelar ações pendentes.
 - Completar os componentes: bolhas distintas para usuário/assistente,

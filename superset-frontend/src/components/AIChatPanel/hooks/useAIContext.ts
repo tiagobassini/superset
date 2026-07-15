@@ -21,6 +21,7 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import type { QueryEditor } from 'src/SqlLab/types';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import type { RootState } from 'src/views/store';
 import type { PageContext } from '../store/types';
 
@@ -90,19 +91,33 @@ export const getAIPageContext = (
   return { page: 'other' };
 };
 
+export const getActiveQueryEditor = (
+  queryEditors: QueryEditor[],
+  tabHistory: string[],
+): QueryEditor | undefined => {
+  const activeTabId = tabHistory[tabHistory.length - 1];
+  return queryEditors.find(
+    editor => (editor.tabViewId ?? editor.id) === activeTabId,
+  );
+};
+
 /** Returns the AI-safe context for the page that is open in the SPA. */
 export const useAIContext = (): PageContext => {
   const { pathname, search } = useLocation();
   const contextData = useSelector<RootState, ContextData>(state => {
-    const dashboard = state.dashboardInfo as unknown as ContextData['dashboard'];
+    const dashboard: ContextData['dashboard'] = {
+      id: state.dashboardInfo.id,
+      title: state.dashboardLayout.present[DASHBOARD_HEADER_ID]?.meta.text,
+    };
     const exploreState = state.explore;
     const formData = exploreState.form_data as unknown as {
       datasource_id?: number | string;
       viz_type?: string;
     };
     const slice = exploreState.slice as unknown as { id?: number } | null;
-    const activeEditor = state.sqlLab.queryEditors.find(
-      (editor: QueryEditor) => editor.id === state.sqlLab.lastUpdatedActiveTab,
+    const activeEditor = getActiveQueryEditor(
+      state.sqlLab.queryEditors as QueryEditor[],
+      state.sqlLab.tabHistory as string[],
     );
 
     return {

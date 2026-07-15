@@ -126,9 +126,9 @@ Tarefas de setup que desbloqueiam todas as demais.
 
 ### 2.2 Hook de Contexto
 - [x] Implementar `useAIContext.ts` — extrai contexto da página atual via URL + Redux
-  - [ ] Dashboard: `dashboard_id`, `dashboard_title` — o ID é extraído; o título usa campos que não fazem parte do tipo do Redux e precisa ser validado/corrigido.
+  - [x] Dashboard: `dashboard_id`, `dashboard_title`
   - [x] Explore: `chart_id`, `datasource_id`, `viz_type`
-  - [ ] SQL Lab: `database_id`, SQL atual — a seleção do editor usa `lastUpdatedActiveTab`, que não garante ser a aba ativa.
+  - [x] SQL Lab: `database_id`, SQL atual
   - [x] Demais: `{ page: 'other' }`
 
 ### 2.3 Hook de Agentes
