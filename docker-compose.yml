@@ -105,6 +105,8 @@ services:
     depends_on:
       superset-init:
         condition: service_completed_successfully
+    environment:
+      ENABLE_AI_INTEGRATION: ${ENABLE_AI_INTEGRATION:-true}
     volumes: *superset-volumes
     
   superset-websocket:

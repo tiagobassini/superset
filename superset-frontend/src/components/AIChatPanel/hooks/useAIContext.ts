@@ -20,6 +20,7 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
+import type { QueryEditor } from 'src/SqlLab/types';
 import type { RootState } from 'src/views/store';
 import type { PageContext } from '../store/types';
 
@@ -101,7 +102,7 @@ export const useAIContext = (): PageContext => {
     };
     const slice = exploreState.slice as unknown as { id?: number } | null;
     const activeEditor = state.sqlLab.queryEditors.find(
-      editor => editor.id === state.sqlLab.lastUpdatedActiveTab,
+      (editor: QueryEditor) => editor.id === state.sqlLab.lastUpdatedActiveTab,
     );
 
     return {

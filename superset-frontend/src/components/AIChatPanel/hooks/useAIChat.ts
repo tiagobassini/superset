@@ -47,7 +47,10 @@ export const useAIChat = () => {
     try {
       const { json } = await SupersetClient.post({ endpoint: '/api/v1/ai/chat', jsonPayload: {
         message: text, agent_id: selectedAgentId ?? undefined, context,
-        history: messages.map(({ role, content: previousContent }) => ({ role, content: previousContent })),
+        history: messages.map((message: ChatMessage) => ({
+          role: message.role,
+          content: message.content,
+        })),
       }, stringify: false });
       const result = json as ChatResponse;
       dispatch(addMessage({ id: nanoid(), role: 'assistant', content: result.response ?? '', timestamp: Date.now(), pendingActions: result.pending_actions }));
