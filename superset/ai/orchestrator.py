@@ -196,6 +196,17 @@ class AIOrchestrator:
                 if tool.requires_confirmation and self._requires_confirmation(
                     tool.name
                 ):
+                    validation_error = getattr(tool, "validate_params", lambda _: None)(
+                        call.arguments
+                    )
+                    if validation_error:
+                        result = ToolResult(False, None, validation_error)
+                        messages.append(
+                            self.provider.build_tool_message(
+                                call.id, json.dumps(result.to_dict())
+                            )
+                        )
+                        continue
                     action = PendingAction(
                         id=str(uuid4()),
                         agent_id=str(self.agent.id),

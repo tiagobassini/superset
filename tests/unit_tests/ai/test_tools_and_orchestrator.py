@@ -181,6 +181,7 @@ def test_every_builtin_tool_executes_its_registered_handler(
     assert isinstance(tool, BuiltinTool)
     monkeypatch.setattr(security_manager, "can_access", lambda *_: True)
     monkeypatch.setattr(tool, "handler", lambda params: {"tool": tool_name, **params})
+    monkeypatch.setattr(tool, "validate_params", lambda _: None)
 
     assert tool.execute(SimpleNamespace(), {"value": "ok"}) == ToolResult(
         True, {"tool": tool_name, "value": "ok"}
@@ -227,6 +228,33 @@ def test_write_tool_rechecks_permission_before_execution(
     result = tool.execute(SimpleNamespace(), {})
 
     assert result == ToolResult(False, None, "Tool access denied")
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "params", "message"),
+    [
+        ("create_dataset", {"table_name": "sales"}, "database or saved_query_id"),
+        (
+            "create_chart",
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "slice_name": "Sales",
+                "viz_type": "bar",
+                "params": "not-json",
+            },
+            "valid JSON",
+        ),
+    ],
+)
+def test_write_tools_reject_invalid_payloads_before_execution(
+    tool_name: str, params: dict[str, Any], message: str
+) -> None:
+    tool = create_default_registry().get(tool_name)
+    assert isinstance(tool, BuiltinTool)
+
+    assert tool.validate_params(params) is not None
+    assert message in tool.validate_params(params)
 
 
 def test_orchestrator_executes_read_tool_and_continues_to_final_answer(

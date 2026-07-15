@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import json as stdlib_json
 from typing import Any, Callable
 
 from superset.ai.tools.base import AITool, ToolResult
@@ -49,6 +50,8 @@ class BuiltinTool(AITool):
     def execute(self, user: Any, params: dict[str, Any]) -> ToolResult:
         """Run the handler and turn expected failures into safe tool results."""
         try:
+            if error := self.validate_params(params):
+                return ToolResult(False, None, error)
             if self.required_permission:
                 from superset.extensions import security_manager
 
@@ -59,6 +62,29 @@ class BuiltinTool(AITool):
             return ToolResult(success=True, data=self.handler(params))
         except Exception as ex:
             return ToolResult(success=False, data=None, error=str(ex))
+
+    def validate_params(self, params: dict[str, Any]) -> str | None:
+        """Reject incomplete write payloads before asking the user to confirm."""
+        required = self.parameters_schema.get("required", [])
+        for field in required:
+            value = params.get(field)
+            if value is None or (isinstance(value, str) and not value.strip()):
+                return f"Missing required field: {field}"
+
+        if self.name == "create_dataset":
+            if params.get("saved_query_id") is None and params.get("database") is None:
+                return "A database or saved_query_id is required to create a dataset"
+        if self.name == "create_chart":
+            raw_params = params.get("params")
+            if not isinstance(raw_params, str) or not raw_params.strip():
+                return "Chart params must be a non-empty JSON object"
+            try:
+                chart_params = stdlib_json.loads(raw_params)
+            except (TypeError, ValueError):
+                return "Chart params must be valid JSON"
+            if not isinstance(chart_params, dict):
+                return "Chart params must be a JSON object"
+        return None
 
 
 def _list_databases(_: dict[str, Any]) -> list[dict[str, Any]]:

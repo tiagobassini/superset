@@ -245,6 +245,49 @@ Tarefas de setup que desbloqueiam todas as demais.
 
 ---
 
+## Fase 6 — Workflows Analíticos Autônomos
+
+Especificação: [`autonomous-analytics-workflows.md`](autonomous-analytics-workflows.md).
+
+### 6.1 Planejamento de Intenção
+- [ ] Criar `AnalyticsTaskPlanner` e modelos tipados de intenção, plano e etapa
+- [ ] Interpretar tema, fonte, métrica, dimensão temporal e destino
+- [ ] Cobrir sinônimos em pt-BR para criar/adicionar/publicar gráficos
+- [ ] Resolver nomes ambíguos por busca de recurso; pedir esclarecimento apenas quando indispensável
+- [ ] Substituir a filtragem exclusiva por palavras-chave pela seleção baseada no plano
+
+### 6.2 Descoberta e Perfil de Dados
+- [ ] Implementar busca e pontuação de bancos, tabelas, datasets e dashboards candidatos
+- [ ] Implementar ferramenta segura `profile_dataset` ou `analyze_table` com agregações e limites rígidos
+- [ ] Identificar colunas candidatas de data, dimensão, identificador e medida
+- [ ] Respeitar RBAC, datasource permissions, RLS e limite de linhas em toda leitura
+- [ ] Registrar justificativa da fonte escolhida no plano
+
+### 6.3 Especificação e Validação de Recursos
+- [ ] Criar contrato tipado para especificação de chart e adaptador para `params` do Superset
+- [ ] Validar datasource, métrica, dimensão temporal, JSON de chart e destino antes da confirmação
+- [ ] Suportar fluxo banco/tabela → dataset → chart → dashboard
+- [ ] Exibir uma confirmação única para o conjunto de ações de escrita do plano
+- [ ] Tornar plano confirmado imutável, idempotente e interrompível por falha
+
+### 6.4 Progresso Incremental no Chat
+- [ ] Criar estados `planning`, `discovering`, `analyzing`, `awaiting_confirmation`, `executing`, `awaiting_user_input`, `completed` e `failed`
+- [ ] Expor tarefas e eventos por SSE, com polling como fallback
+- [ ] Persistir tarefa/eventos para reconexão após recarregar a página
+- [ ] Atualizar uma única mensagem de progresso no chat, sem poluir o histórico
+- [ ] Manter animação de loading durante processamento e removê-la apenas em espera, conclusão ou falha
+- [ ] Exibir resumo final com achados, recursos criados e links
+
+### 6.5 Segurança, Auditoria e Testes
+- [ ] Revalidar permissões antes de cada etapa de escrita e isolar tarefas por usuário/agente
+- [ ] Expirar planos pendentes e impedir confirmações/executações duplicadas
+- [ ] Auditar criação, confirmação, cancelamento, bloqueio, conclusão e falha de tarefas
+- [ ] Testes unitários de planejamento, descoberta, validação e estados
+- [ ] Testes de integração de SSE/polling, expiração, autorização e reconexão
+- [ ] Testes E2E do fluxo completo e de falhas intermediárias
+
+---
+
 ## Estimativas de Esforço (referência)
 
 | Fase | Escopo                             | Estimativa  |
