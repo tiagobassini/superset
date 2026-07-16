@@ -157,7 +157,20 @@ class AIOrchestrator:
             )
             selected_source = DiscoveryCandidate.from_dict(selected_candidate)
             if self._requires_deterministic_execution_plan(plan.intent):
-                return self._build_deterministic_plan(selected_source, plan.intent)
+                verified_source = AnalyticsDiscoveryService(
+                    self.user
+                ).revalidate_candidate(selected_source)
+                if verified_source is None:
+                    return OrchestratorResult(
+                        self._no_source_response(plan.intent.discovery_query.topic)
+                        if plan.intent.discovery_query is not None
+                        else (
+                            "A fonte escolhida não está mais acessível. "
+                            "Faça uma nova solicitação."
+                        ),
+                        pending_actions,
+                    )
+                return self._build_deterministic_plan(verified_source, plan.intent)
             messages = [
                 messages[0],
                 *self._compact_history(history),
@@ -174,7 +187,8 @@ class AIOrchestrator:
                 },
             ]
         elif plan.intent.discovery_query is not None:
-            discovery = AnalyticsDiscoveryService(self.user).discover(
+            discovery_service = AnalyticsDiscoveryService(self.user)
+            discovery = discovery_service.discover(
                 plan.intent.discovery_query, plan.intent, context
             )
             decision = decide_discovery(discovery, plan.intent)
@@ -194,7 +208,14 @@ class AIOrchestrator:
                 self._requires_deterministic_execution_plan(plan.intent)
             )
             if should_build_plan:
-                return self._build_deterministic_plan(decision.selected, plan.intent)
+                verified_source = discovery_service.revalidate_candidate(
+                    decision.selected
+                )
+                if verified_source is None:
+                    return OrchestratorResult(
+                        self._no_source_response(discovery.query.topic), pending_actions
+                    )
+                return self._build_deterministic_plan(verified_source, plan.intent)
             if decision.selected is not None:
                 messages.insert(
                     1,

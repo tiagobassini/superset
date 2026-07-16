@@ -46,9 +46,13 @@ class TaskCache:
         self.values[key] = value
 
 
-def invoke(resource: object, name: str) -> Callable[[], Response | tuple[Response, int]]:
+def invoke(
+    resource: object, name: str
+) -> Callable[[], Response | tuple[Response, int]]:
     """Invoke an endpoint body without FAB's authentication decorators."""
-    return inspect.unwrap(getattr(type(resource), name)).__get__(resource, type(resource))
+    return inspect.unwrap(getattr(type(resource), name)).__get__(
+        resource, type(resource)
+    )
 
 
 @pytest.fixture
@@ -172,9 +176,13 @@ def test_task_creation_is_audited_without_chat_content(
     monkeypatch.setattr(resource, "_can_use", lambda _: True)
     monkeypatch.setattr(api, "cache_manager", SimpleNamespace(cache=TaskCache()))
     monkeypatch.setattr(api.run_ai_task, "delay", lambda *_: None)
-    monkeypatch.setattr("superset.extensions.event_logger.log", lambda **value: events.append(value))
+    monkeypatch.setattr(
+        "superset.extensions.event_logger.log", lambda **value: events.append(value)
+    )
     with app.test_request_context(
-        "/api/v1/ai/tasks", method="POST", json={"message": "segredo", "context": {"page": "other"}}
+        "/api/v1/ai/tasks",
+        method="POST",
+        json={"message": "segredo", "context": {"page": "other"}},
     ):
         from flask import g
 
@@ -183,6 +191,54 @@ def test_task_creation_is_audited_without_chat_content(
 
     assert events[0]["action"] == "ai_task_created"
     assert "segredo" not in str(events[0]["curated_payload"])
+
+
+def test_catalog_administration_rebuilds_and_invalidates_live_metadata(
+    app: Any, resource: api.AIRestApi, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Catalog:
+        def __init__(self) -> None:
+            self.invalidated: list[dict[str, object]] = []
+
+        def invalidate(self, **kwargs: object) -> int:
+            self.invalidated.append(kwargs)
+            return 3
+
+    catalog = Catalog()
+    result = SimpleNamespace(
+        searched={"databases": 1, "datasets": 2, "tables": 3, "saved_queries": 4},
+        catalog_stats={
+            "hits": 0,
+            "misses": 3,
+            "live_schema_reads": 3,
+            "live_schema_reads_avoided": 0,
+        },
+        latency_ms=12,
+    )
+    monkeypatch.setattr(api, "MetadataCatalogService", lambda: catalog)
+    monkeypatch.setattr(
+        api.AnalyticsDiscoveryService,
+        "discover",
+        lambda *_: result,
+    )
+    with app.test_request_context("/api/v1/ai/catalog/rebuild", method="POST"):
+        from flask import g
+
+        g.user = SimpleNamespace(id=1, roles=[])
+        response = invoke(resource, "rebuild_metadata_catalog")()
+
+    assert response.get_json()["indexed"] == 10
+    assert catalog.invalidated == [{}]
+
+    with app.test_request_context(
+        "/api/v1/ai/catalog/invalidate",
+        method="POST",
+        json={"database_id": 7},
+    ):
+        response = invoke(resource, "invalidate_metadata_catalog")()
+
+    assert response.get_json() == {"invalidated": 3}
+    assert catalog.invalidated[-1] == {"source_key": None, "database_id": 7}
 
 
 @pytest.mark.parametrize(
@@ -200,9 +256,13 @@ def test_chat_reports_provider_and_agent_access_errors(
     monkeypatch.setattr(resource, "_get_agent", lambda _: configured_agent)
     monkeypatch.setattr(resource, "_can_use", lambda _: exception is not None)
     if exception:
-        monkeypatch.setattr(api.AIOrchestrator, "chat", lambda *_: (_ for _ in ()).throw(exception))
+        monkeypatch.setattr(
+            api.AIOrchestrator, "chat", lambda *_: (_ for _ in ()).throw(exception)
+        )
     with app.test_request_context(
-        "/api/v1/ai/chat", method="POST", json={"message": "hello", "context": {"page": "other"}}
+        "/api/v1/ai/chat",
+        method="POST",
+        json={"message": "hello", "context": {"page": "other"}},
     ):
         from flask import g
 
@@ -226,7 +286,9 @@ def test_chat_rejects_invalid_payload_and_unknown_agent(
 
     monkeypatch.setattr(resource, "_get_agent", lambda _: None)
     with app.test_request_context(
-        "/api/v1/ai/chat", method="POST", json={"message": "hello", "context": {"page": "other"}}
+        "/api/v1/ai/chat",
+        method="POST",
+        json={"message": "hello", "context": {"page": "other"}},
     ):
         response, status = invoke(resource, "chat")()  # type: ignore[misc]
     assert status == 404
@@ -245,7 +307,9 @@ def test_confirm_action_returns_execution_and_expected_failures(
         "confirm_and_execute",
         lambda *_: ToolResult(True, {"id": 3}),
     )
-    with app.test_request_context("/api/v1/ai/confirm_action", method="POST", json={"action_id": action_id}):
+    with app.test_request_context(
+        "/api/v1/ai/confirm_action", method="POST", json={"action_id": action_id}
+    ):
         from flask import g
 
         g.user = SimpleNamespace(id=1, roles=[])
@@ -258,7 +322,9 @@ def test_confirm_action_returns_execution_and_expected_failures(
         "confirm_and_execute",
         lambda *_: ToolResult(False, None, "Tool access denied"),
     )
-    with app.test_request_context("/api/v1/ai/confirm_action", method="POST", json={"action_id": action_id}):
+    with app.test_request_context(
+        "/api/v1/ai/confirm_action", method="POST", json={"action_id": action_id}
+    ):
         from flask import g
 
         g.user = SimpleNamespace(id=1, roles=[])
@@ -278,7 +344,9 @@ def test_confirm_action_reports_expired_action(
         "confirm_and_execute",
         lambda *_: (_ for _ in ()).throw(AIActionExpiredError("expired")),
     )
-    with app.test_request_context("/api/v1/ai/confirm_action", method="POST", json={"action_id": str(uuid4())}):
+    with app.test_request_context(
+        "/api/v1/ai/confirm_action", method="POST", json={"action_id": str(uuid4())}
+    ):
         from flask import g
 
         g.user = SimpleNamespace(id=1, roles=[])
@@ -295,7 +363,9 @@ def test_cancel_action_invalidates_pending_action_and_is_audited(
     monkeypatch.setattr(resource, "_get_agent", lambda _: configured_agent)
     monkeypatch.setattr(resource, "_can_use", lambda _: True)
     monkeypatch.setattr(api.AIOrchestrator, "cancel_pending_action", lambda *_: None)
-    monkeypatch.setattr("superset.extensions.event_logger.log", lambda **value: events.append(value))
+    monkeypatch.setattr(
+        "superset.extensions.event_logger.log", lambda **value: events.append(value)
+    )
     with app.test_request_context(
         "/api/v1/ai/cancel_action", method="POST", json={"action_id": str(uuid4())}
     ):
@@ -340,7 +410,9 @@ def test_create_update_delete_agent_and_connection_test(
         commit=lambda: None,
         delete=lambda _: None,
         get=lambda *_: None,
-        query=lambda *_: SimpleNamespace(filter=lambda *_: SimpleNamespace(update=lambda *_1, **_2: None)),
+        query=lambda *_: SimpleNamespace(
+            filter=lambda *_: SimpleNamespace(update=lambda *_1, **_2: None)
+        ),
     )
     monkeypatch.setattr(api.db, "session", session)
     monkeypatch.setattr(api, "AIAgent", lambda **_: created)
@@ -360,13 +432,17 @@ def test_create_update_delete_agent_and_connection_test(
             "base_url": "http://ollama:11434",
         },
     )
-    with app.test_request_context("/api/v1/ai/agents", method="POST", json={"name": "Local"}):
+    with app.test_request_context(
+        "/api/v1/ai/agents", method="POST", json={"name": "Local"}
+    ):
         response, status = invoke(resource, "create_agent")()  # type: ignore[misc]
     assert status == 201
     assert response.get_json()["result"]["api_key_set"] is False
 
     monkeypatch.setattr(resource, "_get_agent", lambda _: created)
-    with app.test_request_context(f"/api/v1/ai/agents/{created.id}", method="PUT", json={"name": "Updated"}):
+    with app.test_request_context(
+        f"/api/v1/ai/agents/{created.id}", method="PUT", json={"name": "Updated"}
+    ):
         response = invoke(resource, "update_agent")(created.id)
     assert isinstance(response, Response)
     assert response.get_json()["result"]["name"] == "Local"
@@ -381,7 +457,9 @@ def test_create_update_delete_agent_and_connection_test(
         "_build_provider",
         staticmethod(lambda _: SimpleNamespace(test_connection=lambda: True)),
     )
-    with app.test_request_context(f"/api/v1/ai/agents/{created.id}/test", method="POST"):
+    with app.test_request_context(
+        f"/api/v1/ai/agents/{created.id}/test", method="POST"
+    ):
         response = invoke(resource, "test_agent")(created.id)
     assert isinstance(response, Response)
     assert response.get_json() == {"success": True}
@@ -400,16 +478,24 @@ def test_global_settings_get_and_update_validate_roles(
         include_datasets_in_prompt=True,
         include_schema_in_prompt=False,
     )
-    session = SimpleNamespace(get=lambda *_: settings, add=lambda _: None, commit=lambda: None)
+    session = SimpleNamespace(
+        get=lambda *_: settings, add=lambda _: None, commit=lambda: None
+    )
     monkeypatch.setattr(api.db, "session", session)
-    monkeypatch.setattr(resource, "_serialize_global_settings", lambda *_: {"max_query_rows": 100})
+    monkeypatch.setattr(
+        resource, "_serialize_global_settings", lambda *_: {"max_query_rows": 100}
+    )
     with app.test_request_context("/api/v1/ai/settings"):
         response = invoke(resource, "get_global_settings")()
     assert isinstance(response, Response)
     assert response.get_json() == {"result": {"max_query_rows": 100}}
 
-    monkeypatch.setattr(resource.global_settings_schema, "load", lambda _: {"max_query_rows": 50})
-    with app.test_request_context("/api/v1/ai/settings", method="PUT", json={"max_query_rows": 50}):
+    monkeypatch.setattr(
+        resource.global_settings_schema, "load", lambda _: {"max_query_rows": 50}
+    )
+    with app.test_request_context(
+        "/api/v1/ai/settings", method="PUT", json={"max_query_rows": 50}
+    ):
         response = invoke(resource, "update_global_settings")()
     assert isinstance(response, Response)
     assert response.get_json() == {"result": {"max_query_rows": 100}}

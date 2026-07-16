@@ -27,8 +27,10 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled
 from superset.ai.audit import audit_task
 from superset.ai.crypto import encrypt_api_key
+from superset.ai.discovery import AnalyticsDiscoveryService, build_discovery_query
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.execution_plan import ExecutionPlanService
+from superset.ai.metadata_catalog import MetadataCatalogService
 from superset.ai.models import AIAgent, AIGlobalSettings, get_ai_global_settings
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.schemas import (
@@ -69,6 +71,8 @@ class AIRestApi(BaseSupersetApi):
         "update_agent": "manage_ai_agents",
         "delete_agent": "manage_ai_agents",
         "test_agent": "manage_ai_agents",
+        "rebuild_metadata_catalog": "manage_ai_agents",
+        "invalidate_metadata_catalog": "manage_ai_agents",
     }
     chat_schema = ChatRequestSchema()
     confirm_schema = ConfirmActionRequestSchema()
@@ -472,6 +476,49 @@ class AIRestApi(BaseSupersetApi):
         except Exception:  # pylint: disable=broad-except
             ok = False
         return jsonify({"success": ok})
+
+    @expose("/catalog/rebuild", methods=("POST",))
+    @protect()
+    @safe
+    def rebuild_metadata_catalog(self) -> Response:
+        """Rebuild the derived metadata index from live authorized metadata."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        catalog = MetadataCatalogService()
+        catalog.invalidate()
+        result = AnalyticsDiscoveryService(g.user, catalog=catalog).discover(
+            build_discovery_query("metadata catalog")
+        )
+        return jsonify(
+            {
+                "indexed": sum(result.searched.values()),
+                "searched": dict(result.searched),
+                "catalog": dict(result.catalog_stats or {}),
+                "latency_ms": result.latency_ms,
+            }
+        )
+
+    @expose("/catalog/invalidate", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def invalidate_metadata_catalog(self) -> Response:
+        """Invalidate source or database entries after an administrative sync."""
+        self._require_enabled()
+        self._require("can_manage_ai_agents")
+        payload = request.json or {}
+        source_key = payload.get("source_key")
+        database_id = payload.get("database_id")
+        if source_key is not None and not isinstance(source_key, str):
+            return self._error("source_key must be a string", 400)
+        if database_id is not None and not isinstance(database_id, int):
+            return self._error("database_id must be an integer", 400)
+        if source_key is None and database_id is None:
+            return self._error("source_key or database_id is required", 400)
+        invalidated = MetadataCatalogService().invalidate(
+            source_key=source_key, database_id=database_id
+        )
+        return jsonify({"invalidated": invalidated})
 
     @staticmethod
     def _error(message: str, status: int) -> tuple[Response, int]:

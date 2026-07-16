@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import unicodedata
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, replace
@@ -154,6 +155,8 @@ class DiscoveryResult:
     query: DiscoveryQuery
     candidates: tuple[DiscoveryCandidate, ...]
     searched: Mapping[str, int]
+    catalog_stats: Mapping[str, int] | None = None
+    latency_ms: int = 0
 
     def to_dict(self, limit: int = 5) -> dict[str, Any]:
         """Return a compact, provider-safe representation of the discovery."""
@@ -161,6 +164,8 @@ class DiscoveryResult:
             "topic": self.query.topic,
             "terms": list(self.query.expanded_terms),
             "searched": dict(self.searched),
+            "catalog": dict(self.catalog_stats or {}),
+            "latency_ms": self.latency_ms,
             "candidates": [
                 candidate.to_dict() for candidate in self.candidates[:limit]
             ],
@@ -213,8 +218,7 @@ def decide_discovery(
     runner_up = candidates[1] if len(candidates) > 1 else None
     is_confident = best.score >= AUTO_SELECT_MIN_SCORE
     has_clear_margin = (
-        runner_up is None
-        or best.score - runner_up.score >= AUTO_SELECT_MIN_MARGIN
+        runner_up is None or best.score - runner_up.score >= AUTO_SELECT_MIN_MARGIN
     )
     if is_confident and has_clear_margin:
         return DiscoveryDecision(best, (), "auto_selected")
@@ -318,11 +322,35 @@ def classify_columns(columns: Iterable[dict[str, Any]]) -> dict[str, list[str]]:
     return groups
 
 
+def infer_metadata_topics(values: Iterable[str]) -> tuple[str, ...]:
+    """Infer ranking signals from safe metadata without a closed topic registry."""
+    normalized_values = tuple(normalize_discovery_text(value) for value in values)
+    tokens = _unique_terms(
+        token for value in normalized_values for token in _tokenize(value)
+    )
+    inferred: list[str] = list(tokens)
+    for group in MULTILINGUAL_TERM_GROUPS:
+        if any(term in tokens for term in group):
+            inferred.extend(sorted(group))
+    return _unique_terms(inferred)
+
+
 class AnalyticsDiscoveryService:
     """Discover and rank only data sources available to the active user."""
 
-    def __init__(self, user: Any) -> None:
+    def __init__(self, user: Any, catalog: Any | None = None) -> None:
         self.user = user
+        if catalog is None:
+            from superset.ai.metadata_catalog import MetadataCatalogService
+
+            catalog = MetadataCatalogService()
+        self.catalog = catalog
+        self._catalog_stats = {
+            "hits": 0,
+            "misses": 0,
+            "live_schema_reads": 0,
+            "live_schema_reads_avoided": 0,
+        }
 
     def discover(
         self,
@@ -331,6 +359,13 @@ class AnalyticsDiscoveryService:
         context: Mapping[str, Any] | None = None,
     ) -> DiscoveryResult:
         """Search accessible live metadata without returning rows or raw SQL."""
+        started = time.monotonic()
+        self._catalog_stats = {
+            "hits": 0,
+            "misses": 0,
+            "live_schema_reads": 0,
+            "live_schema_reads_avoided": 0,
+        }
         databases = self._accessible_databases()
         candidates = [
             *self._database_candidates(databases),
@@ -346,7 +381,7 @@ class AnalyticsDiscoveryService:
         ranked = sorted(
             deduplicated, key=lambda item: (-item.score, item.name.casefold())
         )
-        return DiscoveryResult(
+        result = DiscoveryResult(
             query=query,
             candidates=tuple(ranked[:MAX_DISCOVERY_CANDIDATES]),
             searched={
@@ -361,7 +396,13 @@ class AnalyticsDiscoveryService:
                     candidate.resource_type == "saved_query" for candidate in candidates
                 ),
             },
+            catalog_stats=dict(self._catalog_stats),
+            latency_ms=int((time.monotonic() - started) * 1_000),
         )
+        # The index is populated only from the authorized live result. A
+        # persistence failure leaves the request on the live-discovery path.
+        self.catalog.upsert_many(deduplicated)
+        return result
 
     def _accessible_databases(self) -> list[Any]:
         from superset.extensions import db, security_manager
@@ -374,6 +415,93 @@ class AnalyticsDiscoveryService:
             .all()
             if security_manager.can_access_database(database)
         ]
+
+    def revalidate_candidate(
+        self, candidate: DiscoveryCandidate
+    ) -> DiscoveryCandidate | None:
+        """Re-read the selected source before a plan can cause any write.
+
+        Catalog metadata is useful during broad ranking only. This method is
+        deliberately live and permission-filtered so a stale entry cannot
+        become the schema used to build an execution plan.
+        """
+        try:
+            if candidate.resource_type == "dataset":
+                from superset.connectors.sqla.models import SqlaTable
+                from superset.extensions import db, security_manager
+
+                dataset = db.session.get(SqlaTable, candidate.resource_id)
+                if dataset is None or not security_manager.can_access_datasource(
+                    dataset
+                ):
+                    return None
+                return replace(
+                    candidate,
+                    name=str(dataset.table_name),
+                    database_id=dataset.database_id,
+                    database_name=str(dataset.database.database_name),
+                    schema=dataset.schema,
+                    columns=self._columns_from_dataset(dataset),
+                    description=str(getattr(dataset, "description", "") or ""),
+                )
+            if candidate.resource_type == "saved_query":
+                from superset.extensions import db, security_manager
+                from superset.models.sql_lab import SavedQuery
+
+                saved_query = db.session.get(SavedQuery, candidate.resource_id)
+                if (
+                    saved_query is None
+                    or saved_query.user_id != self.user.id
+                    or saved_query.database is None
+                    or not security_manager.can_access_database(saved_query.database)
+                ):
+                    return None
+                aliases, tables = self._saved_query_metadata(saved_query.sql or "")
+                return replace(
+                    candidate,
+                    name=str(saved_query.label),
+                    database_id=saved_query.db_id,
+                    database_name=str(saved_query.database.database_name),
+                    schema=saved_query.schema,
+                    columns=tuple((alias, "UNKNOWN") for alias in aliases),
+                    related_names=tables,
+                    description=str(getattr(saved_query, "description", "") or ""),
+                )
+            if candidate.resource_type == "table":
+                databases = {
+                    database.id: database for database in self._accessible_databases()
+                }
+                database = databases.get(candidate.database_id)
+                if database is None or candidate.schema is None:
+                    return None
+                from superset.sql.parse import Table
+
+                columns = database.get_columns(
+                    Table(candidate.name, candidate.schema, None)
+                )
+                return replace(
+                    candidate,
+                    database_name=str(database.database_name),
+                    columns=tuple(
+                        (
+                            str(
+                                getattr(column, "column_name", None)
+                                or column.get("name", "")
+                            ),
+                            str(
+                                getattr(column, "type", None)
+                                or column.get("type", "UNKNOWN")
+                            ),
+                        )
+                        for column in columns[:MAX_DISCOVERY_COLUMNS]
+                    ),
+                )
+        except Exception:  # pylint: disable=broad-except
+            logger.info(
+                "Unable to revalidate discovery source %s", candidate.source_key
+            )
+            return None
+        return None
 
     def _database_candidates(
         self, databases: Iterable[Any]
@@ -438,6 +566,19 @@ class AnalyticsDiscoveryService:
                 )
                 continue
             for table_name, table_schema, catalog in tables:
+                source_key = self._source_key(
+                    database.id, table_schema, catalog, table_name
+                )
+                cached_candidate = self.catalog.get_fresh_candidate(source_key)
+                if cached_candidate is not None and self._matches_live_table_identity(
+                    cached_candidate, database, table_name, table_schema
+                ):
+                    self._catalog_stats["hits"] += 1
+                    self._catalog_stats["live_schema_reads_avoided"] += 1
+                    candidates.append(cached_candidate)
+                    continue
+                self._catalog_stats["misses"] += 1
+                self._catalog_stats["live_schema_reads"] += 1
                 columns = self._columns_from_table(
                     database, table_name, table_schema, catalog
                 )
@@ -450,9 +591,7 @@ class AnalyticsDiscoveryService:
                         database_name=str(database.database_name),
                         schema=table_schema,
                         columns=columns,
-                        source_key=self._source_key(
-                            database.id, table_schema, catalog, table_name
-                        ),
+                        source_key=source_key,
                     )
                 )
         return candidates
@@ -567,6 +706,21 @@ class AnalyticsDiscoveryService:
     ) -> str:
         return ":".join(
             ("source", str(database_id), str(catalog or ""), str(schema or ""), name)
+        )
+
+    @staticmethod
+    def _matches_live_table_identity(
+        candidate: DiscoveryCandidate,
+        database: Any,
+        table_name: str,
+        table_schema: str,
+    ) -> bool:
+        """Reject cached metadata when the live database identity changed."""
+        return (
+            candidate.database_id == database.id
+            and candidate.database_name == str(database.database_name)
+            and candidate.schema == table_schema
+            and candidate.name == str(table_name)
         )
 
     @staticmethod

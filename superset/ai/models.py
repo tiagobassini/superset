@@ -32,7 +32,7 @@ from typing import Any
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import Role
-from sqlalchemy import Boolean, Column, Enum, Integer, String, Table, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String, Table, Text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relationship
 
@@ -58,14 +58,14 @@ ai_agent_roles = Table(
     metadata,
     Column("id", sa.Integer, primary_key=True),
     Column(
-    "agent_id",
-    String(36),
-    nullable=False,
+        "agent_id",
+        String(36),
+        nullable=False,
     ),
     Column(
-    "role_id",
-    sa.Integer,
-    nullable=False,
+        "role_id",
+        sa.Integer,
+        nullable=False,
     ),
 )
 
@@ -138,6 +138,30 @@ class AIGlobalSettings(Model):
     include_schema_in_prompt = Column(Boolean, nullable=False, default=False)
 
 
+class AIDataSourceCatalogEntry(Model):
+    """Derived, non-authoritative safe metadata for a discoverable source."""
+
+    __tablename__ = "ai_data_source_catalog"
+
+    source_key = Column(String(1024), primary_key=True)
+    resource_type = Column(String(32), nullable=False)
+    resource_id = Column(Integer, nullable=True)
+    database_id = Column(Integer, nullable=True, index=True)
+    database_name = Column(String(256), nullable=True)
+    schema = Column(String(256), nullable=True)
+    name = Column(String(512), nullable=False)
+    description = Column(Text, nullable=False, default="")
+    columns = Column(sa.JSON, nullable=False, default=list)
+    related_names = Column(sa.JSON, nullable=False, default=list)
+    normalized_terms = Column(sa.JSON, nullable=False, default=list)
+    detected_languages = Column(sa.JSON, nullable=False, default=list)
+    inferred_topics = Column(sa.JSON, nullable=False, default=list)
+    version = Column(String(64), nullable=False)
+    indexed_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    invalidated_at = Column(DateTime(timezone=True), nullable=True)
+
+
 AI_GLOBAL_SETTINGS_DEFAULTS = {
     "sql_confirmation_mode": "always",
     "sql_confirmation_role_ids": [],
@@ -153,11 +177,15 @@ AI_GLOBAL_SETTINGS_DEFAULTS = {
 def get_ai_global_settings() -> AIGlobalSettings | Any:
     """Return the singleton settings row, falling back to secure defaults."""
     try:
-        row = db.session.execute(
-            sa.select(AIGlobalSettings.__table__).where(
-                AIGlobalSettings.__table__.c.id == 1
+        row = (
+            db.session.execute(
+                sa.select(AIGlobalSettings.__table__).where(
+                    AIGlobalSettings.__table__.c.id == 1
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
     except OperationalError:
         # Preserve the safe defaults while a deployment is awaiting migration.
         row = None

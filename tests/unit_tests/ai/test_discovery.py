@@ -16,6 +16,7 @@
 # under the License.
 """Tests for safe analytics discovery helpers."""
 
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -28,10 +29,12 @@ from superset.ai.discovery import (
     decide_discovery,
     DiscoveryCandidate,
     DiscoveryResult,
+    infer_metadata_topics,
     MAX_SEMANTIC_TERMS,
     normalize_discovery_text,
     rank_resources,
 )
+from superset.ai.metadata_catalog import MetadataCatalogService
 
 
 def _candidate(name: str, score: int, resource_id: int = 1) -> DiscoveryCandidate:
@@ -466,3 +469,98 @@ def test_saved_query_discovery_enforces_owner_and_database_access(
     assert [candidate.name for candidate in candidates] == ["mine"]
     assert candidates[0].columns == (("sales", "UNKNOWN"),)
     assert "SELECT" not in str(candidates[0].to_dict())
+
+
+def test_catalog_payload_is_safe_multilingual_and_non_authoritative() -> None:
+    candidate = DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=9,
+        name="ventes_annuelles",
+        database_id=2,
+        database_name="Commerce",
+        schema="public",
+        columns=(("année", "DATE"), ("sales_amount", "NUMERIC")),
+        source_key="source:2::public:ventes_annuelles",
+        description="Vendas internacionais",
+        related_names=("fato_vendas",),
+    )
+
+    payload = MetadataCatalogService(ttl_seconds=60)._payload(candidate)
+
+    assert {"sales", "vendas", "ventas", "ventes"} <= set(payload["inferred_topics"])
+    assert "pt-BR" in payload["detected_languages"]
+    assert "fr-FR" in payload["detected_languages"]
+    assert "sql" not in payload
+    assert "rows" not in payload
+
+
+def test_catalog_freshness_requires_index_version_and_no_invalidation() -> None:
+    now = datetime.now(timezone.utc)
+    fresh = SimpleNamespace(
+        indexed_at=now,
+        expires_at=now + timedelta(seconds=60),
+        invalidated_at=None,
+    )
+    stale = SimpleNamespace(
+        indexed_at=now,
+        expires_at=now - timedelta(seconds=1),
+        invalidated_at=None,
+    )
+    invalidated = SimpleNamespace(
+        indexed_at=now,
+        expires_at=now + timedelta(seconds=60),
+        invalidated_at=now,
+    )
+
+    assert MetadataCatalogService._is_fresh(fresh)
+    assert not MetadataCatalogService._is_fresh(stale)
+    assert not MetadataCatalogService._is_fresh(invalidated)
+
+
+def test_live_table_discovery_uses_fresh_catalog_only_as_a_schema_accelerator() -> None:
+    cached = DiscoveryCandidate(
+        resource_type="table",
+        resource_id=None,
+        name="fato_001",
+        database_id=1,
+        database_name="Examples",
+        schema="public",
+        columns=(("order_date", "DATE"), ("amount", "NUMERIC")),
+        source_key="source:1::public:fato_001",
+    )
+
+    class Catalog:
+        def __init__(self, candidate: DiscoveryCandidate | None) -> None:
+            self.candidate = candidate
+
+        def get_fresh_candidate(self, _: str) -> DiscoveryCandidate | None:
+            return self.candidate
+
+        def upsert_many(self, _: object) -> int:
+            return 0
+
+    database = SimpleNamespace(
+        id=1,
+        database_name="Examples",
+        get_default_schema=lambda _: "public",
+        get_all_table_names_in_schema=lambda **_: {("fato_001", "public", None)},
+        get_columns=lambda _: (_ for _ in ()).throw(AssertionError("must not read")),
+    )
+
+    service = AnalyticsDiscoveryService(SimpleNamespace(id=7), catalog=Catalog(cached))
+    candidates = service._table_candidates([database])
+
+    assert candidates == [cached]
+    assert service._catalog_stats == {
+        "hits": 1,
+        "misses": 0,
+        "live_schema_reads": 0,
+        "live_schema_reads_avoided": 1,
+    }
+
+
+def test_inferred_metadata_topics_do_not_require_a_pre_registered_topic() -> None:
+    topics = infer_metadata_topics(("emissoes_carbono", "reporting_period"))
+
+    assert "emissoes" in topics
+    assert "carbono" in topics

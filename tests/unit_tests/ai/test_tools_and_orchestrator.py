@@ -117,10 +117,15 @@ def _patch_discovery(
 
     class StubDiscoveryService:
         def __init__(self, user: object) -> None:
-            calls.append(user)
+            self.user = user
 
         def discover(self, query, intent, context):
+            calls.append(self.user)
             return DiscoveryResult(query, candidates, {"datasets": len(candidates)})
+
+        @staticmethod
+        def revalidate_candidate(candidate: DiscoveryCandidate) -> DiscoveryCandidate:
+            return candidate
 
     monkeypatch.setattr(
         "superset.ai.orchestrator.AnalyticsDiscoveryService", StubDiscoveryService

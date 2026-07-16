@@ -341,14 +341,14 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 - [x] Medir tokens, latência e número de chamadas; garantir que a descoberta/ranking local reduza o contexto enviado ao Ollama.
 
 ### 7.6 Catálogo de metadados e atualização de temas (otimização posterior)
-- [ ] Definir um catálogo derivado e não autoritativo **por fonte**, e não uma lista fechada de temas, contendo somente metadados seguros, termos normalizados, idiomas detectados, colunas relevantes e versão/frescor.
-- [ ] Popular e atualizar o catálogo a partir de schemas e saved queries já acessíveis, sem alterar os objetos originais do Superset nem seus dados.
-- [ ] Inferir temas no momento da indexação ou da consulta a partir dos metadados da fonte; um tema solicitado pela primeira vez não depende de pré-cadastro e não cria uma regra de exclusão.
-- [ ] Sempre combinar candidatos do catálogo com fontes novas, ausentes, expiradas ou possivelmente alteradas obtidas por descoberta ao vivo; uma fonte não catalogada nunca pode ser descartada apenas por essa condição.
-- [ ] Invalidar por TTL, alteração de dataset/database/saved query, sincronização de metadados e ação manual do administrador; quando o frescor for desconhecido, executar descoberta ao vivo.
-- [ ] Usar o catálogo apenas como pré-seleção/ranking. A validação final de schema, permissões e existência deve ser sempre ao vivo antes de gerar ou executar o plano.
-- [ ] Medir ganho de latência e tokens contra a descoberta ao vivo; manter a descoberta ao vivo como fallback seguro.
-- [ ] Implementar esta subtarefa somente após os critérios funcionais das tarefas 7.1–7.5 estarem atendidos e medidos.
+- [x] Definir um catálogo derivado e não autoritativo **por fonte**, e não uma lista fechada de temas, contendo somente metadados seguros, termos normalizados, idiomas detectados, colunas relevantes e versão/frescor.
+- [x] Popular e atualizar o catálogo a partir de schemas e saved queries já acessíveis, sem alterar os objetos originais do Superset nem seus dados.
+- [x] Inferir temas no momento da indexação ou da consulta a partir dos metadados da fonte; um tema solicitado pela primeira vez não depende de pré-cadastro e não cria uma regra de exclusão.
+- [x] Sempre combinar candidatos do catálogo com fontes novas, ausentes, expiradas ou possivelmente alteradas obtidas por descoberta ao vivo; uma fonte não catalogada nunca pode ser descartada apenas por essa condição.
+- [x] Invalidar por TTL, alteração de dataset/database/saved query, sincronização de metadados e ação manual do administrador; quando o frescor for desconhecido, executar descoberta ao vivo.
+- [x] Usar o catálogo apenas como pré-seleção/ranking. A validação final de schema, permissões e existência deve ser sempre ao vivo antes de gerar ou executar o plano.
+- [x] Medir ganho de latência e tokens contra a descoberta ao vivo; manter a descoberta ao vivo como fallback seguro.
+- [x] Implementar esta subtarefa somente após os critérios funcionais das tarefas 7.1–7.5 estarem atendidos e medidos.
 
 ---
 

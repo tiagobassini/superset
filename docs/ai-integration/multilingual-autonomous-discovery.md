@@ -151,6 +151,31 @@ sincronização de database/dataset/saved query, além de oferecer reconstruçã
 manual ao administrador. Sem versão conhecida, catálogo ausente ou candidato
 possivelmente desatualizado, o fluxo retorna à descoberta ao vivo.
 
+### Implementação do catálogo (Fase 7.6)
+
+O índice persistido `ai_data_source_catalog` contém somente a projeção segura
+de cada fonte: chave/identificador, tipo, banco e schema, nome e descrição,
+colunas e aliases autorizados, termos normalizados, idiomas detectados, temas
+inferidos, hash de versão, datas de indexação/expiração e invalidação. Não
+armazena linhas, SQL de saved queries, credenciais ou conteúdo de conversas.
+
+`AI_METADATA_CATALOG_TTL_SECONDS` controla o TTL (3600 segundos por padrão).
+O levantamento mantém a fonte de verdade ao vivo: tabelas com entrada fresca
+reutilizam o schema seguro do catálogo, enquanto tabelas sem entrada ou
+expiradas têm schema relido; datasets e saved queries são relidos e reindexados
+quando o Superset os consulta. A enumeração ao vivo continua presente para que
+fontes novas e fontes removidas nunca sejam decididas pelo catálogo.
+
+Administradores podem executar `POST /api/v1/ai/catalog/rebuild` para
+reconstruir o índice a partir de recursos aos quais têm acesso, ou
+`POST /api/v1/ai/catalog/invalidate` com `source_key` ou `database_id` após uma
+sincronização de metadados. A resposta de descoberta inclui `catalog.hits`,
+`catalog.misses`, `catalog.live_schema_reads`,
+`catalog.live_schema_reads_avoided` e `latency_ms`, permitindo medir
+o ganho de leituras de schema e latência. Como candidatos e schemas validados
+continuam compactos e locais, o catálogo não aumenta o contexto enviado ao
+Ollama; a descoberta ao vivo permanece o fallback seguro.
+
 ### Tema inédito e fonte ainda não catalogada
 
 Toda solicitação começa com uma busca híbrida:
