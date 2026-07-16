@@ -17,11 +17,7 @@
  * under the License.
  */
 import { expect, test } from '@playwright/test';
-import { AuthPage } from '../../../pages/AuthPage';
 import { URL } from '../../../utils/urls';
-
-const adminUsername = process.env.PLAYWRIGHT_ADMIN_USERNAME || 'admin';
-const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'general';
 
 test('sends a message and displays the AI assistant response', async ({
   page,
@@ -54,16 +50,71 @@ test('sends a message and displays the AI assistant response', async ({
       },
     }),
   );
-  const authPage = new AuthPage(page);
-  await authPage.goto();
-  await authPage.loginWithCredentials(adminUsername, adminPassword);
-  await page.waitForURL(url => url.pathname.endsWith(URL.WELCOME));
+  await page.goto(URL.WELCOME);
 
   await page.getByRole('button', { name: 'Abrir assistente de IA' }).click();
   await page
     .getByRole('textbox', { name: 'Mensagem para IA' })
     .fill('Liste os dashboards');
-  await page.getByRole('button', { name: 'Enviar mensagem' }).click();
+  await page.getByRole('button', { name: 'Enviar' }).click();
 
   await expect(page.getByText('Resposta de teste')).toBeVisible();
+});
+
+test('shows discovered alternatives and accepts a follow-up selection', async ({
+  page,
+}) => {
+  let submittedTasks = 0;
+  await page.route('**/api/v1/ai/agents', route =>
+    route.fulfill({ json: { result: [] } }),
+  );
+  await page.route('**/api/v1/ai/tasks', route => {
+    submittedTasks += 1;
+    return route.fulfill({
+      status: 202,
+      json: {
+        task_id: `task-${submittedTasks}`,
+        status: 'planning',
+        events: [],
+      },
+    });
+  });
+  await page.route('**/api/v1/ai/tasks/task-1?**', route =>
+    route.fulfill({
+      json: {
+        task_id: 'task-1',
+        status: 'awaiting_user_input',
+        response:
+          'Encontrei mais de uma fonte acessível relacionada a “vendas”:\n' +
+          '1. Dataset `international_sales` — banco Examples; colunas: year, amount.\n' +
+          '2. Dataset `sales_history` — banco Examples; colunas: year, amount.\n' +
+          'Qual fonte deseja utilizar?',
+        pending_actions: [],
+        events: [],
+      },
+    }),
+  );
+  await page.route('**/api/v1/ai/tasks/task-2?**', route =>
+    route.fulfill({
+      json: {
+        task_id: 'task-2',
+        status: 'completed',
+        response: 'Fonte sales_history selecionada; continuando o plano.',
+        pending_actions: [],
+        events: [],
+      },
+    }),
+  );
+  await page.goto(URL.WELCOME);
+
+  await page.getByRole('button', { name: 'Abrir assistente de IA' }).click();
+  const input = page.getByRole('textbox', { name: 'Mensagem para IA' });
+  await input.fill('Crie um gráfico de vendas por ano');
+  await page.getByRole('button', { name: 'Enviar' }).click();
+  await expect(page.getByText('international_sales')).toBeVisible();
+  await expect(page.getByText('sales_history')).toBeVisible();
+
+  await input.fill('2');
+  await page.getByRole('button', { name: 'Enviar' }).click();
+  await expect(page.getByText('Fonte sales_history selecionada')).toBeVisible();
 });

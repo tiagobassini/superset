@@ -23,6 +23,10 @@ from typing import Any
 
 import pytest
 
+from superset.ai.discovery import (
+    DiscoveryCandidate,
+    DiscoveryResult,
+)
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.planner import AnalyticsTaskPlanner
 from superset.ai.providers.base import ProviderResponse, ToolCall
@@ -61,6 +65,10 @@ class StubProvider:
         return self.responses.pop(0)
 
     @staticmethod
+    def expand_discovery_terms(_: str, __: str, ___: str) -> list[str]:
+        return []
+
+    @staticmethod
     def build_assistant_message(content, tool_calls):
         return {"role": "assistant", "content": content, "tool_calls": tool_calls}
 
@@ -85,6 +93,179 @@ class StubCache:
 
     def delete(self, key: str) -> None:
         self.values.pop(key, None)
+
+
+def _discovery_candidate(name: str, score: int, resource_id: int) -> DiscoveryCandidate:
+    return DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=resource_id,
+        name=name,
+        database_id=1,
+        database_name="Examples",
+        schema="public",
+        columns=(("order_date", "DATE"), ("amount", "NUMERIC")),
+        source_key=f"source:{resource_id}",
+        score=score,
+        reasons=("nome relacionado ao tema", "coluna temporal: order_date"),
+    )
+
+
+def _patch_discovery(
+    monkeypatch: pytest.MonkeyPatch, candidates: tuple[DiscoveryCandidate, ...]
+) -> list[object]:
+    calls: list[object] = []
+
+    class StubDiscoveryService:
+        def __init__(self, user: object) -> None:
+            calls.append(user)
+
+        def discover(self, query, intent, context):
+            return DiscoveryResult(query, candidates, {"datasets": len(candidates)})
+
+    monkeypatch.setattr(
+        "superset.ai.orchestrator.AnalyticsDiscoveryService", StubDiscoveryService
+    )
+    return calls
+
+
+def test_orchestrator_proposes_concrete_sources_when_discovery_is_ambiguous(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidates = (
+        _discovery_candidate("international_sales", 40, 11),
+        _discovery_candidate("sales_history", 36, 12),
+    )
+    _patch_discovery(monkeypatch, candidates)
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    cache = StubCache()
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+    orchestrator = AIOrchestrator(agent, ToolRegistry(), SimpleNamespace(id=42), cache)
+
+    result = orchestrator.chat(
+        "Crie um gráfico de vendas por ano", [], {"page": "home"}
+    )
+
+    assert "1. Dataset `international_sales`" in result.response
+    assert "2. Dataset `sales_history`" in result.response
+    assert result.response.endswith("ID?")
+    assert provider.messages == []
+    assert cache.get(orchestrator._discovery_selection_key()) is not None
+
+
+def test_orchestrator_resumes_ambiguous_discovery_by_index_without_researching(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidates = (
+        _discovery_candidate("international_sales", 40, 11),
+        _discovery_candidate("sales_history", 36, 12),
+    )
+    discovery_calls = _patch_discovery(monkeypatch, candidates)
+    provider = StubProvider(
+        [ProviderResponse("Vou continuar com a fonte selecionada.")]
+    )
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    cache = StubCache()
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+    orchestrator = AIOrchestrator(agent, ToolRegistry(), SimpleNamespace(id=42), cache)
+
+    orchestrator.chat("Crie um gráfico de vendas por ano", [], {"page": "home"})
+    result = orchestrator.chat("2", [], {"page": "home"})
+
+    assert len(discovery_calls) == 1
+    assert result.response == "Vou continuar com a fonte selecionada."
+    assert "sales_history" in provider.messages[0][1]["content"]
+    assert cache.get(orchestrator._discovery_selection_key()) is None
+
+
+@pytest.mark.parametrize(
+    ("selection", "expected_name"),
+    [("international_sales", "international_sales"), ("dataset 12", "sales_history")],
+)
+def test_orchestrator_resolves_discovery_choice_by_name_or_reference(
+    monkeypatch: pytest.MonkeyPatch, selection: str, expected_name: str
+) -> None:
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    cache = StubCache()
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+    orchestrator = AIOrchestrator(agent, ToolRegistry(), SimpleNamespace(id=42), cache)
+    orchestrator._store_discovery_selection(
+        "Crie um gráfico de vendas por ano",
+        (
+            _discovery_candidate("international_sales", 40, 11),
+            _discovery_candidate("sales_history", 36, 12),
+        ),
+    )
+
+    resolved = orchestrator._resolve_discovery_selection(selection)
+
+    assert resolved is not None
+    assert resolved["name"] == expected_name
+    assert cache.get(orchestrator._discovery_selection_key()) is None
+
+
+def test_orchestrator_uses_a_clear_discovery_winner_without_question(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_discovery(
+        monkeypatch,
+        (
+            _discovery_candidate("international_sales", 45, 11),
+            _discovery_candidate("sales_history", 30, 12),
+        ),
+    )
+    provider = StubProvider([ProviderResponse("Fonte analisada.")])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+
+    orchestrator = AIOrchestrator(
+        agent, ToolRegistry(), SimpleNamespace(id=42), StubCache()
+    )
+    result = orchestrator.chat(
+        "Crie um gráfico de vendas por ano", [], {"page": "home"}
+    )
+
+    assert result.response == "Fonte analisada."
+    assert "selected automatically" in provider.messages[0][1]["content"]
+
+
+def test_orchestrator_explains_when_discovery_finds_no_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_discovery(monkeypatch, ())
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+
+    result = AIOrchestrator(
+        agent, ToolRegistry(), SimpleNamespace(id=42), StubCache()
+    ).chat("Crie um gráfico de vendas por ano", [], {"page": "home"})
+
+    assert "Não encontrei fontes" in result.response
+    assert "qual é a tabela" not in result.response.casefold()
+    assert result.response.endswith("?")
+    assert provider.messages == []
 
 
 def test_default_registry_contains_all_mvp_tools() -> None:
@@ -287,6 +468,9 @@ def test_orchestrator_executes_read_tool_and_continues_to_final_answer(
     registry = ToolRegistry()
     tool = StubTool()
     registry.register(tool)
+    _patch_discovery(
+        monkeypatch, (_discovery_candidate("international_sales", 45, 11),)
+    )
     provider = StubProvider(
         [
             ProviderResponse(
@@ -319,6 +503,9 @@ def test_orchestrator_only_offers_tools_enabled_for_the_agent(
 ) -> None:
     registry = ToolRegistry()
     registry.register(StubTool())
+    _patch_discovery(
+        monkeypatch, (_discovery_candidate("international_sales", 45, 11),)
+    )
     provider = StubProvider([ProviderResponse("No tool required.")])
     monkeypatch.setattr(
         AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)

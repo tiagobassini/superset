@@ -317,12 +317,12 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 - [x] Testar ranking, isolamento entre usuários e ausência de vazamento de recursos sem permissão.
 
 ### 7.3 Resolução de ambiguidade e proposta ao usuário
-- [ ] Definir limiar de confiança e margem entre candidatos para seleção automática segura.
-- [ ] Quando houver uma fonte claramente superior, selecioná-la e informar resumidamente o motivo no plano.
-- [ ] Quando houver empate ou confiança insuficiente, apresentar até três candidatos com nome, tipo, banco, colunas relevantes e justificativa, pedindo que o usuário escolha.
-- [ ] Não perguntar “qual é a tabela?” antes de executar a descoberta; entrar em `awaiting_user_input` apenas após apresentar alternativas concretas ou constatar ausência de fontes.
-- [ ] Aceitar a escolha do usuário por nome, índice ou referência inequívoca e retomar o mesmo plano sem repetir a descoberta desnecessariamente.
-- [ ] Criar testes unitários e E2E para seleção automática, ambiguidade e nenhuma fonte encontrada.
+- [x] Definir limiar de confiança e margem entre candidatos para seleção automática segura.
+- [x] Quando houver uma fonte claramente superior, selecioná-la e informar resumidamente o motivo no plano.
+- [x] Quando houver empate ou confiança insuficiente, apresentar até três candidatos com nome, tipo, banco, colunas relevantes e justificativa, pedindo que o usuário escolha.
+- [x] Não perguntar “qual é a tabela?” antes de executar a descoberta; entrar em `awaiting_user_input` apenas após apresentar alternativas concretas ou constatar ausência de fontes.
+- [x] Aceitar a escolha do usuário por nome, índice ou referência inequívoca e retomar o mesmo plano sem repetir a descoberta desnecessariamente.
+- [x] Criar testes unitários e E2E para seleção automática, ambiguidade e nenhuma fonte encontrada.
 
 ### 7.4 Planejamento determinístico de ponta a ponta
 - [ ] Fazer o backend transformar a fonte escolhida e a intenção em um `AIExecutionPlan` validado, sem delegar ao modelo a montagem de payloads do Superset.

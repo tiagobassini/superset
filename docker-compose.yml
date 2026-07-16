@@ -236,6 +236,11 @@ services:
       superset: "http://superset:8088"
       # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container
       WEBPACK_DEVSERVER_HOST: "0.0.0.0"
+      # Keep Playwright ready for the experimental AI chat E2E tests. Browsers
+      # live in a named volume, while system libraries are installed once for
+      # every newly-created development container.
+      INSTALL_PLAYWRIGHT_CHROMIUM: ${INSTALL_PLAYWRIGHT_CHROMIUM:-true}
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     ports:
       - "127.0.0.1:${NODE_PORT:-9000}:9000"  # exposing the dynamic webpack dev server
     command: ["/app/docker/docker-frontend.sh"]
@@ -254,7 +259,16 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    volumes: *superset-volumes
+    volumes:
+      - ./docker:/app/docker
+      - ./superset:/app/superset
+      - ./superset-core:/app/superset-core
+      - ./superset-frontend:/app/superset-frontend
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+      - superset_home:/app/superset_home
+      - ./tests:/app/tests
+      - superset_data:/app/data
+      - playwright_browsers:/ms-playwright
 
   superset-worker:
     build:
@@ -335,4 +349,6 @@ volumes:
   ollama:
     external: false
   superset_data:
+    external: false
+  playwright_browsers:
     external: false

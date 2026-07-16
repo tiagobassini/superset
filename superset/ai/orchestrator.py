@@ -24,6 +24,12 @@ from typing import Any
 from uuid import uuid4
 
 from superset.ai.crypto import decrypt_api_key
+from superset.ai.discovery import (
+    AnalyticsDiscoveryService,
+    decide_discovery,
+    DiscoveryCandidate,
+    normalize_discovery_text,
+)
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.models import AIAgent, get_ai_global_settings
 from superset.ai.planner import AnalyticsTaskPlanner
@@ -39,6 +45,7 @@ from superset.extensions import cache_manager
 from superset.utils import json
 
 PENDING_ACTION_TTL = 600
+DISCOVERY_SELECTION_TTL = 600
 MAX_TOOL_ROUNDS = 8
 MAX_HISTORY_MESSAGES = 6
 MAX_HISTORY_MESSAGE_LENGTH = 1_000
@@ -125,15 +132,65 @@ class AIOrchestrator:
                 for tool in tools
                 if tool.get("function", {}).get("name") in enabled_tool_names
             ]
-        plan = AnalyticsTaskPlanner(
+        planner = AnalyticsTaskPlanner(
             semantic_expander=lambda topic,
             language: self.provider.expand_discovery_terms(
                 topic, language, self.agent.model
             )
-        ).plan(
+        )
+        plan = planner.plan(
             message,
             prompt_language=getattr(self.agent, "response_language", "pt-BR"),
         )
+        selected_candidate = self._resolve_discovery_selection(message)
+        if selected_candidate is not None:
+            original_message = selected_candidate.pop("request")
+            plan = planner.plan(
+                original_message,
+                prompt_language=getattr(self.agent, "response_language", "pt-BR"),
+            )
+            messages = [
+                messages[0],
+                *self._compact_history(history),
+                {
+                    "role": "system",
+                    "content": self._selected_source_prompt(selected_candidate),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Pedido original: {original_message}\n"
+                        f"Escolha do usuário: {message}"
+                    ),
+                },
+            ]
+        elif plan.intent.discovery_query is not None:
+            discovery = AnalyticsDiscoveryService(self.user).discover(
+                plan.intent.discovery_query, plan.intent, context
+            )
+            decision = decide_discovery(discovery, plan.intent)
+            if decision.reason == "no_candidates":
+                return OrchestratorResult(
+                    self._no_source_response(discovery.query.topic), pending_actions
+                )
+            if decision.requires_user_selection:
+                self._store_discovery_selection(message, decision.alternatives)
+                return OrchestratorResult(
+                    self._alternatives_response(
+                        discovery.query.topic, decision.alternatives
+                    ),
+                    pending_actions,
+                )
+            if decision.selected is not None:
+                messages.insert(
+                    1,
+                    {
+                        "role": "system",
+                        "content": self._selected_source_prompt(
+                            decision.selected.to_dict(), auto_selected=True
+                        ),
+                    },
+                )
         tools = self._tools_for_plan(tools, plan.tool_names)
         for _ in range(MAX_TOOL_ROUNDS):
             response = self.provider.chat_with_tools(messages, tools, self.agent.model)
@@ -230,6 +287,119 @@ class AIOrchestrator:
     def _store_pending_action(self, action: PendingAction) -> None:
         self.cache.set(
             self._cache_key(action.id), asdict(action), timeout=PENDING_ACTION_TTL
+        )
+
+    def _store_discovery_selection(
+        self, request: str, candidates: tuple[DiscoveryCandidate, ...]
+    ) -> None:
+        """Remember only safe candidate metadata for a short user choice flow."""
+        self.cache.set(
+            self._discovery_selection_key(),
+            {
+                "request": request,
+                "candidates": [candidate.to_dict() for candidate in candidates],
+            },
+            timeout=DISCOVERY_SELECTION_TTL,
+        )
+
+    def _resolve_discovery_selection(self, message: str) -> dict[str, Any] | None:
+        """Resolve an exact index, name, or typed identifier without re-searching."""
+        key = self._discovery_selection_key()
+        payload = self.cache.get(key)
+        if not payload:
+            return None
+        candidates = payload.get("candidates", [])
+        normalized = normalize_discovery_text(message)
+        selected: dict[str, Any] | None = None
+        if normalized.isdigit():
+            index = int(normalized) - 1
+            if 0 <= index < len(candidates):
+                selected = candidates[index]
+        if selected is None:
+            typed_id = re.fullmatch(
+                r"(?:dataset|tabela|table|consulta|query)\s*(?:id )?(\d+)",
+                normalized,
+            )
+            if typed_id:
+                selected = next(
+                    (
+                        candidate
+                        for candidate in candidates
+                        if str(candidate.get("id")) == typed_id.group(1)
+                    ),
+                    None,
+                )
+        if selected is None:
+            matching = [
+                candidate
+                for candidate in candidates
+                if normalize_discovery_text(str(candidate.get("name", "")))
+                == normalized
+            ]
+            if len(matching) == 1:
+                selected = matching[0]
+        if selected is None:
+            return None
+        self.cache.delete(key)
+        return {"request": payload["request"], **selected}
+
+    def _discovery_selection_key(self) -> str:
+        return f"ai_discovery_selection:{self.user.id}:{self.agent.id}"
+
+    @staticmethod
+    def _selected_source_prompt(
+        candidate: dict[str, Any], auto_selected: bool = False
+    ) -> str:
+        """Tell the provider about a verified source without exposing SQL or rows."""
+        selection = (
+            "selected automatically" if auto_selected else "selected by the user"
+        )
+        return (
+            f"Verified discovery source ({selection}): "
+            f"{json.dumps(candidate, default=str)}. "
+            "Use this exact source as the starting point. Do not ask the user to "
+            "name a table, dataset, or database again. Inspect its schema with an "
+            "available read tool when needed and continue the existing plan."
+        )
+
+    @staticmethod
+    def _alternatives_response(
+        topic: str, candidates: tuple[DiscoveryCandidate, ...]
+    ) -> str:
+        """Present bounded, explainable alternatives after live discovery."""
+        options = []
+        labels = {
+            "dataset": "Dataset",
+            "table": "Tabela",
+            "saved_query": "Consulta salva",
+        }
+        for index, candidate in enumerate(candidates, start=1):
+            columns = ", ".join(name for name, _ in candidate.columns[:4])
+            columns = columns or "sem colunas disponíveis"
+            reason = "; ".join(candidate.reasons[:2]) or "relação com o tema"
+            label = labels.get(candidate.resource_type, candidate.resource_type)
+            database = candidate.database_name or "não informado"
+            options.append(
+                f"{index}. {label} `{candidate.name}` — banco {database}; "
+                f"colunas: {columns}; motivo: {reason}."
+            )
+        return (
+            f"Encontrei mais de uma fonte acessível relacionada a “{topic}”:\n"
+            + "\n".join(options)
+            + (
+                "\nQual fonte deseja utilizar? Responda com o número, nome exato "
+                "ou tipo e ID?"
+            )
+        )
+
+    @staticmethod
+    def _no_source_response(topic: str) -> str:
+        """Explain a completed discovery without asking a generic table question."""
+        return (
+            f"Não encontrei fontes de dados acessíveis relacionadas a “{topic}”. "
+            "Pesquisei bancos, tabelas, datasets e consultas salvas com "
+            "equivalências em português, inglês, espanhol e francês. Você pode "
+            "informar outro tema, uma fonte conhecida ou solicitar uma nova busca?"
         )
 
     def _cache_key(self, action_id: str) -> str:

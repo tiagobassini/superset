@@ -35,6 +35,20 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     echo "Running \"npm install\""
     npm install
 
+    if [ "$INSTALL_PLAYWRIGHT_CHROMIUM" = "true" ]; then
+        playwright_deps_marker="/var/lib/playwright-deps-installed"
+        if [ ! -f "$playwright_deps_marker" ]; then
+            echo "Installing Playwright system dependencies"
+            apt-get update
+            apt-get install -y curl
+            npx playwright install-deps chromium
+            touch "$playwright_deps_marker"
+        fi
+
+        echo "Ensuring Playwright Chromium is available"
+        npx playwright install chromium
+    fi
+
     echo "Start webpack dev server"
     # start the webpack dev server, serving dynamically at http://localhost:9000
     # it proxies to the backend served at http://localhost:8088

@@ -37,6 +37,13 @@ MAX_SEMANTIC_TERMS = 8
 MAX_SEMANTIC_TERM_LENGTH = 80
 MAX_DISCOVERY_COLUMNS = 50
 MAX_DISCOVERY_CANDIDATES = 20
+MAX_DISCOVERY_CHOICES = 3
+
+# Selecting a source is deliberately stricter than ranking it.  A source must
+# have enough independent signals and be clearly ahead of the next one before
+# the assistant can use it without asking the user.
+AUTO_SELECT_MIN_SCORE = 24
+AUTO_SELECT_MIN_MARGIN = 10
 
 # This small, versioned vocabulary is intentionally local and deterministic.
 # Provider-suggested terms are optional additions and never replace lexical search.
@@ -133,6 +140,60 @@ class DiscoveryResult:
                 candidate.to_dict() for candidate in self.candidates[:limit]
             ],
         }
+
+
+@dataclass(frozen=True)
+class DiscoveryDecision:
+    """The safe next step after ranking accessible discovery candidates."""
+
+    selected: DiscoveryCandidate | None
+    alternatives: tuple[DiscoveryCandidate, ...]
+    reason: str
+
+    @property
+    def requires_user_selection(self) -> bool:
+        """Whether the user must choose from concrete discovered sources."""
+        return self.reason == "ambiguous"
+
+
+def decide_discovery(
+    result: DiscoveryResult, intent: "AnalyticsIntent | None" = None
+) -> DiscoveryDecision:
+    """Select only an unambiguous source, otherwise retain concrete choices.
+
+    Database entries provide useful search context but are not executable data
+    sources, so they are never selected or proposed as the final source.
+    """
+    candidates = tuple(
+        candidate
+        for candidate in result.candidates
+        if candidate.resource_type in {"dataset", "table", "saved_query"}
+        and candidate.score > 0
+    )
+    if getattr(intent, "time_grain", None) == "year":
+        candidates = tuple(
+            candidate
+            for candidate in candidates
+            if classify_columns(
+                [
+                    {"name": name, "type": column_type}
+                    for name, column_type in candidate.columns
+                ]
+            )["temporal"]
+        )
+    if not candidates:
+        return DiscoveryDecision(None, (), "no_candidates")
+
+    best = candidates[0]
+    runner_up = candidates[1] if len(candidates) > 1 else None
+    is_confident = best.score >= AUTO_SELECT_MIN_SCORE
+    has_clear_margin = (
+        runner_up is None
+        or best.score - runner_up.score >= AUTO_SELECT_MIN_MARGIN
+    )
+    if is_confident and has_clear_margin:
+        return DiscoveryDecision(best, (), "auto_selected")
+    return DiscoveryDecision(None, candidates[:MAX_DISCOVERY_CHOICES], "ambiguous")
 
 
 def build_discovery_query(

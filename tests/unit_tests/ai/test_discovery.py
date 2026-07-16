@@ -22,12 +22,117 @@ import pytest
 
 from superset.ai.discovery import (
     AnalyticsDiscoveryService,
+    AUTO_SELECT_MIN_MARGIN,
     build_discovery_query,
     classify_columns,
+    decide_discovery,
+    DiscoveryCandidate,
+    DiscoveryResult,
     MAX_SEMANTIC_TERMS,
     normalize_discovery_text,
     rank_resources,
 )
+
+
+def _candidate(name: str, score: int, resource_id: int = 1) -> DiscoveryCandidate:
+    return DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=resource_id,
+        name=name,
+        database_id=1,
+        database_name="Examples",
+        schema="public",
+        columns=(("order_date", "DATE"), ("amount", "NUMERIC")),
+        source_key=f"source:{resource_id}",
+        score=score,
+        reasons=("coluna temporal: order_date",),
+    )
+
+
+def test_decide_discovery_selects_only_a_confident_clear_winner() -> None:
+    result = DiscoveryResult(
+        build_discovery_query("vendas"),
+        (_candidate("international_sales", 40), _candidate("sales_archive", 29, 2)),
+        {},
+    )
+
+    decision = decide_discovery(result)
+
+    assert decision.reason == "auto_selected"
+    assert decision.selected is not None
+    assert decision.selected.name == "international_sales"
+    assert decision.alternatives == ()
+
+
+def test_decide_discovery_requires_a_choice_for_close_or_weak_results() -> None:
+    result = DiscoveryResult(
+        build_discovery_query("vendas"),
+        (
+            _candidate("sales_current", 40),
+            _candidate("sales_history", 40 - AUTO_SELECT_MIN_MARGIN + 1, 2),
+            _candidate("sales_forecast", 20, 3),
+            _candidate("sales_legacy", 19, 4),
+        ),
+        {},
+    )
+
+    decision = decide_discovery(result)
+
+    assert decision.requires_user_selection
+    assert [candidate.name for candidate in decision.alternatives] == [
+        "sales_current",
+        "sales_history",
+        "sales_forecast",
+    ]
+
+
+def test_decide_discovery_reports_no_selectable_source() -> None:
+    result = DiscoveryResult(
+        build_discovery_query("vendas"),
+        (
+            DiscoveryCandidate(
+                resource_type="database",
+                resource_id=1,
+                name="Examples",
+                database_id=1,
+                database_name="Examples",
+                schema=None,
+                columns=(),
+                source_key="database:1",
+                score=100,
+            ),
+        ),
+        {},
+    )
+
+    decision = decide_discovery(result)
+
+    assert decision.reason == "no_candidates"
+    assert decision.selected is None
+
+
+def test_decide_discovery_rejects_yearly_source_without_temporal_column() -> None:
+    result = DiscoveryResult(
+        build_discovery_query("vendas"),
+        (
+            DiscoveryCandidate(
+                resource_type="dataset",
+                resource_id=1,
+                name="sales_without_dates",
+                database_id=1,
+                database_name="Examples",
+                schema="public",
+                columns=(("amount", "NUMERIC"),),
+                source_key="source:1",
+                score=50,
+            ),
+        ),
+        {},
+    )
+
+    decision = decide_discovery(result, SimpleNamespace(time_grain="year"))
+
+    assert decision.reason == "no_candidates"
 
 
 def test_rank_resources_prefers_exact_and_partial_topic_matches() -> None:
