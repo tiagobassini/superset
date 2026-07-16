@@ -333,12 +333,12 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 - [x] Testar o pedido genérico “elabore um gráfico em barras das vendas por ano” até a apresentação do plano, sem exigir nome de tabela na primeira interação.
 
 ### 7.5 Aprovação única, execução e retorno ao chat
-- [ ] Fazer a confirmação aprovar o plano imutável completo, e não apenas uma ação isolada, com opção de cancelar antes da execução.
-- [ ] Executar as etapas de escrita de forma idempotente e sequencial após aprovação; interromper com erro por etapa e não continuar após falha.
-- [ ] Publicar progresso parcial no chat durante descoberta, planejamento e execução, preservando a animação enquanto houver trabalho pendente.
-- [ ] Exibir resultado final com fontes selecionadas, decisões, recursos criados/reutilizados, links e falhas acionáveis.
-- [ ] Testar ponta a ponta com fontes em inglês, português, espanhol e francês, inclusive o fluxo dataset/tabela ou saved query → chart → dashboard.
-- [ ] Medir tokens, latência e número de chamadas; garantir que a descoberta/ranking local reduza o contexto enviado ao Ollama.
+- [x] Fazer a confirmação aprovar o plano imutável completo, e não apenas uma ação isolada, com opção de cancelar antes da execução.
+- [x] Executar as etapas de escrita de forma idempotente e sequencial após aprovação; interromper com erro por etapa e não continuar após falha.
+- [x] Publicar progresso parcial no chat durante descoberta, planejamento e execução, preservando a animação enquanto houver trabalho pendente.
+- [x] Exibir resultado final com fontes selecionadas, decisões, recursos criados/reutilizados, links e falhas acionáveis.
+- [x] Testar ponta a ponta com fontes em inglês, português, espanhol e francês, inclusive o fluxo dataset/tabela ou saved query → chart → dashboard.
+- [x] Medir tokens, latência e número de chamadas; garantir que a descoberta/ranking local reduza o contexto enviado ao Ollama.
 
 ### 7.6 Catálogo de metadados e atualização de temas (otimização posterior)
 - [ ] Definir um catálogo derivado e não autoritativo **por fonte**, e não uma lista fechada de temas, contendo somente metadados seguros, termos normalizados, idiomas detectados, colunas relevantes e versão/frescor.

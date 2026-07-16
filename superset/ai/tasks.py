@@ -21,8 +21,10 @@ from __future__ import annotations
 from typing import Any
 
 from flask import current_app
+
 from superset.ai.audit import audit_task
 from superset.ai.exceptions import AIProviderError
+from superset.ai.execution_plan import ExecutionPlanService, PlannedAction
 from superset.ai.models import AIAgent
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.task_progress import AITaskProgress
@@ -49,7 +51,9 @@ def run_ai_task(
         progress.emit(task_id, "failed", "Você não tem acesso a este agente.", "access")
         audit_task("ai_task_blocked", user_id, task_id, agent_id)
         return
-    progress.emit(task_id, "discovering", "Procurando fontes de dados acessíveis.", "discovery")
+    progress.emit(
+        task_id, "discovering", "Procurando fontes de dados acessíveis.", "discovery"
+    )
     progress.emit(task_id, "analyzing", "Analisando as fontes encontradas.", "analysis")
     try:
         # Tool permissions use ``g.user``; Celery has an app context but no
@@ -62,7 +66,9 @@ def run_ai_task(
                     payload.get("context", {}),
                 )
     except AIProviderError:
-        progress.emit(task_id, "failed", "Não foi possível obter uma resposta da IA.", "provider")
+        progress.emit(
+            task_id, "failed", "Não foi possível obter uma resposta da IA.", "provider"
+        )
         audit_task("ai_task_failed", user_id, task_id, agent_id)
         return
     except Exception:  # pylint: disable=broad-except
@@ -76,3 +82,39 @@ def run_ai_task(
         return
     progress.complete(task_id, result)
     audit_task("ai_task_completed", user_id, task_id, agent_id)
+
+
+@celery_app.task(name="ai.run_plan_task")
+def run_ai_plan_task(task_id: str, plan_id: str, agent_id: str, user_id: int) -> None:
+    """Execute an approved plan while exposing each completed step to chat."""
+    progress = AITaskProgress(cache_manager.cache, user_id, agent_id)
+    agent = db.session.get(AIAgent, agent_id)
+    user = security_manager.get_user_by_id(user_id)
+    if agent is None or user is None:
+        progress.emit(task_id, "failed", "O agente não está mais disponível.", "access")
+        return
+    progress.emit(task_id, "executing", "Executando o plano aprovado.", "execution")
+    try:
+        with current_app.test_request_context():
+            with override_user(user):
+                def on_step(
+                    index: int, action: PlannedAction, result: Any
+                ) -> None:
+                    progress.emit(
+                        task_id,
+                        "executing",
+                        f"Etapa {index}: {action.tool_name} "
+                        f"{'concluída' if result.success else 'falhou'}.",
+                        action.tool_name,
+                        result.to_dict(),
+                    )
+
+                results = ExecutionPlanService(
+                    create_default_registry(), user, agent_id, cache_manager.cache
+                ).confirm_and_execute(plan_id, on_step)
+    except Exception:  # pylint: disable=broad-except
+        progress.emit(
+            task_id, "failed", "Não foi possível executar o plano.", "execution"
+        )
+        return
+    progress.complete_plan(task_id, results)

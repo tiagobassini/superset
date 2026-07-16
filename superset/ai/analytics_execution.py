@@ -105,10 +105,10 @@ class DeterministicAnalyticsPlanner:
             time_column=time_column,
             metric=metric,
         )
+        chart_spec_payload = asdict(chart_specification)
+        chart_spec_payload["group_by"] = list(chart_specification.group_by)
         actions = [
-            PlannedAction(
-            "create_chart", {"chart_spec": asdict(chart_specification)}
-            )
+            PlannedAction("create_chart", {"chart_spec": chart_spec_payload})
         ]
         for action in actions:
             self._validate_action(action)

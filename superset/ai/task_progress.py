@@ -36,7 +36,12 @@ TaskState = Literal[
     "failed",
 ]
 
-TERMINAL_STATES = {"awaiting_confirmation", "awaiting_user_input", "completed", "failed"}
+TERMINAL_STATES = {
+    "awaiting_confirmation",
+    "awaiting_user_input",
+    "completed",
+    "failed",
+}
 
 
 @dataclass(frozen=True)
@@ -100,7 +105,11 @@ class AITaskProgress:
 
     def events(self, task_id: str, after: int = 0) -> list[dict[str, Any]]:
         """Return events after a sequence number for polling or SSE reconnects."""
-        return [event for event in self._record(task_id)["events"] if event["sequence"] > after]
+        return [
+            event
+            for event in self._record(task_id)["events"]
+            if event["sequence"] > after
+        ]
 
     def snapshot(self, task_id: str, after: int = 0) -> dict[str, Any]:
         """Return the public task state used by polling clients after a reload."""
@@ -108,18 +117,35 @@ class AITaskProgress:
         return {
             "task_id": task_id,
             "status": record["status"],
-            "events": [event for event in record["events"] if event["sequence"] > after],
+            "events": [
+                event for event in record["events"] if event["sequence"] > after
+            ],
             "response": record.get("response"),
             "pending_actions": record.get("pending_actions", []),
+            "execution_plan": record.get("execution_plan"),
         }
 
     def complete(self, task_id: str, result: OrchestratorResult) -> None:
         """Emit the terminal state appropriate for chat confirmation semantics."""
         record = self._record(task_id)
         record["response"] = result.response
-        record["pending_actions"] = [action.to_dict() for action in result.pending_actions]
+        record["pending_actions"] = [
+            action.to_dict() for action in result.pending_actions
+        ]
+        record["execution_plan"] = result.execution_plan
+        if result.execution_plan:
+            record["pending_actions"] = [
+                {
+                    "id": result.execution_plan["id"],
+                    "type": "execution_plan",
+                    "description": "Confirmar o plano completo",
+                    "params": {**result.execution_plan, "task_id": task_id},
+                    "requires_confirmation": True,
+                    "status": "pending",
+                }
+            ]
         self.cache.set(self._key(task_id), record, timeout=TASK_TTL)
-        if result.pending_actions:
+        if result.pending_actions or result.execution_plan:
             self.emit(
                 task_id,
                 "awaiting_confirmation",
@@ -136,9 +162,38 @@ class AITaskProgress:
         else:
             self.emit(task_id, "completed", "Análise concluída.", "summary")
 
+    def complete_plan(self, task_id: str, results: list[Any]) -> None:
+        """Publish the immutable plan outcome after all executable steps finish."""
+        record = self._record(task_id)
+        record["pending_actions"] = []
+        successful = all(result.success for result in results)
+        summary = [
+            result.data
+            for result in results
+            if result.success and isinstance(result.data, dict)
+        ]
+        record["response"] = (
+            "Plano concluído com sucesso. Recursos criados ou reutilizados: "
+            f"{summary}"
+            if successful
+            else "O plano foi interrompido após uma etapa falhar. "
+            f"Resultados: {[result.to_dict() for result in results]}"
+        )
+        self.cache.set(self._key(task_id), record, timeout=TASK_TTL)
+        self.emit(
+            task_id,
+            "completed" if successful else "failed",
+            "Plano concluído." if successful else "Falha durante a execução do plano.",
+            "summary",
+        )
+
     def _record(self, task_id: str) -> dict[str, Any]:
         record = self.cache.get(self._key(task_id))
-        if record is None or record["user_id"] != self.user_id or record["agent_id"] != self.agent_id:
+        if (
+            record is None
+            or record["user_id"] != self.user_id
+            or record["agent_id"] != self.agent_id
+        ):
             raise KeyError("AI task was not found or access was denied")
         return record
 

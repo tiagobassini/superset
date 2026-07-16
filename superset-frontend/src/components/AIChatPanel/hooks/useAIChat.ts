@@ -160,7 +160,9 @@ export const useAIChat = () => {
             endpoint: `/api/v1/ai/tasks/${result.task_id}?agent_id=${selectedAgentId ?? ''}&after=${latestEvent?.sequence ?? 0}`,
           });
           latestResult = taskJson as ChatResponse;
-          latestEvent = latestResult.events?.[latestResult.events.length - 1] ?? latestEvent;
+          latestEvent =
+            latestResult.events?.[latestResult.events.length - 1] ??
+            latestEvent;
         }
         const state = latestResult.status ?? latestEvent?.state;
         dispatch(
@@ -200,8 +202,14 @@ export const useAIChat = () => {
       if (action?.status === 'pending') {
         try {
           await SupersetClient.post({
-            endpoint: '/api/v1/ai/cancel_action',
-            jsonPayload: { action_id: action.id, agent_id: selectedAgentId ?? undefined },
+            endpoint:
+              action.type === 'execution_plan'
+                ? '/api/v1/ai/cancel_plan'
+                : '/api/v1/ai/cancel_action',
+            jsonPayload: {
+              action_id: action.id,
+              agent_id: selectedAgentId ?? undefined,
+            },
             stringify: false,
           });
         } catch {
@@ -216,17 +224,69 @@ export const useAIChat = () => {
     async (actionId: string) => {
       const action = getAction(actionId);
       if (!action || action.status !== 'pending') return;
+      const taskId =
+        action.type === 'execution_plan' &&
+        typeof action.params.task_id === 'string'
+          ? action.params.task_id
+          : undefined;
+      const parentMessage = messages.find(message =>
+        message.pendingActions?.some(pending => pending.id === action.id),
+      );
       dispatch(updatePendingAction({ ...action, status: 'confirmed' }));
       try {
         const { json } = await SupersetClient.post({
-          endpoint: '/api/v1/ai/confirm_action',
+          endpoint:
+            action.type === 'execution_plan'
+              ? '/api/v1/ai/confirm_plan'
+              : '/api/v1/ai/confirm_action',
           jsonPayload: {
             action_id: action.id,
             agent_id: selectedAgentId ?? undefined,
+            task_id: action.type === 'execution_plan' ? taskId : undefined,
           },
           stringify: false,
         });
         const result = json as ConfirmResponse;
+        if (action.type === 'execution_plan' && taskId && parentMessage) {
+          let latestResult = json as ChatResponse;
+          let latestEvent =
+            latestResult.events?.[latestResult.events.length - 1];
+          while (!isTerminalTaskState(latestResult.status)) {
+            dispatch(
+              updateMessage({
+                ...parentMessage,
+                content: latestEvent?.message ?? 'Executando o plano aprovado.',
+                isStreaming: true,
+                progressState: latestEvent?.state ?? 'executing',
+                pendingActions: [{ ...action, status: 'confirmed' }],
+                taskId,
+              }),
+            );
+            await new Promise(resolve => window.setTimeout(resolve, 750));
+            const { json: taskJson } = await SupersetClient.get({
+              endpoint: `/api/v1/ai/tasks/${taskId}?agent_id=${selectedAgentId ?? ''}&after=${latestEvent?.sequence ?? 0}`,
+            });
+            latestResult = taskJson as ChatResponse;
+            latestEvent =
+              latestResult.events?.[latestResult.events.length - 1] ??
+              latestEvent;
+          }
+          const state = latestResult.status ?? latestEvent?.state;
+          dispatch(
+            updateMessage({
+              ...parentMessage,
+              content:
+                latestResult.response ??
+                latestEvent?.message ??
+                'Plano concluído.',
+              isStreaming: false,
+              progressState: state,
+              pendingActions: latestResult.pending_actions,
+              taskId,
+            }),
+          );
+          return;
+        }
         dispatch(
           updatePendingAction({
             ...action,
@@ -244,7 +304,7 @@ export const useAIChat = () => {
         );
       }
     },
-    [dispatch, getAction, selectedAgentId],
+    [dispatch, getAction, messages, selectedAgentId],
   );
   const clearChatHistory = useCallback(() => {
     clearHistory();

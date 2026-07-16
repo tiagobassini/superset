@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
 from uuid import uuid4
@@ -76,7 +77,11 @@ class ExecutionPlanService:
         )
         return plan
 
-    def confirm_and_execute(self, plan_id: str) -> list[ToolResult]:
+    def confirm_and_execute(  # noqa: C901
+        self,
+        plan_id: str,
+        on_step: Callable[[int, PlannedAction, ToolResult], None] | None = None,
+    ) -> list[ToolResult]:
         """Execute a bound plan once, stopping on the first failed action."""
         record = self.cache.get(self._key(plan_id))
         if record is None:
@@ -111,6 +116,8 @@ class ExecutionPlanService:
                     )
                 result = tool.execute(self.user, resolved_action.params)
                 results.append(result)
+                if on_step:
+                    on_step(len(results), resolved_action, result)
                 if not result.success:
                     self.cache.set(
                         self._key(plan_id),
@@ -134,6 +141,15 @@ class ExecutionPlanService:
             return results
         finally:
             self.cache.delete(self._lock_key(plan_id))
+
+    def cancel(self, plan_id: str) -> None:
+        """Discard an unexecuted plan owned by the current user and agent."""
+        record = self.cache.get(self._key(plan_id))
+        if record is None or record["plan"]["agent_id"] != self.agent_id:
+            raise AIActionExpiredError("AI execution plan was not found or has expired")
+        if record["status"] != "pending":
+            raise AIActionExpiredError("AI execution plan cannot be cancelled")
+        self.cache.delete(self._key(plan_id))
 
     def _validate(self, action: PlannedAction) -> None:
         tool = self.registry.get(action.tool_name)
@@ -163,9 +179,7 @@ class ExecutionPlanService:
                     raise ValueError(f"Invalid planned action reference: {reference}")
 
     @classmethod
-    def _resolve_references(
-        cls, value: Any, results: list[ToolResult]
-    ) -> Any:
+    def _resolve_references(cls, value: Any, results: list[ToolResult]) -> Any:
         if isinstance(value, dict) and set(value) == {"$ref"}:
             parts = value["$ref"].split(".")
             if len(parts) != 3 or not parts[1].isdigit():

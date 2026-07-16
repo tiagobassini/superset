@@ -35,6 +35,7 @@ from superset.ai.discovery import (
     normalize_discovery_text,
 )
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
+from superset.ai.execution_plan import ExecutionPlanService
 from superset.ai.models import AIAgent, get_ai_global_settings
 from superset.ai.planner import AnalyticsGoal, AnalyticsIntent, AnalyticsTaskPlanner
 from superset.ai.providers import (
@@ -86,6 +87,7 @@ class OrchestratorResult:
 
     response: str
     pending_actions: list[PendingAction]
+    execution_plan: dict[str, Any] | None = None
 
 
 class AIOrchestrator:
@@ -273,7 +275,12 @@ class AIOrchestrator:
                 f"{ex}. Deseja escolher outra fonte?",
                 [],
             )
-        return OrchestratorResult(plan.to_chat_text(), [])
+        persisted = ExecutionPlanService(
+            self.registry, self.user, str(self.agent.id), self.cache
+        ).create(list(plan.execution_plan.actions))
+        payload = plan.to_dict()
+        payload["id"] = persisted.id
+        return OrchestratorResult(plan.to_chat_text(), [], payload)
 
     @staticmethod
     def _requires_deterministic_execution_plan(intent: AnalyticsIntent) -> bool:

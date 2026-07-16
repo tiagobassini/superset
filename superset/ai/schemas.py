@@ -60,6 +60,12 @@ class ConfirmActionRequestSchema(Schema):
     agent_id = fields.UUID(allow_none=True)
 
 
+class ConfirmPlanRequestSchema(ConfirmActionRequestSchema):
+    """Bind a single immutable plan approval to its reconnectable chat task."""
+
+    task_id = fields.UUID(required=True)
+
+
 class AgentSchema(Schema):
     """Validate agent create and update payloads without exposing secrets."""
 

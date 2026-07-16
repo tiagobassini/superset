@@ -25,19 +25,21 @@ from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
-from superset.ai.crypto import encrypt_api_key
 from superset.ai.audit import audit_task
+from superset.ai.crypto import encrypt_api_key
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
+from superset.ai.execution_plan import ExecutionPlanService
 from superset.ai.models import AIAgent, AIGlobalSettings, get_ai_global_settings
 from superset.ai.orchestrator import AIOrchestrator
-from superset.ai.task_progress import AITaskProgress
-from superset.ai.tasks import run_ai_task
 from superset.ai.schemas import (
     AgentSchema,
     ChatRequestSchema,
     ConfirmActionRequestSchema,
+    ConfirmPlanRequestSchema,
     GlobalAISettingsSchema,
 )
+from superset.ai.task_progress import AITaskProgress
+from superset.ai.tasks import run_ai_plan_task, run_ai_task
 from superset.ai.tools.registry import create_default_registry
 from superset.extensions import cache_manager, db, security_manager
 from superset.utils import json
@@ -54,6 +56,8 @@ class AIRestApi(BaseSupersetApi):
         "chat": "use_ai_chat",
         "confirm_action": "use_ai_chat",
         "cancel_action": "use_ai_chat",
+        "confirm_plan": "use_ai_chat",
+        "cancel_plan": "use_ai_chat",
         "create_task": "use_ai_chat",
         "get_task": "use_ai_chat",
         "task_events": "use_ai_chat",
@@ -68,6 +72,7 @@ class AIRestApi(BaseSupersetApi):
     }
     chat_schema = ChatRequestSchema()
     confirm_schema = ConfirmActionRequestSchema()
+    confirm_plan_schema = ConfirmPlanRequestSchema()
     agent_schema = AgentSchema()
     global_settings_schema = GlobalAISettingsSchema()
 
@@ -156,18 +161,26 @@ class AIRestApi(BaseSupersetApi):
             return self._error("Agent not found", 404)
         if error := self._validate_agent_access(agent):
             return error
-        audit_task("ai_action_confirmed", g.user.id, str(payload["action_id"]), str(agent.id))
+        audit_task(
+            "ai_action_confirmed", g.user.id, str(payload["action_id"]), str(agent.id)
+        )
         try:
             result = AIOrchestrator(
                 agent, create_default_registry(), g.user
             ).confirm_and_execute(str(payload["action_id"]))
         except AIActionExpiredError as ex:
-            audit_task("ai_action_failed", g.user.id, str(payload["action_id"]), str(agent.id))
+            audit_task(
+                "ai_action_failed", g.user.id, str(payload["action_id"]), str(agent.id)
+            )
             return self._error(str(ex), 404)
         if not result.success:
-            audit_task("ai_action_failed", g.user.id, str(payload["action_id"]), str(agent.id))
+            audit_task(
+                "ai_action_failed", g.user.id, str(payload["action_id"]), str(agent.id)
+            )
             return self._error(result.error or "Action failed", 400)
-        audit_task("ai_action_completed", g.user.id, str(payload["action_id"]), str(agent.id))
+        audit_task(
+            "ai_action_completed", g.user.id, str(payload["action_id"]), str(agent.id)
+        )
         return jsonify({"status": "executed", "result": result.data})
 
     @expose("/cancel_action", methods=("POST",))
@@ -188,12 +201,69 @@ class AIRestApi(BaseSupersetApi):
         if error := self._validate_agent_access(agent):
             return error
         try:
-            AIOrchestrator(agent, create_default_registry(), g.user).cancel_pending_action(
-                str(payload["action_id"])
-            )
+            AIOrchestrator(
+                agent, create_default_registry(), g.user
+            ).cancel_pending_action(str(payload["action_id"]))
         except AIActionExpiredError as ex:
             return self._error(str(ex), 404)
-        audit_task("ai_action_cancelled", g.user.id, str(payload["action_id"]), str(agent.id))
+        audit_task(
+            "ai_action_cancelled", g.user.id, str(payload["action_id"]), str(agent.id)
+        )
+        return jsonify({"status": "cancelled"})
+
+    @expose("/confirm_plan", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def confirm_plan(self) -> Response:
+        """Execute a previously presented immutable analytics plan once."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            payload = self.confirm_plan_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = self._get_agent(payload.get("agent_id"))
+        if agent is None:
+            return self._error("Agent not found", 404)
+        if error := self._validate_agent_access(agent):
+            return error
+        try:
+            progress = AITaskProgress(cache_manager.cache, g.user.id, str(agent.id))
+            progress.snapshot(str(payload["task_id"]))
+        except KeyError:
+            return self._error("Task not found", 404)
+        run_ai_plan_task.delay(
+            str(payload["task_id"]),
+            str(payload["action_id"]),
+            str(agent.id),
+            g.user.id,
+        )
+        return jsonify(progress.snapshot(str(payload["task_id"]))), 202
+
+    @expose("/cancel_plan", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def cancel_plan(self) -> Response:
+        """Cancel an immutable plan before any write is started."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            payload = self.confirm_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = self._get_agent(payload.get("agent_id"))
+        if agent is None:
+            return self._error("Agent not found", 404)
+        if error := self._validate_agent_access(agent):
+            return error
+        try:
+            ExecutionPlanService(
+                create_default_registry(), g.user, str(agent.id), cache_manager.cache
+            ).cancel(str(payload["action_id"]))
+        except AIActionExpiredError as ex:
+            return self._error(str(ex), 404)
         return jsonify({"status": "cancelled"})
 
     @expose("/tasks", methods=("POST",))
@@ -438,9 +508,7 @@ class AIRestApi(BaseSupersetApi):
         if agent_id:
             return db.session.get(AIAgent, str(agent_id))
         return (
-            db.session.query(AIAgent)
-            .filter_by(is_default=True, is_active=True)
-            .first()
+            db.session.query(AIAgent).filter_by(is_default=True, is_active=True).first()
         )
 
     def _validate_agent_access(self, agent: AIAgent) -> tuple[Response, int] | None:
