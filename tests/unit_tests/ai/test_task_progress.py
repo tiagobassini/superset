@@ -184,3 +184,25 @@ def test_plan_success_response_formats_dashboard_publication_as_link() -> None:
     assert "- [ai_test_p18](/explore/?slice_id=104)" in response
     assert "- [CBMES](/superset/dashboard/10/)" in response
     assert "{'dashboard_id'" not in response
+
+
+def test_plan_success_response_formats_saved_query_as_link() -> None:
+    progress = AITaskProgress(Cache(), 4, "agent-1", "pt-BR")
+    task_id = progress.create()
+
+    progress.complete_plan(
+        task_id,
+        [
+            ToolResult(
+                True,
+                {
+                    "id": 2,
+                    "label": "AI_TEST_P44",
+                    "url": "/sqllab?savedQueryId=2",
+                },
+            )
+        ],
+    )
+
+    response = progress.snapshot(task_id)["response"]
+    assert "- [AI_TEST_P44](/sqllab?savedQueryId=2)" in response

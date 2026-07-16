@@ -472,6 +472,43 @@ def test_create_dataset_rejects_database_different_from_saved_query(
         )
 
 
+def test_save_sql_query_returns_sqllab_link(monkeypatch: pytest.MonkeyPatch) -> None:
+    database = SimpleNamespace(id=1)
+    query = SimpleNamespace(id=2, label="AI_TEST_P44")
+    created: list[dict[str, object]] = []
+
+    class SavedQueryDAO:
+        @staticmethod
+        def create(attributes: dict[str, object]) -> SimpleNamespace:
+            created.append(attributes)
+            return query
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(get=lambda *_: database, commit=lambda: None),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database", lambda _: True
+    )
+    monkeypatch.setattr("superset.daos.query.SavedQueryDAO", SavedQueryDAO)
+    monkeypatch.setattr(builtin, "_find_existing_saved_query", lambda *_: None)
+    monkeypatch.setattr("flask.g", SimpleNamespace(user=SimpleNamespace(id=4)))
+
+    assert builtin._save_sql_query(
+        {
+            "database_id": 1,
+            "schema": "main",
+            "label": "AI_TEST_P44",
+            "sql": "SELECT 1",
+        }
+    ) == {
+        "id": 2,
+        "label": "AI_TEST_P44",
+        "url": "/sqllab?savedQueryId=2",
+    }
+    assert created[0]["user_id"] == 4
+
+
 def test_list_database_tables_filters_the_command_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

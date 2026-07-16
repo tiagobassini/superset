@@ -60,6 +60,12 @@ def _dataset_url(dataset_id: int, dataset_name: str | None = None) -> str:
     return f"/tablemodelview/list/?dataset_id={dataset_id}"
 
 
+def _saved_query_url(saved_query_id: int) -> str:
+    """Return the SQL Lab route for an existing saved query."""
+
+    return f"/sqllab?savedQueryId={saved_query_id}"
+
+
 class BuiltinTool(AITool):
     """Small declarative adapter around a Superset operation."""
 
@@ -738,7 +744,12 @@ def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
         params = {**params, "label": _timestamped_name(ex.name)}
         existing = None
     if existing:
-        return {"id": existing.id, "label": existing.label, "reused": True}
+        return {
+            "id": existing.id,
+            "label": existing.label,
+            "url": _saved_query_url(existing.id),
+            "reused": True,
+        }
     query = SavedQueryDAO.create(
         attributes={
             "user_id": g.user.id,
@@ -751,7 +762,7 @@ def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
         }
     )
     db.session.commit()
-    result = {"id": query.id, "label": query.label}
+    result = {"id": query.id, "label": query.label, "url": _saved_query_url(query.id)}
     if query.label != original_label:
         result["requested_label"] = original_label
         result["renamed"] = True
