@@ -20,8 +20,13 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import StrEnum
+
+from superset.ai.discovery import build_discovery_query, DiscoveryQuery
+
+SemanticExpander = Callable[[str, str], Iterable[str]]
 
 
 class AnalyticsGoal(StrEnum):
@@ -45,6 +50,7 @@ class AnalyticsIntent:
     target_dashboard: str | None = None
     metric: str | None = None
     time_grain: str | None = None
+    discovery_query: DiscoveryQuery | None = None
 
 
 @dataclass(frozen=True)
@@ -83,21 +89,37 @@ class AnalyticsTaskPlanner:
         {"list_dashboards", "list_charts", "create_dashboard", "add_chart_to_dashboard"}
     )
 
-    def plan(self, message: str) -> AnalyticsPlan:
+    def __init__(self, semantic_expander: SemanticExpander | None = None) -> None:
+        """Create a deterministic planner with optional bounded provider hints."""
+        self.semantic_expander = semantic_expander
+
+    def plan(self, message: str, prompt_language: str | None = None) -> AnalyticsPlan:
         """Return the goal and tools needed to safely advance the request."""
         normalized = self._normalize(message)
         goal = self._goal(normalized)
-        source_hint = self._named_after(normalized, r"(?:banco|base de dados|dataset)\s+")
+        source_hint = self._named_after(
+            normalized, r"(?:banco|base de dados|dataset)\s+"
+        )
         dashboard = self._named_after(normalized, r"(?:dashboard|painel)\s+")
         if goal is AnalyticsGoal.PUBLISH_CHART and dashboard is None:
             dashboard = self._named_after_publish_target(normalized)
+        topic = self._topic(normalized) or self._topic_from_request(normalized)
         intent = AnalyticsIntent(
             goal=goal,
-            topic=self._topic(normalized),
+            topic=topic,
             source_hint=source_hint,
             target_dashboard=dashboard,
-            metric="count" if "quantidade" in normalized or "numero" in normalized else None,
-            time_grain="year" if "por ano" in normalized or "anual" in normalized else None,
+            metric="count"
+            if "quantidade" in normalized or "numero" in normalized
+            else None,
+            time_grain="year"
+            if "por ano" in normalized or "anual" in normalized
+            else None,
+            discovery_query=(
+                build_discovery_query(topic, prompt_language, self.semantic_expander)
+                if topic
+                else None
+            ),
         )
         clarification = None
         if goal is AnalyticsGoal.PUBLISH_CHART and not dashboard:
@@ -167,7 +189,9 @@ class AnalyticsTaskPlanner:
 
     @staticmethod
     def _named_after_publish_target(message: str) -> str | None:
-        match = re.search(r"(?:em|no|na|ao)\s+(?:dashboard\s+)?[`\"']?([\w-]+)[`\"']?", message)
+        match = re.search(
+            r"(?:em|no|na|ao)\s+(?:dashboard\s+)?[`\"']?([\w-]+)[`\"']?", message
+        )
         return match.group(1) if match else None
 
     @staticmethod
@@ -177,3 +201,41 @@ class AnalyticsTaskPlanner:
             message,
         )
         return match.group(1) if match else None
+
+    @staticmethod
+    def _topic_from_request(message: str) -> str | None:
+        """Extract a likely subject from ordinary chart requests.
+
+        This only provides a discovery hint. It never selects a data source or
+        replaces the schema-based validation performed by later workflow steps.
+        """
+        known_terms = (
+            "vendas",
+            "venda",
+            "sales",
+            "sale",
+            "ventas",
+            "venta",
+            "ventes",
+            "vente",
+            "receita",
+            "revenue",
+            "ingresos",
+            "recettes",
+        )
+        for term in known_terms:
+            if re.search(rf"\b{term}\b", message):
+                return term
+        matches = re.findall(r"(?:da|das|do|dos|de|des|del|du|of)\s+([\w-]+)", message)
+        ignored = {
+            "barras",
+            "barra",
+            "grafico",
+            "chart",
+            "dados",
+            "base",
+            "banco",
+        }
+        return next(
+            (value for value in reversed(matches) if value not in ignored), None
+        )

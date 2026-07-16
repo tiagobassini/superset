@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -26,6 +27,8 @@ from superset.ai.providers.base import AIProviderAdapter, ProviderResponse, Tool
 from superset.utils import json
 
 OLLAMA_REQUEST_TIMEOUT_SECONDS = 120.0
+OLLAMA_DISCOVERY_TIMEOUT_SECONDS = 5.0
+MAX_DISCOVERY_PROVIDER_TERMS = 8
 
 
 class OllamaProviderAdapter(AIProviderAdapter):
@@ -99,6 +102,53 @@ class OllamaProviderAdapter(AIProviderAdapter):
         except Exception:
             return False
         return True
+
+    def expand_discovery_terms(
+        self, topic: str, prompt_language: str, model: str
+    ) -> list[str]:
+        """Ask Ollama for small JSON-only semantic hints within a short timeout."""
+        try:
+            response = self.client.post(
+                "/api/chat",
+                json={
+                    "model": model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                'Return only JSON in the form {"terms":["term"]}. '
+                                "Include at most 3 short analytics search terms. "
+                                "Do not include explanations."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Topic: {topic}\nPrompt language: {prompt_language}"
+                            ),
+                        },
+                    ],
+                    "stream": False,
+                    "format": "json",
+                    "think": False,
+                    "options": {"num_predict": 48, "temperature": 0},
+                },
+                timeout=OLLAMA_DISCOVERY_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            content = str(response.json().get("message", {}).get("content", ""))
+            match = re.search(r"\[[\s\S]*\]", content)
+            decoded = json.loads(match.group(0) if match else "[]")
+            values = decoded.get("terms", []) if isinstance(decoded, dict) else decoded
+            if not isinstance(values, list):
+                return []
+            return [
+                value
+                for value in values[:MAX_DISCOVERY_PROVIDER_TERMS]
+                if isinstance(value, str)
+            ]
+        except Exception:  # pylint: disable=broad-except
+            return []
 
     def build_assistant_message(
         self,

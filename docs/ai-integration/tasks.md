@@ -298,12 +298,12 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 > Nenhum nome ou conteúdo armazenado no banco será alterado.
 
 ### 7.1 Normalização e expansão multilíngue do tema
-- [ ] Criar um contrato tipado de `DiscoveryQuery` com tema, idioma do prompt, sinônimos e termos expandidos.
-- [ ] Normalizar texto somente em memória: caixa, acentos, pontuação, separadores (`_`, `-`, espaço), singular/plural e tokens compostos.
-- [ ] Expandir o tema entre pt-BR, en-US, es-ES e fr-FR, sem traduzir ou modificar nomes persistidos de bancos, tabelas, datasets ou consultas salvas.
-- [ ] Combinar dicionário versionado de termos analíticos comuns (por exemplo, `vendas` ↔ `sales` ↔ `ventas` ↔ `ventes`) com expansão semântica limitada do provedor.
-- [ ] Limitar tamanho, quantidade de termos e tempo da expansão; falhas do provedor devem degradar para a busca lexical local.
-- [ ] Testar normalização e equivalências entre os quatro idiomas, incluindo nomes como `international_sales`, `vendas-internacionais`, `ventes_annuelles` e `ventas por año`.
+- [x] Criar um contrato tipado de `DiscoveryQuery` com tema, idioma do prompt, sinônimos e termos expandidos.
+- [x] Normalizar texto somente em memória: caixa, acentos, pontuação, separadores (`_`, `-`, espaço), singular/plural e tokens compostos.
+- [x] Expandir o tema entre pt-BR, en-US, es-ES e fr-FR, sem traduzir ou modificar nomes persistidos de bancos, tabelas, datasets ou consultas salvas.
+- [x] Combinar dicionário versionado de termos analíticos comuns (por exemplo, `vendas` ↔ `sales` ↔ `ventas` ↔ `ventes`) com expansão semântica limitada do provedor.
+- [x] Limitar tamanho, quantidade de termos e tempo da expansão; falhas do provedor devem degradar para a busca lexical local.
+- [x] Testar normalização e equivalências entre os quatro idiomas, incluindo nomes como `international_sales`, `vendas-internacionais`, `ventes_annuelles` e `ventas por año`.
 
 ### 7.2 Índice de descoberta seguro e pontuação de fontes
 - [ ] Criar serviço de descoberta que pesquise, sob as permissões do usuário, bancos, tabelas, datasets e saved queries.

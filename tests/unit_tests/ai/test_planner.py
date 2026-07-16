@@ -30,20 +30,20 @@ from superset.ai.planner import AnalyticsGoal, AnalyticsTaskPlanner
         ("Monte um gráfico de receita mensal", AnalyticsGoal.CREATE_CHART),
         ("Crie um painel executivo", AnalyticsGoal.CREATE_DASHBOARD),
         (
-            "Analise a base international_sales e adicione um gráfico ao dashboard CBMES",
+            "Analise a base international_sales e adicione um gráfico ao "
+            "dashboard CBMES",
             AnalyticsGoal.PUBLISH_CHART,
         ),
     ],
 )
-def test_planner_recognizes_analytics_goals(
-    message: str, goal: AnalyticsGoal
-) -> None:
+def test_planner_recognizes_analytics_goals(message: str, goal: AnalyticsGoal) -> None:
     assert AnalyticsTaskPlanner().plan(message).intent.goal is goal
 
 
 def test_planner_handles_portuguese_publish_synonym_and_source() -> None:
     plan = AnalyticsTaskPlanner().plan(
-        "Analise o banco international_sales, inclua um grafico com quantidade de vendas por ano no painel CBMES"
+        "Analise o banco international_sales, inclua um grafico com quantidade "
+        "de vendas por ano no painel CBMES"
     )
 
     assert plan.intent.goal is AnalyticsGoal.PUBLISH_CHART
@@ -51,10 +51,17 @@ def test_planner_handles_portuguese_publish_synonym_and_source() -> None:
     assert plan.intent.target_dashboard == "cbmes"
     assert plan.intent.metric == "count"
     assert plan.intent.time_grain == "year"
-    assert {"list_databases", "create_chart", "list_dashboards", "add_chart_to_dashboard"} <= plan.tool_names
+    assert {
+        "list_databases",
+        "create_chart",
+        "list_dashboards",
+        "add_chart_to_dashboard",
+    } <= plan.tool_names
 
 
-def test_planner_requests_clarification_only_when_publish_destination_is_missing() -> None:
+def test_planner_requests_clarification_only_when_publish_destination_is_missing() -> (
+    None
+):
     plan = AnalyticsTaskPlanner().plan("Crie um gráfico anual de vendas e publique")
 
     assert plan.intent.goal is AnalyticsGoal.PUBLISH_CHART
@@ -67,3 +74,33 @@ def test_planner_does_not_need_dashboard_word_when_publish_target_is_clear() -> 
     assert plan.intent.goal is AnalyticsGoal.PUBLISH_CHART
     assert plan.intent.target_dashboard == "cbmes"
     assert plan.clarification is None
+
+
+def test_planner_builds_multilingual_discovery_query_for_generic_chart_request() -> (
+    None
+):
+    plan = AnalyticsTaskPlanner().plan(
+        "Elabore um gráfico em barras das vendas por ano."
+    )
+
+    assert plan.intent.goal is AnalyticsGoal.CREATE_CHART
+    assert plan.intent.topic == "vendas"
+    assert plan.intent.discovery_query is not None
+    assert plan.intent.discovery_query.prompt_language == "pt-BR"
+    assert {"vendas", "sales", "ventas", "ventes"} <= set(
+        plan.intent.discovery_query.expanded_terms
+    )
+
+
+def test_planner_uses_configured_agent_language_and_semantic_expander() -> None:
+    calls: list[tuple[str, str]] = []
+    planner = AnalyticsTaskPlanner(
+        semantic_expander=lambda topic, language: calls.append((topic, language))
+        or ["delinquency"]
+    )
+
+    plan = planner.plan("Crie um gráfico de inadimplência", prompt_language="fr-FR")
+
+    assert plan.intent.discovery_query is not None
+    assert plan.intent.discovery_query.prompt_language == "fr-FR"
+    assert calls == [("inadimplencia", "fr-FR")]

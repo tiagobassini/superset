@@ -201,6 +201,17 @@ class AIProviderAdapter(ABC):
             ],
         }
 
+    def expand_discovery_terms(
+        self, topic: str, prompt_language: str, model: str
+    ) -> list[str]:
+        """Return bounded semantic hints for unfamiliar discovery topics.
+
+        Providers that cannot make a short, independently timed request keep
+        the deterministic lexical discovery path by returning no extra terms.
+        """
+        del topic, prompt_language, model
+        return []
+
     def build_tool_message(
         self,
         tool_call_id: str,

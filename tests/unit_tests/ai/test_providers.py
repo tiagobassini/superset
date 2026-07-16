@@ -26,7 +26,10 @@ import pytest
 from superset.ai.exceptions import AIProviderError
 from superset.ai.providers.anthropic_provider import AnthropicProviderAdapter
 from superset.ai.providers.base import ToolCall
-from superset.ai.providers.ollama_provider import OllamaProviderAdapter
+from superset.ai.providers.ollama_provider import (
+    OLLAMA_DISCOVERY_TIMEOUT_SECONDS,
+    OllamaProviderAdapter,
+)
 from superset.ai.providers.openai_provider import OpenAIProviderAdapter
 
 
@@ -127,6 +130,7 @@ def test_ollama_adapter_normalizes_native_tool_calls() -> None:
             "tools": [],
             "stream": False,
             "think": False,
+            "options": {"num_predict": 256, "temperature": 0.1},
         },
     )
 
@@ -159,6 +163,39 @@ def test_ollama_adapter_tests_connection_without_raising() -> None:
 
     client.get.return_value.raise_for_status.side_effect = RuntimeError("offline")
     assert adapter.test_connection() is False
+
+
+def test_ollama_adapter_expands_discovery_terms_with_short_timeout() -> None:
+    client = MagicMock()
+    response = MagicMock()
+    response.json.return_value = {
+        "message": {"content": '```json\n{"terms":["delinquency", "default"]}\n```'}
+    }
+    client.post.return_value = response
+
+    terms = OllamaProviderAdapter(client=client).expand_discovery_terms(
+        "inadimplência", "pt-BR", "qwen2.5:3b"
+    )
+
+    assert terms == ["delinquency", "default"]
+    assert client.post.call_args.kwargs["timeout"] == OLLAMA_DISCOVERY_TIMEOUT_SECONDS
+    assert client.post.call_args.kwargs["json"]["options"] == {
+        "num_predict": 48,
+        "temperature": 0,
+    }
+    assert client.post.call_args.kwargs["json"]["format"] == "json"
+
+
+def test_ollama_adapter_ignores_discovery_expansion_errors() -> None:
+    client = MagicMock()
+    client.post.side_effect = RuntimeError("offline")
+
+    assert (
+        OllamaProviderAdapter(client=client).expand_discovery_terms(
+            "inadimplência", "pt-BR", "qwen2.5:3b"
+        )
+        == []
+    )
 
 
 def test_ollama_adapter_uses_native_messages_for_tool_results() -> None:
@@ -253,9 +290,7 @@ def test_anthropic_adapter_converts_tool_results_to_user_content_blocks() -> Non
     assert messages[0]["content"][0]["type"] == "tool_use"
     assert messages[1] == {
         "role": "user",
-        "content": [
-            {"type": "tool_result", "tool_use_id": "call_1", "content": "[]"}
-        ],
+        "content": [{"type": "tool_result", "tool_use_id": "call_1", "content": "[]"}],
     }
 
 
