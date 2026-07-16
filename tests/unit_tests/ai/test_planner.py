@@ -59,6 +59,32 @@ def test_planner_handles_portuguese_publish_synonym_and_source() -> None:
     } <= plan.tool_names
 
 
+def test_planner_extracts_source_hint_from_leading_no_dataset_name() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "No international_sales, faça barras da quantidade vendida por categoria."
+    )
+
+    assert plan.intent.goal is AnalyticsGoal.CREATE_CHART
+    assert plan.intent.source_hint == "international_sales"
+    assert plan.intent.topic == "quantidade"
+    assert plan.intent.metric == "quantity"
+    assert plan.intent.dimension == "product_category"
+
+
+def test_planner_extracts_topic_after_analysis_preposition() -> None:
+    plan = AnalyticsTaskPlanner().plan("Faça uma análise de vendas por país.")
+
+    assert plan.intent.topic == "vendas"
+    assert plan.intent.dimension == "country"
+
+
+def test_planner_removes_stopwords_instead_of_using_them_as_topic() -> None:
+    plan = AnalyticsTaskPlanner().plan("Mostre os dados por ano em barras")
+
+    assert plan.intent.topic is None
+    assert plan.intent.discovery_query is None
+
+
 def test_planner_requests_clarification_only_when_publish_destination_is_missing() -> (
     None
 ):
@@ -90,6 +116,89 @@ def test_planner_builds_multilingual_discovery_query_for_generic_chart_request()
     assert {"vendas", "sales", "ventas", "ventes"} <= set(
         plan.intent.discovery_query.expanded_terms
     )
+
+
+def test_planner_extracts_specific_metric_before_generic_sales_term() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Crie o chart AI_TEST_P27 de vendas globais por ano usando video_game_sales."
+    )
+
+    assert plan.intent.source_hint == "video_game_sales"
+    assert plan.intent.metric == "global_sales"
+
+
+def test_planner_prioritizes_cost_for_cost_versus_revenue_prompt() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Crie um gráfico AI_TEST_P14 de custo versus receita por região."
+    )
+
+    assert plan.intent.metric == "cost"
+    assert plan.intent.dimension == "region"
+    assert plan.intent.chart_title == "ai_test_p14"
+
+
+def test_planner_preserves_requested_ai_test_resource_names() -> None:
+    chart = AnalyticsTaskPlanner().plan(
+        "Adicione ao CBMES um gráfico AI_TEST_P15 de receita por ano do international_sales."
+    )
+    dataset = AnalyticsTaskPlanner().plan(
+        "Transforme a consulta salva AI_TEST_P19 em um dataset AI_TEST_P20."
+    )
+    saved_query = AnalyticsTaskPlanner().plan(
+        "Crie uma consulta salva AI_TEST_P44 que traga população total por país e ano."
+    )
+    prefixed = AnalyticsTaskPlanner().plan(
+        "Use dados de vendas e crie dataset, gráfico de barras anual e publique no "
+        "CBMES com o prefixo AI_TEST_P50."
+    )
+
+    assert chart.intent.chart_title == "ai_test_p15"
+    assert chart.intent.target_dashboard == "cbmes"
+    assert chart.intent.source_hint == "international_sales"
+    assert dataset.intent.source_hint == "ai_test_p19"
+    assert dataset.intent.dataset_name == "ai_test_p20"
+    assert dataset.intent.discovery_query is not None
+    assert dataset.intent.discovery_query.normalized_topic == "ai test p19"
+    assert saved_query.intent.saved_query_label == "ai_test_p44"
+    assert prefixed.intent.output_prefix == "ai_test_p50"
+    assert prefixed.intent.dataset_name == "ai_test_p50_dataset"
+    assert prefixed.intent.chart_title == "ai_test_p50_chart"
+
+
+def test_planner_handles_p16_to_p20_corrective_cases() -> None:
+    publish = AnalyticsTaskPlanner().plan(
+        "No dashboard CBMES, publique AI_TEST_P16: lucro por país com dados de "
+        "international_sales."
+    )
+    virtual_dataset = AnalyticsTaskPlanner().plan(
+        "Crie um dataset virtual AI_TEST_P17 de receita anual do international_sales."
+    )
+    saved_query = AnalyticsTaskPlanner().plan(
+        "Crie uma consulta salva AI_TEST_P19 com vendas mensais de "
+        "cleaned_sales_data."
+    )
+    materialized = AnalyticsTaskPlanner().plan(
+        "Transforme a consulta salva AI_TEST_P19 em um dataset AI_TEST_P20."
+    )
+
+    assert publish.intent.goal is AnalyticsGoal.PUBLISH_CHART
+    assert publish.intent.chart_title == "ai_test_p16"
+    assert publish.intent.source_hint == "international_sales"
+    assert publish.intent.target_dashboard == "cbmes"
+    assert publish.intent.metric == "profit"
+    assert publish.intent.dimension == "country"
+    assert virtual_dataset.intent.goal is AnalyticsGoal.CREATE_DATASET
+    assert virtual_dataset.intent.dataset_name == "ai_test_p17"
+    assert virtual_dataset.intent.source_hint == "international_sales"
+    assert virtual_dataset.intent.metric == "revenue"
+    assert virtual_dataset.intent.time_grain == "year"
+    assert saved_query.intent.goal is AnalyticsGoal.CREATE_QUERY
+    assert saved_query.intent.saved_query_label == "ai_test_p19"
+    assert saved_query.intent.source_hint == "cleaned_sales_data"
+    assert saved_query.intent.time_grain == "month"
+    assert materialized.intent.goal is AnalyticsGoal.CREATE_DATASET
+    assert materialized.intent.source_hint == "ai_test_p19"
+    assert materialized.intent.dataset_name == "ai_test_p20"
 
 
 def test_planner_uses_configured_agent_language_and_semantic_expander() -> None:

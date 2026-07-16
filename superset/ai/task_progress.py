@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -53,6 +54,7 @@ class TaskEvent:
     message: str
     step: str | None = None
     data: dict[str, Any] | None = None
+    timestamp: str | None = None
 
 
 class AITaskProgress:
@@ -88,7 +90,14 @@ class AITaskProgress:
     ) -> TaskEvent:
         """Append a public progress event and refresh the bounded task TTL."""
         record = self._record(task_id)
-        event = TaskEvent(len(record["events"]) + 1, state, message, step, data)
+        event = TaskEvent(
+            len(record["events"]) + 1,
+            state,
+            message,
+            step,
+            data,
+            datetime.now(timezone.utc).isoformat(),
+        )
         record["events"].append(
             {
                 "task_id": task_id,
@@ -97,6 +106,7 @@ class AITaskProgress:
                 "message": event.message,
                 "step": event.step,
                 "data": event.data,
+                "timestamp": event.timestamp,
             }
         )
         record["status"] = state

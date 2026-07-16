@@ -81,8 +81,77 @@ def test_write_command_handlers_return_safe_resource_summary(
 ) -> None:
     Command.result = result
     monkeypatch.setattr(command_path, Command)
+    if handler is builtin._create_chart:
+        monkeypatch.setattr(builtin, "_validate_created_chart", lambda _: None)
 
     assert handler(params) == expected  # type: ignore[operator]
+
+
+def test_create_chart_removes_chart_when_query_validation_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    Command.result = SimpleNamespace(
+        id=11,
+        slice_name="Sales",
+        url="/explore/?slice_id=11",
+    )
+    monkeypatch.setattr(
+        "superset.commands.chart.create.CreateChartCommand",
+        Command,
+    )
+    monkeypatch.setattr(
+        builtin,
+        "_validate_created_chart",
+        lambda _: (_ for _ in ()).throw(ValueError("invalid metric")),
+    )
+    deleted: list[SimpleNamespace] = []
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(delete=deleted.append, commit=lambda: None),
+    )
+
+    with pytest.raises(ValueError, match="could not be queried and was removed"):
+        builtin._create_chart({"slice_name": "Sales"})
+
+    assert deleted == [Command.result]
+
+
+def test_create_chart_reuses_compatible_existing_chart(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chart = SimpleNamespace(
+        id=11,
+        slice_name="AI_TEST_P11",
+        datasource_id=7,
+        datasource_type="table",
+        url="/explore/?slice_id=11",
+    )
+
+    class Query:
+        @staticmethod
+        def all() -> list[SimpleNamespace]:
+            return [chart]
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(query=lambda _: Query()),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_chart", lambda _: True
+    )
+
+    assert builtin._create_chart(
+        {
+            "slice_name": "AI_TEST_P11",
+            "datasource_id": 7,
+            "datasource_type": "table",
+        }
+    ) == {
+        "id": 11,
+        "name": "AI_TEST_P11",
+        "url": "/explore/?slice_id=11",
+        "reused": True,
+    }
 
 
 def test_create_dataset_validates_physical_table_before_creating(
@@ -139,6 +208,51 @@ def test_create_dataset_uses_owned_saved_query_for_virtual_dataset(
             "sql": "select * from sales",
         },
     )
+
+
+def test_create_dataset_reuses_existing_compatible_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = SimpleNamespace(
+        id=8,
+        table_name="AI_TEST_P20",
+        database_id=3,
+        schema="analytics",
+        sql="select * from sales",
+        url="/tablemodelview/edit/8",
+    )
+
+    class Query:
+        @staticmethod
+        def all() -> list[SimpleNamespace]:
+            return [dataset]
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(query=lambda _: Query()),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+    monkeypatch.setattr(
+        builtin,
+        "_get_saved_query",
+        lambda _: {
+            "database_id": 3,
+            "schema": "analytics",
+            "catalog": None,
+            "sql": "select * from sales",
+        },
+    )
+
+    assert builtin._create_dataset(
+        {"saved_query_id": 4, "table_name": "AI_TEST_P20"}
+    ) == {
+        "id": 8,
+        "name": "AI_TEST_P20",
+        "url": "/tablemodelview/edit/8",
+        "reused": True,
+    }
 
 
 def test_create_dataset_rejects_database_different_from_saved_query(
@@ -216,6 +330,31 @@ def test_add_chart_to_dashboard_avoids_duplicate_relationship(
         "dashboard_id": 13,
         "chart_id": 22,
     }
+
+
+def test_create_dashboard_rejects_ambiguous_existing_dashboard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dashboards = [
+        SimpleNamespace(id=1, dashboard_title="CBMES", slug="cbmes"),
+        SimpleNamespace(id=2, dashboard_title="cbmes", slug="cbmes-copy"),
+    ]
+
+    class Query:
+        @staticmethod
+        def all() -> list[SimpleNamespace]:
+            return dashboards
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(query=lambda _: Query()),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_dashboard", lambda _: True
+    )
+
+    with pytest.raises(ValueError, match="Multiple dashboards"):
+        builtin._create_dashboard({"dashboard_title": "CBMES"})
 
 
 def test_list_handlers_return_only_accessible_matching_resources(

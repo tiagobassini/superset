@@ -32,6 +32,7 @@ from superset.ai.discovery import (
     AnalyticsDiscoveryService,
     decide_discovery,
     DiscoveryCandidate,
+    DiscoveryDecision,
     normalize_discovery_text,
 )
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
@@ -191,7 +192,22 @@ class AIOrchestrator:
             discovery = discovery_service.discover(
                 plan.intent.discovery_query, plan.intent, context
             )
-            decision = decide_discovery(discovery, plan.intent)
+            explicit_source = next(
+                (
+                    candidate
+                    for candidate in discovery.candidates
+                    if plan.intent.source_hint
+                    and candidate.resource_type in {"dataset", "table", "saved_query"}
+                    and normalize_discovery_text(candidate.name)
+                    == normalize_discovery_text(plan.intent.source_hint)
+                ),
+                None,
+            )
+            decision = (
+                DiscoveryDecision(explicit_source, (), "explicit")
+                if explicit_source is not None
+                else decide_discovery(discovery, plan.intent)
+            )
             if decision.reason == "no_candidates":
                 return OrchestratorResult(
                     self._no_source_response(discovery.query.topic), pending_actions
@@ -216,6 +232,18 @@ class AIOrchestrator:
                         self._no_source_response(discovery.query.topic), pending_actions
                     )
                 return self._build_deterministic_plan(verified_source, plan.intent)
+            if decision.selected is not None and decision.reason == "explicit":
+                verified_source = discovery_service.revalidate_candidate(
+                    decision.selected
+                )
+                if verified_source is None:
+                    return OrchestratorResult(
+                        self._no_source_response(discovery.query.topic), pending_actions
+                    )
+                return OrchestratorResult(
+                    self._source_analysis_response(verified_source, plan.intent),
+                    pending_actions,
+                )
             if decision.selected is not None:
                 messages.insert(
                     1,
@@ -296,9 +324,16 @@ class AIOrchestrator:
                 f"{ex}. Deseja escolher outra fonte?",
                 [],
             )
-        persisted = ExecutionPlanService(
-            self.registry, self.user, str(self.agent.id), self.cache
-        ).create(list(plan.execution_plan.actions))
+        try:
+            persisted = ExecutionPlanService(
+                self.registry, self.user, str(self.agent.id), self.cache
+            ).create(list(plan.execution_plan.actions))
+        except ValueError as ex:
+            return OrchestratorResult(
+                "Não foi possível registrar o plano seguro com a fonte selecionada: "
+                f"{ex}. Deseja escolher outra fonte?",
+                [],
+            )
         payload = plan.to_dict()
         payload["id"] = persisted.id
         return OrchestratorResult(plan.to_chat_text(), [], payload)
@@ -311,6 +346,7 @@ class AIOrchestrator:
             AnalyticsGoal.PUBLISH_CHART,
             AnalyticsGoal.CREATE_DATASET,
             AnalyticsGoal.CREATE_DASHBOARD,
+            AnalyticsGoal.CREATE_QUERY,
         }
 
     def _requires_confirmation(self, tool_name: str) -> bool:
@@ -466,6 +502,39 @@ class AIOrchestrator:
             "Pesquisei bancos, tabelas, datasets e consultas salvas com "
             "equivalências em português, inglês, espanhol e francês. Você pode "
             "informar outro tema, uma fonte conhecida ou solicitar uma nova busca?"
+        )
+
+    @staticmethod
+    def _source_analysis_response(
+        source: DiscoveryCandidate, intent: AnalyticsIntent
+    ) -> str:
+        """Summarize an explicit source without asking the provider to choose one."""
+        columns = [name for name, _ in source.columns]
+        normalized_columns = {
+            normalize_discovery_text(name): name for name, _ in source.columns
+        }
+        highlighted: list[str] = []
+        for expected in (
+            intent.metric,
+            intent.dimension,
+            "transaction_date" if intent.time_grain == "year" else None,
+        ):
+            if not expected:
+                continue
+            normalized_expected = normalize_discovery_text(str(expected))
+            for normalized_name, original_name in normalized_columns.items():
+                if (
+                    normalized_expected in normalized_name
+                    or normalized_name in normalized_expected
+                ) and original_name not in highlighted:
+                    highlighted.append(original_name)
+        column_text = ", ".join([*highlighted, *columns[:8]]) or "schema indisponível"
+        return (
+            f"Fonte selecionada: dataset `{source.name}` "
+            f"({source.database_name or 'banco não informado'}). "
+            f"Colunas relevantes disponíveis: {column_text}. "
+            "Nenhum artefato foi criado; a solicitação foi atendida como análise "
+            "de leitura."
         )
 
     def _cache_key(self, action_id: str) -> str:

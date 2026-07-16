@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -50,12 +51,16 @@ class ChartSpecification:
         )
         missing = [field for field in required if not value.get(field)]
         if missing:
-            raise ValueError(f"Missing chart specification fields: {', '.join(missing)}")
+            raise ValueError(
+                f"Missing chart specification fields: {', '.join(missing)}"
+            )
         datasource_id = value["datasource_id"]
         if not isinstance(datasource_id, int) or isinstance(datasource_id, bool):
             raise ValueError("Chart datasource_id must be an integer")
         group_by = value.get("group_by", [])
-        if not isinstance(group_by, list) or not all(isinstance(item, str) for item in group_by):
+        if not isinstance(group_by, list) or not all(
+            isinstance(item, str) for item in group_by
+        ):
             raise ValueError("Chart group_by must be a list of column names")
         return cls(
             datasource_id=datasource_id,
@@ -70,6 +75,7 @@ class ChartSpecification:
 
     def to_chart_payload(self) -> dict[str, Any]:
         """Build the validated CreateChartCommand payload expected by Superset."""
+        metric = self._metric_payload()
         return {
             "datasource_id": self.datasource_id,
             "datasource_type": self.datasource_type,
@@ -79,8 +85,48 @@ class ChartSpecification:
                 {
                     "granularity_sqla": self.time_column,
                     "time_grain_sqla": self.time_grain,
-                    "metrics": [self.metric],
+                    "metrics": [metric],
                     "groupby": list(self.group_by),
                 }
             ),
         }
+
+    def _metric_payload(self) -> dict[str, Any]:
+        """Convert readable labels to Superset adhoc metric definitions."""
+        if self.metric == "COUNT(*)":
+            return {
+                "expressionType": "SQL",
+                "sqlExpression": "COUNT(*)",
+                "label": self.metric,
+            }
+        match = re.fullmatch(r"(SUM|AVG|MIN|MAX|COUNT)\(([^()]+)\)", self.metric)
+        if match is None:
+            raise ValueError(f"Unsupported chart metric: {self.metric}")
+        aggregate, column = match.groups()
+        return {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": column, "type": "NUMERIC"},
+            "aggregate": aggregate,
+            "label": self.metric,
+        }
+
+    def validate_columns(self, columns: tuple[tuple[str, str], ...]) -> None:
+        """Reject unknown temporal, grouping, or metric columns before approval."""
+        available = {name: column_type.casefold() for name, column_type in columns}
+        if self.time_column not in available:
+            raise ValueError(f"Chart time_column does not exist: {self.time_column}")
+        missing_groups = [name for name in self.group_by if name not in available]
+        if missing_groups:
+            raise ValueError(
+                f"Chart group_by column does not exist: {missing_groups[0]}"
+            )
+        match = re.fullmatch(r"(?:SUM|AVG|MIN|MAX|COUNT)\(([^()]+)\)", self.metric)
+        if match and match.group(1) != "*":
+            column = match.group(1)
+            if column not in available:
+                raise ValueError(f"Chart metric column does not exist: {column}")
+            if not any(
+                token in available[column]
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                raise ValueError(f"Chart metric column is not numeric: {column}")

@@ -24,7 +24,13 @@ from typing import Any
 from uuid import uuid4
 
 from superset.ai.chart_spec import ChartSpecification
-from superset.ai.discovery import classify_columns, DiscoveryCandidate
+from superset.ai.discovery import (
+    classify_columns,
+    DIMENSION_TERM_GROUPS,
+    DiscoveryCandidate,
+    METRIC_TERM_GROUPS,
+    normalize_discovery_text,
+)
 from superset.ai.execution_plan import AIExecutionPlan, PlannedAction
 from superset.ai.planner import AnalyticsGoal, AnalyticsIntent
 from superset.ai.tools.registry import ToolRegistry
@@ -84,9 +90,34 @@ class DeterministicAnalyticsPlanner:
         self, source: DiscoveryCandidate, intent: AnalyticsIntent
     ) -> DeterministicAnalyticsPlan:
         """Create a chart plan from a verified dataset and deterministic rules."""
-        if source.resource_type != "dataset" or source.resource_id is None:
+        if source.resource_type not in {"dataset", "saved_query"}:
             raise AnalyticsPlanValidationError(
                 "A fonte selecionada ainda precisa ser materializada como dataset"
+            )
+        if source.resource_type == "dataset" and source.resource_id is None:
+            raise AnalyticsPlanValidationError("Dataset selecionado sem identificador")
+        if (
+            intent.goal is AnalyticsGoal.CREATE_DATASET
+            and source.resource_type == "saved_query"
+        ):
+            dataset_name = intent.dataset_name or self._dataset_name(
+                intent.topic or source.name, intent
+            )
+            actions = [
+                PlannedAction(
+                    "create_dataset",
+                    {"table_name": dataset_name, "saved_query_id": source.resource_id},
+                )
+            ]
+            effects = [f"criar ou reutilizar o dataset `{dataset_name}`"]
+            chart_specification = self._display_spec(
+                source,
+                dataset_name,
+                source.columns[0][0] if source.columns else "ds",
+                "COUNT(*)",
+            )
+            return self._finalize(
+                source, actions, effects, chart_specification, "COUNT(*)"
             )
         column_groups = classify_columns(
             [
@@ -95,35 +126,107 @@ class DeterministicAnalyticsPlanner:
             ]
         )
         time_column = self._time_column(column_groups, intent)
-        metric = self._metric(column_groups, intent)
+        metric = self._metric(column_groups, intent, source.columns)
+        group_by = self._dimension(intent, source.columns)
         topic = intent.topic or source.name
+        actions: list[PlannedAction] = []
+        effects: list[str] = []
+
+        if intent.goal is AnalyticsGoal.CREATE_QUERY:
+            label = intent.saved_query_label or self._saved_query_label(topic, intent)
+            actions.append(
+                PlannedAction(
+                    "save_sql_query",
+                    {
+                        "database_id": source.database_id,
+                        "schema": source.schema,
+                        "label": label,
+                        "sql": self._aggregate_sql(source, time_column, metric, intent),
+                    },
+                )
+            )
+            effects.append(f"salvar a consulta `{label}`")
+            chart_specification = self._display_spec(
+                source, label, time_column, metric
+            )
+            return self._finalize(
+                source, actions, effects, chart_specification, metric
+            )
+
+        dataset_action_index: int | None = None
+        datasource_id: int | dict[str, str]
+        if source.resource_type == "saved_query" or (
+            intent.goal is AnalyticsGoal.CREATE_DATASET
+            or intent.output_prefix is not None
+        ):
+            dataset_name = intent.dataset_name or self._dataset_name(topic, intent)
+            dataset_params: dict[str, Any] = {"table_name": dataset_name}
+            if source.resource_type == "saved_query":
+                dataset_params["saved_query_id"] = source.resource_id
+            else:
+                dataset_params.update(
+                    {
+                        "database": source.database_id,
+                        "schema": source.schema,
+                        "sql": self._aggregate_sql(source, time_column, metric, intent),
+                    }
+                )
+            dataset_action_index = len(actions)
+            actions.append(PlannedAction("create_dataset", dataset_params))
+            effects.append(f"criar ou reutilizar o dataset `{dataset_name}`")
+            datasource_id = {"$ref": f"actions.{dataset_action_index}.id"}
+            if intent.goal is AnalyticsGoal.CREATE_DATASET:
+                chart_specification = self._display_spec(
+                    source, dataset_name, time_column, metric
+                )
+                return self._finalize(
+                    source, actions, effects, chart_specification, metric
+                )
+        else:
+            datasource_id = int(source.resource_id)
+
+        chart_title = intent.chart_title or self._chart_title(topic, intent)
         chart_specification = ChartSpecification(
-            datasource_id=source.resource_id,
+            datasource_id=int(source.resource_id) if isinstance(datasource_id, int) else 0,
             datasource_type="table",
-            chart_title=self._chart_title(topic, intent),
+            chart_title=chart_title,
             viz_type="echarts_timeseries_bar",
             time_column=time_column,
             metric=metric,
+            group_by=(group_by,) if group_by else (),
         )
         chart_spec_payload = asdict(chart_specification)
+        chart_spec_payload["datasource_id"] = datasource_id
         chart_spec_payload["group_by"] = list(chart_specification.group_by)
-        actions = [
-            PlannedAction("create_chart", {"chart_spec": chart_spec_payload})
-        ]
-        for action in actions:
-            self._validate_action(action)
+        if dataset_action_index is None:
+            chart_specification.validate_columns(source.columns)
+        chart_action_index = len(actions)
+        actions.append(PlannedAction("create_chart", {"chart_spec": chart_spec_payload}))
         effects = [
+            *effects,
             f"criar o gráfico de barras `{chart_specification.chart_title}`",
             f"usar `{time_column}` como dimensão temporal e `{metric}` como métrica",
         ]
+        if group_by:
+            effects.append(f"agrupar por `{group_by}`")
         if intent.goal is AnalyticsGoal.PUBLISH_CHART and intent.target_dashboard:
             dashboard_action, dashboard_effect = self._dashboard_action(
-                intent.target_dashboard, chart_action_index=0
+                intent.target_dashboard, chart_action_index=chart_action_index
             )
             actions.extend(dashboard_action)
-            for action in dashboard_action:
-                self._validate_action(action)
             effects.extend(dashboard_effect)
+        return self._finalize(source, actions, effects, chart_specification, metric)
+
+    def _finalize(
+        self,
+        source: DiscoveryCandidate,
+        actions: list[PlannedAction],
+        effects: list[str],
+        chart_specification: ChartSpecification,
+        metric: str,
+    ) -> DeterministicAnalyticsPlan:
+        for action in actions:
+            self._validate_action(action)
         execution_plan = AIExecutionPlan(
             id=str(uuid4()),
             user_id=self.user.id,
@@ -138,8 +241,12 @@ class DeterministicAnalyticsPlanner:
                 "obter um perfil agregado, sem expor linhas de dados",
             ),
             findings=(
-                f"coluna temporal verificada: `{time_column}`",
+                f"coluna temporal verificada: `{chart_specification.time_column}`",
                 f"métrica compatível: `{metric}`",
+                *(
+                    f"dimensão compatível: `{dimension}`"
+                    for dimension in chart_specification.group_by
+                ),
             ),
             effects=tuple(effects),
             chart_specification=chart_specification,
@@ -158,9 +265,19 @@ class DeterministicAnalyticsPlanner:
         )
 
     @staticmethod
-    def _metric(groups: dict[str, list[str]], intent: AnalyticsIntent) -> str:
+    def _metric(
+        groups: dict[str, list[str]],
+        intent: AnalyticsIntent,
+        columns: tuple[tuple[str, str], ...],
+    ) -> str:
         if intent.metric == "count":
             return "COUNT(*)"
+        requested_terms = METRIC_TERM_GROUPS.get(str(intent.metric or ""), ())
+        matching_column = DeterministicAnalyticsPlanner._metric_column(
+            columns, requested_terms
+        )
+        if matching_column is not None:
+            return f"SUM({matching_column})"
         if groups["measures"]:
             return f"SUM({groups['measures'][0]})"
         if groups["identifiers"]:
@@ -170,9 +287,105 @@ class DeterministicAnalyticsPlanner:
         )
 
     @staticmethod
+    def _dimension(
+        intent: AnalyticsIntent,
+        columns: tuple[tuple[str, str], ...],
+    ) -> str | None:
+        requested_terms = DIMENSION_TERM_GROUPS.get(str(intent.dimension or ""), ())
+        if requested_terms:
+            matching_column = DeterministicAnalyticsPlanner._dimension_column(
+                columns, requested_terms
+            )
+            if matching_column is not None:
+                return matching_column
+        return None
+
+    @staticmethod
+    def _dimension_column(
+        columns: tuple[tuple[str, str], ...], terms: tuple[str, ...]
+    ) -> str | None:
+        for name, column_type in columns:
+            if any(
+                token in column_type.casefold()
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                continue
+            normalized = normalize_discovery_text(name)
+            if any(normalize_discovery_text(term) in normalized for term in terms):
+                return name
+        return None
+
+    @staticmethod
+    def _metric_column(
+        columns: tuple[tuple[str, str], ...], terms: tuple[str, ...]
+    ) -> str | None:
+        if not terms:
+            return None
+        for name, column_type in columns:
+            if not any(
+                token in column_type.casefold()
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                continue
+            normalized = normalize_discovery_text(name)
+            if any(normalize_discovery_text(term) in normalized for term in terms):
+                return name
+        return None
+
+    @staticmethod
     def _chart_title(topic: str, intent: AnalyticsIntent) -> str:
         suffix = " por ano" if intent.time_grain == "year" else ""
         return f"{topic.replace('_', ' ').title()}{suffix}"
+
+    @staticmethod
+    def _dataset_name(topic: str, intent: AnalyticsIntent) -> str:
+        if intent.output_prefix:
+            return f"{intent.output_prefix}_DATASET"
+        return f"{topic.replace(' ', '_')}_dataset"
+
+    @staticmethod
+    def _saved_query_label(topic: str, intent: AnalyticsIntent) -> str:
+        if intent.output_prefix:
+            return f"{intent.output_prefix}_QUERY"
+        return f"{topic.replace(' ', '_')}_query"
+
+    @staticmethod
+    def _display_spec(
+        source: DiscoveryCandidate, title: str, time_column: str, metric: str
+    ) -> ChartSpecification:
+        return ChartSpecification(
+            datasource_id=source.resource_id or 0,
+            datasource_type="table",
+            chart_title=title,
+            viz_type="echarts_timeseries_bar",
+            time_column=time_column,
+            metric=metric,
+        )
+
+    @staticmethod
+    def _aggregate_sql(
+        source: DiscoveryCandidate,
+        time_column: str,
+        metric: str,
+        intent: AnalyticsIntent,
+    ) -> str:
+        table = source.name
+        metric_alias = "metric_value"
+        if metric == "COUNT(*)":
+            expression = "COUNT(*)"
+        else:
+            expression = metric
+            metric_alias = metric.lower().replace("(", "_").replace(")", "")
+        if intent.time_grain == "month":
+            period_expression = f"strftime('%Y-%m', {time_column})"
+            return (
+                f"SELECT {period_expression} AS month, {expression} AS {metric_alias} "
+                f"FROM {table} GROUP BY {period_expression}"
+            )
+        return (
+            f"SELECT {time_column} AS period, {expression} AS {metric_alias} "
+            f"FROM {table} GROUP BY {time_column}"
+        )
 
     def _validate_action(self, action: PlannedAction) -> None:
         tool = self.registry.get(action.tool_name)
@@ -184,8 +397,20 @@ class DeterministicAnalyticsPlanner:
             raise AnalyticsPlanValidationError(
                 f"Você não possui permissão para a ação: {action.tool_name}"
             )
+        if self._contains_reference(action.params):
+            return
         if error := getattr(tool, "validate_params", lambda _: None)(action.params):
             raise AnalyticsPlanValidationError(error)
+
+    @classmethod
+    def _contains_reference(cls, value: Any) -> bool:
+        if isinstance(value, dict) and set(value) == {"$ref"}:
+            return True
+        if isinstance(value, dict):
+            return any(cls._contains_reference(item) for item in value.values())
+        if isinstance(value, list):
+            return any(cls._contains_reference(item) for item in value)
+        return False
 
     def _dashboard_action(
         self, dashboard_name: str, chart_action_index: int
@@ -229,12 +454,20 @@ class DeterministicAnalyticsPlanner:
         from superset.models.dashboard import Dashboard
 
         normalized = self._normalize(dashboard_name)
+        matches = []
         for dashboard in db.session.query(Dashboard).all():
+            title_matches = self._normalize(dashboard.dashboard_title) == normalized
+            slug_matches = self._normalize(str(dashboard.slug or "")) == normalized
             if (
-                self._normalize(dashboard.dashboard_title) == normalized
-                and security_manager.can_access_dashboard(dashboard)
-            ):
-                return dashboard.id
+                title_matches or slug_matches
+            ) and security_manager.can_access_dashboard(dashboard):
+                matches.append(dashboard)
+        if len(matches) > 1:
+            raise AnalyticsPlanValidationError(
+                f"Mais de um dashboard corresponde a `{dashboard_name}`"
+            )
+        if matches:
+            return matches[0].id
         return None
 
     @staticmethod

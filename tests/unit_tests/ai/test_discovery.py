@@ -158,13 +158,14 @@ def test_classify_columns_identifies_chart_candidates() -> None:
     result = classify_columns(
         [
             {"name": "order_date", "type": "DATE"},
+            {"name": "period", "type": "STRING"},
             {"name": "sale_id", "type": "INTEGER"},
             {"name": "amount", "type": "NUMERIC"},
             {"name": "country", "type": "VARCHAR"},
         ]
     )
 
-    assert result["temporal"] == ["order_date"]
+    assert result["temporal"] == ["order_date", "period"]
     assert result["identifiers"] == ["sale_id"]
     assert result["measures"] == ["amount"]
     assert result["dimensions"] == ["country"]
@@ -345,6 +346,186 @@ def test_discovery_service_ranks_schema_matches_and_deduplicates_sources(
         in candidates["saved_query"].reasons
     )
     assert "sql" not in candidates["saved_query"].to_dict()
+
+
+def test_discovery_ranking_prefers_transactional_sales_without_game_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = SimpleNamespace(id=1, database_name="Examples")
+    transactional = SimpleNamespace(
+        id=10,
+        table_name="international_sales",
+        database_id=1,
+        database=database,
+        schema="main",
+        catalog=None,
+        description="",
+        columns=[
+            SimpleNamespace(column_name="transaction_date", type="DATE"),
+            SimpleNamespace(column_name="region", type="VARCHAR"),
+            SimpleNamespace(column_name="country", type="VARCHAR"),
+            SimpleNamespace(column_name="revenue", type="NUMERIC"),
+            SimpleNamespace(column_name="profit", type="NUMERIC"),
+        ],
+    )
+    games = SimpleNamespace(
+        id=11,
+        table_name="video_game_sales",
+        database_id=1,
+        database=database,
+        schema="main",
+        catalog=None,
+        description="",
+        columns=[
+            SimpleNamespace(column_name="year", type="INTEGER"),
+            SimpleNamespace(column_name="genre", type="VARCHAR"),
+            SimpleNamespace(column_name="platform", type="VARCHAR"),
+            SimpleNamespace(column_name="global_sales", type="NUMERIC"),
+            SimpleNamespace(column_name="na_sales", type="NUMERIC"),
+        ],
+    )
+
+    class Query:
+        def __init__(self, values: list[object]) -> None:
+            self.values = values
+
+        def order_by(self, *_: object) -> "Query":
+            return self
+
+        def all(self) -> list[object]:
+            return self.values
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(
+            query=lambda model: Query(
+                [database]
+                if model.__name__ == "Database"
+                else [transactional, games]
+                if model.__name__ == "SqlaTable"
+                else []
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database", lambda _: True
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+    monkeypatch.setattr(AnalyticsDiscoveryService, "_table_candidates", lambda *_: [])
+
+    result = AnalyticsDiscoveryService(SimpleNamespace(id=7)).discover(
+        build_discovery_query("vendas"),
+        intent=SimpleNamespace(time_grain="year", metric="revenue", dimension="country"),
+    )
+
+    assert result.candidates[0].name == "international_sales"
+    assert "dimensão solicitada: country" in result.candidates[0].reasons
+    assert "sinais de jogos reduzem prioridade para vendas comerciais" in (
+        result.candidates[1].reasons
+    )
+
+
+def test_discovery_structural_profiles_select_domain_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = SimpleNamespace(id=1, database_name="Examples")
+    sources = [
+        SimpleNamespace(
+            id=20,
+            table_name="final_report",
+            database_id=1,
+            database=database,
+            schema="main",
+            catalog=None,
+            description="",
+            columns=[
+                SimpleNamespace(column_name="YEAR", type="INTEGER"),
+                SimpleNamespace(column_name="AIRLINE", type="VARCHAR"),
+                SimpleNamespace(column_name="ARRIVAL_DELAY", type="NUMERIC"),
+            ],
+        ),
+        SimpleNamespace(
+            id=21,
+            table_name="generic_people",
+            database_id=1,
+            database=database,
+            schema="main",
+            catalog=None,
+            description="",
+            columns=[
+                SimpleNamespace(column_name="ds", type="DATE"),
+                SimpleNamespace(column_name="name", type="VARCHAR"),
+                SimpleNamespace(column_name="gender", type="VARCHAR"),
+                SimpleNamespace(column_name="num", type="INTEGER"),
+            ],
+        ),
+        SimpleNamespace(
+            id=22,
+            table_name="world_indicators",
+            database_id=1,
+            database=database,
+            schema="main",
+            catalog=None,
+            description="",
+            columns=[
+                SimpleNamespace(column_name="country_name", type="VARCHAR"),
+                SimpleNamespace(column_name="region", type="VARCHAR"),
+                SimpleNamespace(column_name="SP_POP_TOTL", type="NUMERIC"),
+                SimpleNamespace(column_name="SH_DYN_MORT", type="NUMERIC"),
+            ],
+        ),
+    ]
+
+    class Query:
+        def __init__(self, values: list[object]) -> None:
+            self.values = values
+
+        def order_by(self, *_: object) -> "Query":
+            return self
+
+        def all(self) -> list[object]:
+            return self.values
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(
+            query=lambda model: Query(
+                [database]
+                if model.__name__ == "Database"
+                else sources
+                if model.__name__ == "SqlaTable"
+                else []
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database", lambda _: True
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+    monkeypatch.setattr(AnalyticsDiscoveryService, "_table_candidates", lambda *_: [])
+
+    service = AnalyticsDiscoveryService(SimpleNamespace(id=7))
+
+    flights = service.discover(
+        build_discovery_query("atrasos de voo"),
+        intent=SimpleNamespace(time_grain="year", metric="delay"),
+    )
+    births = service.discover(
+        build_discovery_query("nascimentos"),
+        intent=SimpleNamespace(time_grain="year", metric="births"),
+    )
+    health = service.discover(
+        build_discovery_query("mortalidade"),
+        intent=SimpleNamespace(time_grain=None, metric="mortality"),
+    )
+
+    assert flights.candidates[0].name == "final_report"
+    assert births.candidates[0].name == "generic_people"
+    assert health.candidates[0].name == "world_indicators"
 
 
 def test_discovery_service_never_returns_inaccessible_sources(

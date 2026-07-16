@@ -352,6 +352,32 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 
 ---
 
+## Fase 8 — Correção da suíte Examples e charts operacionais
+
+Plano: [`example-prompts-corrective-plan.md`](example-prompts-corrective-plan.md).
+
+### 8.1 Validação de métrica e renderização de charts
+- [x] Corrigir a serialização de métricas adhoc/form data para impedir erros como `Metric 'SUM(na_sales)' does not exist`.
+- [x] Revalidar coluna, agregação, datasource e consulta após a criação/reuso antes de publicar o chart.
+- [x] Testar por API e navegador que cada chart criado carrega dados sem `Data error`.
+
+### 8.2 Fonte explícita, intenção e ranking
+- [x] Priorizar dataset/tabela/saved query explicitamente citados e eliminar stopwords da extração de tema.
+- [x] Corrigir ranking estrutural para fontes de vendas, jogos, voos, nascimentos e saúde.
+- [x] Restringir alternativas a fontes pertinentes e só pedir escolha quando houver ambiguidade real.
+
+### 8.3 Contrato de plano e fluxos encadeados
+- [x] Preservar nome, slug, dashboard e efeitos solicitados como parâmetros imutáveis do plano.
+- [x] Implementar criação/reuso idempotente e dependências dataset → chart → dashboard.
+- [x] Corrigir os fluxos saved query → dataset → chart e o fluxo completo P50.
+
+### 8.4 Regressão e desempenho
+- [x] Automatizar os 50 prompts com oráculos de fonte, plano, execução e renderização.
+- [x] Registrar latência, chamadas, timeouts e erros por prompt; aplicar timeout/fallback ao Ollama.
+- [x] Exigir 50/50 casos aprovados antes de considerar a fase concluída.
+
+---
+
 ## Estimativas de Esforço (referência)
 
 | Fase | Escopo                             | Estimativa  |

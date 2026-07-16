@@ -263,6 +263,52 @@ def test_orchestrator_uses_a_clear_discovery_winner_without_question(
     assert provider.messages == []
 
 
+def test_orchestrator_answers_read_only_prompt_with_explicit_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_discovery(
+        monkeypatch,
+        (
+            DiscoveryCandidate(
+                resource_type="dataset",
+                resource_id=11,
+                name="international_sales",
+                database_id=1,
+                database_name="Examples",
+                schema="main",
+                columns=(
+                    ("transaction_date", "DATE"),
+                    ("region", "VARCHAR"),
+                    ("revenue", "NUMERIC"),
+                ),
+                source_key="source:11",
+                score=45,
+            ),
+        ),
+    )
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+
+    result = AIOrchestrator(
+        agent, ToolRegistry(), SimpleNamespace(id=42), StubCache()
+    ).chat(
+        "Use o dataset international_sales e mostre a receita por região.",
+        [],
+        {"page": "home"},
+    )
+
+    assert "Fonte selecionada" in result.response
+    assert "international_sales" in result.response
+    assert "region" in result.response
+    assert "revenue" in result.response
+    assert provider.messages == []
+
+
 def test_orchestrator_explains_when_discovery_finds_no_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

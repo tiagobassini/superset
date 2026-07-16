@@ -317,14 +317,96 @@ def _get_current_context(_: dict[str, Any]) -> dict[str, Any]:
 
 
 def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
+    """Create a chart only when its generated query can be executed."""
     from superset.commands.chart.create import CreateChartCommand
+    from superset.extensions import db
 
     if "chart_spec" in params:
         from superset.ai.chart_spec import ChartSpecification
 
         params = ChartSpecification.from_dict(params["chart_spec"]).to_chart_payload()
+    if existing := _find_existing_chart(params):
+        return {
+            "id": existing.id,
+            "name": existing.slice_name,
+            "url": existing.url,
+            "reused": True,
+        }
     chart = CreateChartCommand(params).run()
+    try:
+        _validate_created_chart(chart)
+    except Exception as ex:
+        # A chart with an invalid form-data/query-context must never be made
+        # available for a following dashboard publication action.
+        db.session.delete(chart)
+        db.session.commit()
+        raise ValueError(
+            f"Created chart could not be queried and was removed: {ex}"
+        ) from ex
     return {"id": chart.id, "name": chart.slice_name, "url": chart.url}
+
+
+def _find_existing_chart(params: dict[str, Any]) -> Any | None:
+    """Reuse an exact chart contract and reject conflicting same-name charts."""
+    try:
+        from superset.extensions import db, security_manager
+        from superset.models.slice import Slice
+
+        name = params.get("slice_name")
+        datasource_id = params.get("datasource_id")
+        datasource_type = params.get("datasource_type")
+        if not name or datasource_id is None:
+            return None
+        matches = [
+            chart
+            for chart in db.session.query(Slice).all()
+            if chart.slice_name == name and security_manager.can_access_chart(chart)
+        ]
+        compatible = [
+            chart
+            for chart in matches
+            if chart.datasource_id == datasource_id
+            and chart.datasource_type == datasource_type
+        ]
+        if compatible:
+            return compatible[0]
+        if matches:
+            raise ValueError(f"Chart `{name}` already exists with another datasource")
+    except ValueError:
+        raise
+    except Exception:  # pylint: disable=broad-except
+        return None
+    return None
+
+
+def _validate_created_chart(chart: Any) -> None:
+    """Execute the persisted chart query to reject invalid chart definitions."""
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.query_context_factory import QueryContextFactory
+
+    form_data = chart.form_data
+    metrics = form_data.get("metrics", [])
+    if not metrics and form_data.get("metric"):
+        metrics = [form_data["metric"]]
+    columns = list(form_data.get("groupby") or [])
+    if time_column := form_data.get("granularity_sqla"):
+        if time_column not in columns:
+            columns.append(time_column)
+    query_context = QueryContextFactory().create(
+        datasource={"id": chart.datasource_id, "type": chart.datasource_type},
+        queries=[
+            {
+                "columns": columns,
+                "metrics": metrics,
+                "row_limit": 2,
+                "time_range": form_data.get("time_range", "No filter"),
+            }
+        ],
+        form_data=form_data,
+    )
+    command = ChartDataCommand(query_context)
+    command.validate()
+    command.run()
 
 
 def _edit_chart(params: dict[str, Any]) -> dict[str, Any]:
@@ -337,8 +419,41 @@ def _edit_chart(params: dict[str, Any]) -> dict[str, Any]:
 def _create_dashboard(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.dashboard.create import CreateDashboardCommand
 
+    if existing := _find_existing_dashboard(params):
+        return {
+            "id": existing.id,
+            "title": existing.dashboard_title,
+            "url": existing.url,
+            "reused": True,
+        }
     dashboard = CreateDashboardCommand(params).run()
     return {"id": dashboard.id, "title": dashboard.dashboard_title, "url": dashboard.url}
+
+
+def _find_existing_dashboard(params: dict[str, Any]) -> Any | None:
+    """Resolve an existing dashboard by title or slug, failing on ambiguity."""
+    try:
+        from superset.extensions import db, security_manager
+        from superset.models.dashboard import Dashboard
+
+        title = _normalize_name(str(params.get("dashboard_title") or ""))
+        slug = _normalize_name(str(params.get("slug") or ""))
+        matches = [
+            dashboard
+            for dashboard in db.session.query(Dashboard).all()
+            if security_manager.can_access_dashboard(dashboard)
+            and (
+                _normalize_name(dashboard.dashboard_title) == title
+                or (slug and _normalize_name(str(dashboard.slug or "")) == slug)
+            )
+        ]
+        if len(matches) > 1:
+            raise ValueError("Multiple dashboards match the requested title or slug")
+        return matches[0] if matches else None
+    except ValueError:
+        raise
+    except Exception:  # pylint: disable=broad-except
+        return None
 
 
 def _edit_dashboard(params: dict[str, Any]) -> dict[str, Any]:
@@ -368,6 +483,13 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
                 "sql": saved_query["sql"],
             }
         )
+    if existing := _find_existing_dataset(attributes):
+        return {
+            "id": existing.id,
+            "name": existing.table_name,
+            "url": existing.url,
+            "reused": True,
+        }
     if not attributes.get("sql"):
         _get_table_schema(
             {
@@ -379,6 +501,37 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
         )
     dataset = CreateDatasetCommand(attributes).run()
     return {"id": dataset.id, "name": dataset.table_name, "url": dataset.url}
+
+
+def _find_existing_dataset(attributes: dict[str, Any]) -> Any | None:
+    """Reuse a compatible dataset and reject same-name conflicts."""
+    try:
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.extensions import db, security_manager
+
+        table_name = attributes.get("table_name")
+        database_id = attributes.get("database")
+        if not table_name or database_id is None:
+            return None
+        matches = [
+            dataset
+            for dataset in db.session.query(SqlaTable).all()
+            if dataset.table_name == table_name
+            and dataset.database_id == database_id
+            and security_manager.can_access_datasource(dataset)
+        ]
+        for dataset in matches:
+            same_schema = (dataset.schema or None) == (attributes.get("schema") or None)
+            same_sql = (dataset.sql or None) == (attributes.get("sql") or None)
+            if same_schema and same_sql:
+                return dataset
+        if matches:
+            raise ValueError(f"Dataset `{table_name}` already exists with different SQL")
+    except ValueError:
+        raise
+    except Exception:  # pylint: disable=broad-except
+        return None
+    return None
 
 
 def _run_sql_query(params: dict[str, Any]) -> dict[str, Any]:
@@ -420,6 +573,8 @@ def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
     database = db.session.get(Database, params["database_id"])
     if database is None or not security_manager.can_access_database(database):
         raise ValueError("Database not found or access denied")
+    if existing := _find_existing_saved_query(params, g.user.id):
+        return {"id": existing.id, "label": existing.label, "reused": True}
     query = SavedQueryDAO.create(
         attributes={
             "user_id": g.user.id,
@@ -433,6 +588,37 @@ def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
     )
     db.session.commit()
     return {"id": query.id, "label": query.label}
+
+
+def _find_existing_saved_query(params: dict[str, Any], user_id: int) -> Any | None:
+    """Reuse an owned saved query with an identical label/database/SQL contract."""
+    try:
+        from superset.extensions import db
+        from superset.models.sql_lab import SavedQuery
+
+        matches = [
+            query
+            for query in db.session.query(SavedQuery).all()
+            if query.user_id == user_id
+            and query.label == params["label"]
+            and query.db_id == params["database_id"]
+        ]
+        for query in matches:
+            if (
+                (query.sql or "").strip() == params["sql"].strip()
+                and (query.schema or "") == (params.get("schema") or "")
+                and (query.catalog or None) == (params.get("catalog") or None)
+            ):
+                return query
+        if matches:
+            raise ValueError(
+                f"Saved query `{params['label']}` already exists with different SQL"
+            )
+    except ValueError:
+        raise
+    except Exception:  # pylint: disable=broad-except
+        return None
+    return None
 
 
 def _add_chart_to_dashboard(params: dict[str, Any]) -> dict[str, Any]:
@@ -452,6 +638,10 @@ def _add_chart_to_dashboard(params: dict[str, Any]) -> dict[str, Any]:
         dashboard.slices.append(chart)
         db.session.commit()
     return {"dashboard_id": dashboard.id, "chart_id": chart.id}
+
+
+def _normalize_name(value: str) -> str:
+    return " ".join(value.casefold().replace("_", " ").split())
 
 
 def default_tools() -> list[AITool]:

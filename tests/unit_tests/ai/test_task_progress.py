@@ -42,7 +42,8 @@ def test_task_events_are_ordered_and_reconnectable() -> None:
 
     events = progress.events(task_id, after=1)
 
-    assert events[0] == {
+    assert events[0]["timestamp"]
+    assert {key: value for key, value in events[0].items() if key != "timestamp"} == {
         "task_id": task_id,
         "sequence": 2,
         "state": "discovering",

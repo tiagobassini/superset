@@ -155,10 +155,10 @@ class ExecutionPlanService:
         tool = self.registry.get(action.tool_name)
         if tool is None or not tool.requires_confirmation:
             raise ValueError(f"Invalid planned write action: {action.tool_name}")
-        if action.tool_name == "create_chart" and "chart_spec" in action.params:
-            ChartSpecification.from_dict(action.params["chart_spec"])
         if self._contains_reference(action.params):
             return
+        if action.tool_name == "create_chart" and "chart_spec" in action.params:
+            ChartSpecification.from_dict(action.params["chart_spec"])
         validator = getattr(tool, "validate_params", lambda _: None)
         if error := validator(action.params):
             raise ValueError(error)

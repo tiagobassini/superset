@@ -67,7 +67,138 @@ MULTILINGUAL_TERM_GROUPS: tuple[frozenset[str], ...] = (
             "produits",
         }
     ),
+    frozenset(
+        {"lucro", "profit", "beneficio", "margem", "margin", "margen", "marge"}
+    ),
+    frozenset({"quantidade", "quantity", "cantidad", "quantite"}),
+    frozenset({"custo", "cost", "coste", "cout"}),
+    frozenset({"jogo", "jogos", "game", "games", "videogame", "videogames"}),
+    frozenset(
+        {"voo", "voos", "flight", "flights", "vol", "vols", "vuelo", "vuelos"}
+    ),
+    frozenset({"atraso", "atrasos", "delay", "delays", "retard", "retards"}),
+    frozenset(
+        {
+            "nascimento",
+            "nascimentos",
+            "birth",
+            "births",
+            "nome",
+            "nomes",
+            "name",
+            "names",
+        }
+    ),
+    frozenset({"populacao", "population", "poblacion"}),
+    frozenset({"saude", "health", "salud", "sante"}),
+    frozenset({"mortalidade", "mortality", "mortalidad", "mortalite"}),
 )
+
+METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
+    "revenue": ("revenue", "receita", "faturamento"),
+    "profit": ("profit", "lucro", "beneficio", "margin"),
+    "quantity": ("quantity", "quantidade", "quantity ordered", "quantity_ordered"),
+    "cost": ("cost", "custo"),
+    "sales": ("sales", "sale", "vendas", "ventas", "ventes"),
+    "global_sales": ("global sales", "global_sales"),
+    "na_sales": ("na sales", "na_sales", "north america"),
+    "eu_sales": ("eu sales", "eu_sales", "europe"),
+    "delay": ("delay", "delays", "atraso", "atrasos"),
+    "cancellations": ("cancelled", "cancellations", "cancelamentos"),
+    "distance": ("distance", "distancia"),
+    "births": ("births", "nascimentos", "num"),
+    "population": ("population", "populacao", "sp pop totl", "sp_pop_totl"),
+    "life_expectancy": ("life expectancy", "expectativa de vida", "sp dyn le00 in"),
+    "mortality": ("mortality", "mortalidade", "sh dyn mort"),
+}
+
+DIMENSION_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
+    "country": ("country", "country name", "country_name", "pais", "país"),
+    "region": ("region", "regiao", "região"),
+    "product_category": (
+        "product category",
+        "product_category",
+        "category",
+        "categoria",
+    ),
+    "product_line": ("product line", "product_line"),
+    "genre": ("genre", "genero", "gênero"),
+    "platform": ("platform", "plataforma"),
+    "publisher": ("publisher", "publicadora"),
+    "AIRLINE": ("airline", "companhia aerea", "companhia aérea"),
+    "state": ("state", "estado"),
+    "gender": ("gender", "sexo"),
+}
+
+INTENT_PROFILE_TERMS: Mapping[str, tuple[str, ...]] = {
+    "sales_transactional": (
+        "sales",
+        "sale",
+        "vendas",
+        "ventas",
+        "ventes",
+        "revenue",
+        "profit",
+        "order",
+        "orders",
+        "transaction",
+        "transactions",
+        "customer",
+        "product",
+        "country",
+        "region",
+        "quantity",
+    ),
+    "games": (
+        "game",
+        "games",
+        "videogame",
+        "video game",
+        "platform",
+        "publisher",
+        "genre",
+        "global sales",
+        "na sales",
+        "eu sales",
+        "jp sales",
+    ),
+    "flights": (
+        "flight",
+        "flights",
+        "voo",
+        "voos",
+        "airline",
+        "airport",
+        "arrival delay",
+        "departure delay",
+        "cancelled",
+        "distance",
+    ),
+    "births": (
+        "birth",
+        "births",
+        "nascimento",
+        "nascimentos",
+        "name",
+        "names",
+        "gender",
+        "state",
+        "num",
+    ),
+    "health": (
+        "health",
+        "saude",
+        "population",
+        "populacao",
+        "country",
+        "region",
+        "mortality",
+        "life expectancy",
+        "sp pop totl",
+        "sp dyn le00 in",
+        "sh dyn mort",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -295,7 +426,7 @@ def classify_columns(columns: Iterable[dict[str, Any]]) -> dict[str, list[str]]:
         normalized = _normalize(name)
         if any(token in column_type for token in ("date", "time")) or any(
             token in normalized
-            for token in ("date", "data", "fecha", "year", "ano", "annee")
+            for token in ("date", "data", "fecha", "year", "ano", "annee", "period")
         ):
             groups["temporal"].append(name)
         elif normalized == "id" or normalized.endswith(" id"):
@@ -668,15 +799,35 @@ class AnalyticsDiscoveryService:
                 for name, column_type in candidate.columns
             ]
         )
+        requested_metric = str(getattr(intent, "metric", "") or "")
+        metric_matches = self._matching_metric_columns(candidate, requested_metric)
+        if metric_matches:
+            score += min(18, len(metric_matches) * 9)
+            reasons.append(f"medida solicitada: {metric_matches[0]}")
+        requested_dimension = str(getattr(intent, "dimension", "") or "")
+        dimension_matches = self._matching_dimension_columns(
+            candidate, requested_dimension
+        )
+        if dimension_matches:
+            score += min(14, len(dimension_matches) * 7)
+            reasons.append(f"dimensão solicitada: {dimension_matches[0]}")
         if getattr(intent, "time_grain", None) == "year" and groups["temporal"]:
             score += 12
             reasons.append(f"coluna temporal: {groups['temporal'][0]}")
+        elif getattr(intent, "time_grain", None) == "year":
+            score -= 16
+            reasons.append("sem coluna temporal para análise anual")
         if getattr(intent, "metric", None) == "count" and groups["identifiers"]:
             score += 8
             reasons.append(f"identificador para contagem: {groups['identifiers'][0]}")
         elif groups["measures"]:
             score += 6
             reasons.append(f"medida disponível: {groups['measures'][0]}")
+        profile_score, profile_reasons = self._intent_profile_score(
+            candidate, query, intent
+        )
+        score += profile_score
+        reasons.extend(profile_reasons)
         resource_name = str(context.get("resource_name") or "")
         if resource_name and normalize_discovery_text(
             resource_name
@@ -684,6 +835,117 @@ class AnalyticsDiscoveryService:
             score += 10
             reasons.append("fonte no contexto atual")
         return replace(candidate, score=score, reasons=tuple(reasons))
+
+    @staticmethod
+    def _matching_metric_columns(
+        candidate: DiscoveryCandidate, requested_metric: str
+    ) -> tuple[str, ...]:
+        terms = METRIC_TERM_GROUPS.get(requested_metric, ())
+        if not terms:
+            return ()
+        matches: list[str] = []
+        for name, _ in candidate.columns:
+            normalized = normalize_discovery_text(name)
+            if any(normalize_discovery_text(term) in normalized for term in terms):
+                matches.append(name)
+        return tuple(matches)
+
+    @staticmethod
+    def _matching_dimension_columns(
+        candidate: DiscoveryCandidate, requested_dimension: str
+    ) -> tuple[str, ...]:
+        terms = DIMENSION_TERM_GROUPS.get(requested_dimension, ())
+        if not terms:
+            return ()
+        matches: list[str] = []
+        for name, column_type in candidate.columns:
+            if any(
+                token in column_type.casefold()
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                continue
+            normalized = normalize_discovery_text(name)
+            if any(normalize_discovery_text(term) in normalized for term in terms):
+                matches.append(name)
+        return tuple(matches)
+
+    @classmethod
+    def _intent_profile_score(
+        cls,
+        candidate: DiscoveryCandidate,
+        query: DiscoveryQuery,
+        intent: "AnalyticsIntent | None",
+    ) -> tuple[int, list[str]]:
+        profile = cls._intent_profile(query, intent)
+        if profile is None:
+            return 0, []
+        haystack = cls._candidate_terms(candidate)
+        required_matches = [
+            term
+            for term in INTENT_PROFILE_TERMS[profile]
+            if normalize_discovery_text(term) in haystack
+        ]
+        if not required_matches:
+            return -8, [f"estrutura pouco compatível com perfil {profile}"]
+        score = min(24, len(required_matches) * 4)
+        reasons = [f"estrutura compatível com perfil {profile}"]
+        if profile == "sales_transactional" and cls._looks_like_games(candidate):
+            score -= 18
+            reasons.append(
+                "sinais de jogos reduzem prioridade para vendas comerciais"
+            )
+        return score, reasons
+
+    @staticmethod
+    def _candidate_terms(candidate: DiscoveryCandidate) -> str:
+        values = (
+            candidate.name,
+            candidate.description,
+            *candidate.related_names,
+            *(name for name, _ in candidate.columns),
+        )
+        return " ".join(normalize_discovery_text(value) for value in values)
+
+    @staticmethod
+    def _intent_profile(
+        query: DiscoveryQuery, intent: "AnalyticsIntent | None"
+    ) -> str | None:
+        terms = set(query.expanded_terms)
+        metric = str(getattr(intent, "metric", "") or "")
+        if metric in {"global_sales", "na_sales", "eu_sales"}:
+            return "games"
+        if terms.intersection({"jogo", "jogos", "game", "games", "videogame"}):
+            return "games"
+        if terms.intersection(
+            {"voo", "voos", "flight", "flights", "atraso", "delay"}
+        ):
+            return "flights"
+        if terms.intersection(
+            {"nascimento", "nascimentos", "birth", "births", "nome", "names"}
+        ):
+            return "births"
+        if terms.intersection(
+            {
+                "populacao",
+                "population",
+                "saude",
+                "health",
+                "mortalidade",
+                "mortality",
+            }
+        ):
+            return "health"
+        if terms.intersection({"venda", "vendas", "sale", "sales"}):
+            return "sales_transactional"
+        return None
+
+    @staticmethod
+    def _looks_like_games(candidate: DiscoveryCandidate) -> bool:
+        haystack = AnalyticsDiscoveryService._candidate_terms(candidate)
+        return any(
+            term in haystack
+            for term in ("video game", "videogame", "genre", "platform", "publisher")
+        )
 
     @staticmethod
     def _deduplicate(
