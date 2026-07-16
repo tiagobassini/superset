@@ -46,6 +46,12 @@ TERMINAL_STATES = {
 }
 
 
+def _escape_markdown_link_text(value: Any) -> str:
+    """Escape the minimal Markdown syntax used for artifact names."""
+
+    return str(value).replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+
+
 MESSAGES = {
     "pt-BR": {
         "plan_success": "Plano concluído com sucesso.",
@@ -121,14 +127,23 @@ def _resource_summary(resources: list[dict[str, Any]]) -> str:
             or resource.get("name")
             or resource.get("id")
         )
-        url = resource.get("url")
+        url = resource.get("url") or _dashboard_url(resource)
         if url and name:
-            lines.append(f"- {name}: {url}")
+            lines.append(f"- [{_escape_markdown_link_text(name)}]({url})")
         elif name:
             lines.append(f"- {name}")
         else:
             lines.append(f"- {resource}")
     return "\n".join(lines)
+
+
+def _dashboard_url(resource: dict[str, Any]) -> str | None:
+    """Return a dashboard URL for publication action results."""
+
+    dashboard_id = resource.get("dashboard_id")
+    if isinstance(dashboard_id, int) and not isinstance(dashboard_id, bool):
+        return f"/superset/dashboard/{dashboard_id}/"
+    return None
 
 
 def _friendly_error(error: str | None, language: str) -> str:

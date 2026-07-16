@@ -132,3 +132,55 @@ def test_plan_failure_response_uses_english_agent_language() -> None:
     assert 'Chart "Sales by year" already exists with a different datasource' in response
     assert "O plano" not in response
     assert "success" not in response
+
+
+def test_plan_success_response_formats_resource_urls_as_markdown_links() -> None:
+    progress = AITaskProgress(Cache(), 4, "agent-1", "pt-BR")
+    task_id = progress.create()
+
+    progress.complete_plan(
+        task_id,
+        [
+            ToolResult(
+                True,
+                {
+                    "name": "Vendas por ano_20260716_194229",
+                    "url": "/explore/?slice_id=105",
+                },
+            )
+        ],
+    )
+
+    response = progress.snapshot(task_id)["response"]
+    assert (
+        "- [Vendas por ano_20260716_194229](/explore/?slice_id=105)" in response
+    )
+    assert ": /explore/?slice_id=105" not in response
+
+
+def test_plan_success_response_formats_dashboard_publication_as_link() -> None:
+    progress = AITaskProgress(Cache(), 4, "agent-1", "pt-BR")
+    task_id = progress.create()
+
+    progress.complete_plan(
+        task_id,
+        [
+            ToolResult(
+                True,
+                {"name": "ai_test_p18", "url": "/explore/?slice_id=104"},
+            ),
+            ToolResult(
+                True,
+                {
+                    "dashboard_id": 10,
+                    "dashboard_title": "CBMES",
+                    "chart_id": 104,
+                },
+            ),
+        ],
+    )
+
+    response = progress.snapshot(task_id)["response"]
+    assert "- [ai_test_p18](/explore/?slice_id=104)" in response
+    assert "- [CBMES](/superset/dashboard/10/)" in response
+    assert "{'dashboard_id'" not in response

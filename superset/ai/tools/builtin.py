@@ -19,12 +19,45 @@
 from __future__ import annotations
 
 import json as stdlib_json
+from datetime import datetime, timezone
 from typing import Any, Callable
+from urllib.parse import quote
 
 from superset.ai.tools.base import AITool, ToolResult
 from superset.utils import json
 
 OBJECT_SCHEMA: dict[str, Any] = {"type": "object", "properties": {}}
+
+
+class ArtifactNameConflictError(ValueError):
+    """Raised when an artifact name exists for a different object contract."""
+
+    def __init__(self, artifact_type: str, name: str) -> None:
+        super().__init__(f"{artifact_type} `{name}` already exists")
+        self.artifact_type = artifact_type
+        self.name = name
+
+
+def _timestamped_name(name: str) -> str:
+    """Return a similar artifact name that is unlikely to collide."""
+
+    return f"{name}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+
+
+def _rison_string(value: str) -> str:
+    """Return a Rison string literal for list-view URL filters."""
+
+    escaped = value.replace("!", "!!").replace("'", "!'")
+    return f"'{escaped}'"
+
+
+def _dataset_url(dataset_id: int, dataset_name: str | None = None) -> str:
+    """Return a stable frontend route for locating a dataset."""
+
+    if dataset_name:
+        filters = quote(f"(table_name:{_rison_string(dataset_name)})", safe="")
+        return f"/tablemodelview/list/?filters={filters}"
+    return f"/tablemodelview/list/?dataset_id={dataset_id}"
 
 
 class BuiltinTool(AITool):
@@ -327,7 +360,14 @@ def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
 
         params = ChartSpecification.from_dict(params["chart_spec"]).to_chart_payload()
         params["overwrite"] = overwrite
-    if existing := _find_existing_chart(params):
+    _ensure_chart_temporal_column(params)
+    original_name = params.get("slice_name")
+    try:
+        existing = _find_existing_chart(params)
+    except ArtifactNameConflictError as ex:
+        params["slice_name"] = _timestamped_name(ex.name)
+        existing = None
+    if existing:
         if overwrite:
             db.session.delete(existing)
             db.session.commit()
@@ -350,7 +390,44 @@ def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
             f"Created chart could not be queried and was removed: {ex}"
         ) from ex
-    return {"id": chart.id, "name": chart.slice_name, "url": chart.url}
+    result = {"id": chart.id, "name": chart.slice_name, "url": chart.url}
+    if original_name and chart.slice_name != original_name:
+        result["requested_name"] = original_name
+        result["renamed"] = True
+    return result
+
+
+def _ensure_chart_temporal_column(params: dict[str, Any]) -> None:
+    """Mark the chart time column as temporal on table datasources."""
+
+    try:
+        if params.get("datasource_type") != "table":
+            return
+        datasource_id = params.get("datasource_id")
+        if not isinstance(datasource_id, int) or isinstance(datasource_id, bool):
+            return
+        raw_form_data = params.get("params")
+        if not isinstance(raw_form_data, str):
+            return
+        form_data = json.loads(raw_form_data)
+        time_column = form_data.get("granularity_sqla")
+        if not isinstance(time_column, str) or not time_column:
+            return
+
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.extensions import db
+
+        dataset = db.session.get(SqlaTable, datasource_id)
+        if dataset is None:
+            return
+        for column in dataset.columns:
+            if column.column_name == time_column and not column.is_dttm:
+                column.is_dttm = True
+                db.session.merge(dataset)
+                db.session.commit()
+                return
+    except Exception:  # pylint: disable=broad-except
+        return
 
 
 def _find_existing_chart(params: dict[str, Any]) -> Any | None:
@@ -378,8 +455,8 @@ def _find_existing_chart(params: dict[str, Any]) -> Any | None:
         if compatible:
             return compatible[0]
         if matches:
-            raise ValueError(f"Chart `{name}` already exists with another datasource")
-    except ValueError:
+            raise ArtifactNameConflictError("Chart", str(name))
+    except ArtifactNameConflictError:
         raise
     except Exception:  # pylint: disable=broad-except
         return None
@@ -489,11 +566,20 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
                 "sql": saved_query["sql"],
             }
         )
-    if existing := _find_existing_dataset(attributes, overwrite=bool(params.get("overwrite"))):
+    original_name = attributes.get("table_name")
+    try:
+        existing = _find_existing_dataset(
+            attributes, overwrite=bool(params.get("overwrite"))
+        )
+    except ArtifactNameConflictError as ex:
+        attributes["table_name"] = _timestamped_name(ex.name)
+        existing = None
+    if existing:
+        _ensure_numeric_dataset_metrics(existing)
         return {
             "id": existing.id,
             "name": existing.table_name,
-            "url": existing.url,
+            "url": _dataset_url(existing.id, existing.table_name),
             "reused": True,
         }
     if not attributes.get("sql"):
@@ -506,7 +592,60 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
             }
         )
     dataset = CreateDatasetCommand(attributes).run()
-    return {"id": dataset.id, "name": dataset.table_name, "url": dataset.url}
+    _ensure_numeric_dataset_metrics(dataset)
+    result = {
+        "id": dataset.id,
+        "name": dataset.table_name,
+        "url": _dataset_url(dataset.id, dataset.table_name),
+    }
+    if original_name and dataset.table_name != original_name:
+        result["requested_name"] = original_name
+        result["renamed"] = True
+    return result
+
+
+def _ensure_numeric_dataset_metrics(dataset: Any) -> None:
+    """Fill dataset metadata required by generated analytical charts."""
+
+    from superset.connectors.sqla.models import SqlMetric
+    from superset.extensions import db
+
+    existing = {metric.metric_name for metric in dataset.metrics}
+    added = False
+    for column in dataset.columns:
+        if _is_temporal_dataset_column(column) and not getattr(
+            column, "is_dttm", False
+        ):
+            column.is_dttm = True
+            added = True
+        if not getattr(column, "is_numeric", False):
+            continue
+        metric_name = f"SUM({column.column_name})"
+        if metric_name in existing:
+            continue
+        dataset.metrics.append(
+            SqlMetric(
+                metric_name=metric_name,
+                expression=f"SUM({column.column_name})",
+                metric_type="sum",
+            )
+        )
+        existing.add(metric_name)
+        added = True
+    if added:
+        db.session.merge(dataset)
+        db.session.commit()
+
+
+def _is_temporal_dataset_column(column: Any) -> bool:
+    """Return whether a generated dataset column should be treated as temporal."""
+
+    column_name = str(getattr(column, "column_name", "")).casefold()
+    column_type = str(getattr(column, "type", "")).casefold()
+    return column_name in {"year", "month", "period", "date", "ds", "dttm"} or any(
+        token in column_type
+        for token in ("date", "time", "timestamp", "datetime")
+    )
 
 
 def _find_existing_dataset(
@@ -545,8 +684,8 @@ def _find_existing_dataset(
             if same_schema and same_sql:
                 return dataset
         if matches:
-            raise ValueError(f"Dataset `{table_name}` already exists with different SQL")
-    except ValueError:
+            raise ArtifactNameConflictError("Dataset", str(table_name))
+    except ArtifactNameConflictError:
         raise
     except Exception:  # pylint: disable=broad-except
         return None
@@ -592,7 +731,13 @@ def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
     database = db.session.get(Database, params["database_id"])
     if database is None or not security_manager.can_access_database(database):
         raise ValueError("Database not found or access denied")
-    if existing := _find_existing_saved_query(params, g.user.id):
+    original_label = params["label"]
+    try:
+        existing = _find_existing_saved_query(params, g.user.id)
+    except ArtifactNameConflictError as ex:
+        params = {**params, "label": _timestamped_name(ex.name)}
+        existing = None
+    if existing:
         return {"id": existing.id, "label": existing.label, "reused": True}
     query = SavedQueryDAO.create(
         attributes={
@@ -606,7 +751,11 @@ def _save_sql_query(params: dict[str, Any]) -> dict[str, Any]:
         }
     )
     db.session.commit()
-    return {"id": query.id, "label": query.label}
+    result = {"id": query.id, "label": query.label}
+    if query.label != original_label:
+        result["requested_label"] = original_label
+        result["renamed"] = True
+    return result
 
 
 def _find_existing_saved_query(params: dict[str, Any], user_id: int) -> Any | None:
@@ -637,10 +786,8 @@ def _find_existing_saved_query(params: dict[str, Any], user_id: int) -> Any | No
             db.session.commit()
             return query
         if matches:
-            raise ValueError(
-                f"Saved query `{params['label']}` already exists with different SQL"
-            )
-    except ValueError:
+            raise ArtifactNameConflictError("Saved query", str(params["label"]))
+    except ArtifactNameConflictError:
         raise
     except Exception:  # pylint: disable=broad-except
         return None
@@ -663,7 +810,12 @@ def _add_chart_to_dashboard(params: dict[str, Any]) -> dict[str, Any]:
     if chart not in dashboard.slices:
         dashboard.slices.append(chart)
         db.session.commit()
-    return {"dashboard_id": dashboard.id, "chart_id": chart.id}
+    return {
+        "dashboard_id": dashboard.id,
+        "dashboard_title": dashboard.dashboard_title,
+        "chart_id": chart.id,
+        "url": dashboard.url,
+    }
 
 
 def _normalize_name(value: str) -> str:

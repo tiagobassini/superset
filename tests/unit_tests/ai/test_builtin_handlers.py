@@ -154,6 +154,87 @@ def test_create_chart_reuses_compatible_existing_chart(
     }
 
 
+def test_create_chart_renames_when_name_exists_with_another_datasource(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    existing = SimpleNamespace(
+        id=11,
+        slice_name="Vendas por ano",
+        datasource_id=7,
+        datasource_type="table",
+        url="/explore/?slice_id=11",
+    )
+
+    class Query:
+        @staticmethod
+        def all() -> list[SimpleNamespace]:
+            return [existing]
+
+    class CreateChart:
+        payload: tuple[dict[str, object], ...] | None = None
+
+        def __init__(self, params: dict[str, object]) -> None:
+            type(self).payload = (params,)
+
+        def run(self) -> SimpleNamespace:
+            assert type(self).payload is not None
+            name = type(self).payload[0]["slice_name"]
+            return SimpleNamespace(id=12, slice_name=name, url="/explore/?slice_id=12")
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(query=lambda _: Query()),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_chart", lambda _: True
+    )
+    monkeypatch.setattr(
+        "superset.commands.chart.create.CreateChartCommand", CreateChart
+    )
+    monkeypatch.setattr(builtin, "_validate_created_chart", lambda _: None)
+
+    result = builtin._create_chart(
+        {
+            "slice_name": "Vendas por ano",
+            "datasource_id": 8,
+            "datasource_type": "table",
+        }
+    )
+
+    assert result["requested_name"] == "Vendas por ano"
+    assert result["renamed"] is True
+    assert result["name"].startswith("Vendas por ano_")
+    assert result["name"] != "Vendas por ano"
+
+
+def test_create_chart_marks_granularity_column_as_temporal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    column = SimpleNamespace(column_name="year", is_dttm=False)
+    dataset = SimpleNamespace(id=22, columns=[column])
+    merged: list[SimpleNamespace] = []
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(
+            get=lambda *_: dataset,
+            merge=merged.append,
+            commit=lambda: None,
+        ),
+    )
+
+    builtin._ensure_chart_temporal_column(
+        {
+            "datasource_id": 22,
+            "datasource_type": "table",
+            "params": '{"granularity_sqla": "year"}',
+        }
+    )
+
+    assert column.is_dttm is True
+    assert merged == [dataset]
+
+
 def test_create_dataset_validates_physical_table_before_creating(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -167,10 +248,15 @@ def test_create_dataset_validates_physical_table_before_creating(
         "_get_table_schema",
         lambda params: validated.append(params) or {"columns": []},
     )
+    monkeypatch.setattr(builtin, "_ensure_numeric_dataset_metrics", lambda _: None)
 
     assert builtin._create_dataset(
         {"database": 1, "table_name": "orders", "schema": "public"}
-    ) == {"id": 7, "name": "orders", "url": "/tablemodelview/edit/7"}
+    ) == {
+        "id": 7,
+        "name": "orders",
+        "url": "/tablemodelview/list/?filters=%28table_name%3A%27orders%27%29",
+    }
     assert validated == [
         {"database_id": 1, "table_name": "orders", "schema": "public", "catalog": None}
     ]
@@ -195,10 +281,18 @@ def test_create_dataset_uses_owned_saved_query_for_virtual_dataset(
             "sql": "select * from sales",
         },
     )
+    monkeypatch.setattr(builtin, "_ensure_numeric_dataset_metrics", lambda _: None)
 
     assert builtin._create_dataset(
         {"saved_query_id": 4, "table_name": "monthly_sales"}
-    ) == {"id": 8, "name": "monthly_sales", "url": "/tablemodelview/edit/8"}
+    ) == {
+        "id": 8,
+        "name": "monthly_sales",
+        "url": (
+            "/tablemodelview/list/?filters="
+            "%28table_name%3A%27monthly_sales%27%29"
+        ),
+    }
     assert Command.payload == (
         {
             "table_name": "monthly_sales",
@@ -244,15 +338,123 @@ def test_create_dataset_reuses_existing_compatible_dataset(
             "sql": "select * from sales",
         },
     )
+    monkeypatch.setattr(builtin, "_ensure_numeric_dataset_metrics", lambda _: None)
 
     assert builtin._create_dataset(
         {"saved_query_id": 4, "table_name": "AI_TEST_P20"}
     ) == {
         "id": 8,
         "name": "AI_TEST_P20",
-        "url": "/tablemodelview/edit/8",
+        "url": (
+            "/tablemodelview/list/?filters="
+            "%28table_name%3A%27AI_TEST_P20%27%29"
+        ),
         "reused": True,
     }
+
+
+def test_create_dataset_renames_when_name_exists_with_different_sql(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    existing = SimpleNamespace(
+        id=8,
+        table_name="AI_TEST_P20",
+        database_id=3,
+        schema="analytics",
+        sql="select * from old_sales",
+        url="/tablemodelview/edit/8",
+    )
+
+    class Query:
+        @staticmethod
+        def all() -> list[SimpleNamespace]:
+            return [existing]
+
+    class CreateDataset:
+        payload: tuple[dict[str, object], ...] | None = None
+
+        def __init__(self, params: dict[str, object]) -> None:
+            type(self).payload = (params,)
+
+        def run(self) -> SimpleNamespace:
+            assert type(self).payload is not None
+            return SimpleNamespace(
+                id=9,
+                table_name=type(self).payload[0]["table_name"],
+                url="/tablemodelview/edit/9",
+            )
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(query=lambda _: Query()),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+    monkeypatch.setattr(
+        "superset.commands.dataset.create.CreateDatasetCommand", CreateDataset
+    )
+    monkeypatch.setattr(
+        builtin,
+        "_get_saved_query",
+        lambda _: {
+            "database_id": 3,
+            "schema": "analytics",
+            "catalog": None,
+            "sql": "select * from new_sales",
+        },
+    )
+    monkeypatch.setattr(builtin, "_ensure_numeric_dataset_metrics", lambda _: None)
+
+    result = builtin._create_dataset(
+        {"saved_query_id": 4, "table_name": "AI_TEST_P20"}
+    )
+
+    assert result["requested_name"] == "AI_TEST_P20"
+    assert result["renamed"] is True
+    assert result["name"].startswith("AI_TEST_P20_")
+    assert result["name"] != "AI_TEST_P20"
+
+
+def test_create_dataset_fills_generated_dataset_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    numeric = SimpleNamespace(
+        column_name="sum_revenue",
+        is_dttm=False,
+        is_numeric=True,
+        type="FLOAT",
+    )
+    dimension = SimpleNamespace(
+        column_name="year",
+        is_dttm=False,
+        is_numeric=False,
+        type="STRING",
+    )
+    dataset = SimpleNamespace(
+        id=9,
+        table_name="AI_TEST_P17",
+        columns=[dimension, numeric],
+        metrics=[SimpleNamespace(metric_name="count")],
+    )
+    merged: list[SimpleNamespace] = []
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(merge=merged.append, commit=lambda: None),
+    )
+
+    builtin._ensure_numeric_dataset_metrics(dataset)
+
+    assert [metric.metric_name for metric in dataset.metrics] == [
+        "count",
+        "SUM(sum_revenue)",
+    ]
+    assert dataset.metrics[-1].expression == "SUM(sum_revenue)"
+    assert dataset.metrics[-1].metric_type == "sum"
+    assert dimension.is_dttm is True
+    assert numeric.is_dttm is False
+    assert merged == [dataset]
 
 
 def test_create_dataset_rejects_database_different_from_saved_query(
@@ -315,7 +517,12 @@ def test_add_chart_to_dashboard_avoids_duplicate_relationship(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     chart = SimpleNamespace(id=22)
-    dashboard = SimpleNamespace(id=13, slices=[chart])
+    dashboard = SimpleNamespace(
+        id=13,
+        dashboard_title="CBMES",
+        slices=[chart],
+        url="/superset/dashboard/13/",
+    )
     session = SimpleNamespace(
         get=lambda model, identifier: dashboard if identifier == 13 else chart,
         commit=lambda: pytest.fail("A duplicate chart relationship must not commit"),
@@ -328,7 +535,9 @@ def test_add_chart_to_dashboard_avoids_duplicate_relationship(
 
     assert builtin._add_chart_to_dashboard({"dashboard_id": 13, "chart_id": 22}) == {
         "dashboard_id": 13,
+        "dashboard_title": "CBMES",
         "chart_id": 22,
+        "url": "/superset/dashboard/13/",
     }
 
 

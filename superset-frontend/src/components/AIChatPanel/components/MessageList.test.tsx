@@ -20,6 +20,16 @@ import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { MessageList } from './MessageList';
 import type { ChatMessage } from '../store/types';
 
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual('src/utils/getBootstrapData');
+  return {
+    __esModule: true,
+    ...actual,
+    default: actual.default,
+    applicationRoot: () => '/dados',
+  };
+});
+
 test('renders confirmation cards and forwards user decisions for pending actions', () => {
   const onConfirmAction = jest.fn();
   const onCancelAction = jest.fn();
@@ -88,4 +98,30 @@ test('shows an action result link after a successful execution', () => {
     'href',
     '/explore/?slice_id=1',
   );
+});
+
+test('renders artifact links from assistant messages without exposing raw urls', () => {
+  render(
+    <MessageList
+      messages={[
+        {
+          id: 'assistant-message',
+          role: 'assistant',
+          content:
+            'Plano concluído com sucesso.\n- [Vendas por ano_20260716_194229](/explore/?slice_id=105)',
+          timestamp: 1,
+        },
+      ]}
+      onCancelAction={jest.fn()}
+      onConfirmAction={jest.fn()}
+    />,
+  );
+
+  const link = screen.getByRole('link', {
+    name: 'Vendas por ano_20260716_194229',
+  });
+  expect(link).toHaveAttribute('href', '/dados/explore/?slice_id=105');
+  expect(
+    screen.queryByText(': /explore/?slice_id=105'),
+  ).not.toBeInTheDocument();
 });

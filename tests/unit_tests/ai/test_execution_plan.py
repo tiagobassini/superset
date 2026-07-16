@@ -272,14 +272,17 @@ def test_deterministic_planner_chains_dataset_chart_and_dashboard(
     ]
     assert plan.execution_plan.actions[0].params["table_name"] == "ai_test_p50_dataset"
     assert plan.execution_plan.actions[0].params["overwrite"] is True
+    assert "strftime('%Y', transaction_date) AS year" in (
+        plan.execution_plan.actions[0].params["sql"]
+    )
     assert plan.execution_plan.actions[1].params["chart_spec"] == {
         "datasource_id": {"$ref": "actions.0.id"},
         "datasource_type": "table",
         "chart_title": "ai_test_p50_chart",
         "viz_type": "echarts_timeseries_bar",
-        "time_column": "period",
+        "time_column": "year",
         "metric": "SUM(sum_revenue)",
-        "time_grain": "P1Y",
+        "time_grain": None,
         "group_by": [],
     }
     assert plan.execution_plan.actions[1].params["overwrite"] is True
@@ -439,6 +442,25 @@ def test_chart_spec_requires_source_time_and_metric_and_builds_payload() -> None
     ]
     with pytest.raises(ValueError, match="time_column"):
         ChartSpecification.from_dict({"datasource_id": 7})
+
+
+def test_chart_spec_allows_empty_time_grain_for_preaggregated_periods() -> None:
+    spec = ChartSpecification.from_dict(
+        {
+            "datasource_id": 22,
+            "datasource_type": "table",
+            "chart_title": "AI_TEST_P18",
+            "viz_type": "echarts_timeseries_bar",
+            "time_column": "year",
+            "metric": "SUM(sum_revenue)",
+            "time_grain": None,
+        }
+    )
+
+    form_data = json.loads(spec.to_chart_payload()["params"])
+
+    assert form_data["granularity_sqla"] == "year"
+    assert form_data["time_grain_sqla"] is None
 
 
 def test_chart_spec_rejects_a_metric_column_absent_from_verified_schema() -> None:

@@ -17,8 +17,19 @@
  * under the License.
  */
 import { styled } from '@apache-superset/core/theme';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { ActionConfirmation } from './ActionConfirmation';
 import type { ChatMessage } from '../store/types';
+
+const MARKDOWN_LINK_PATTERN = /\[([^\]]+)\]\((\/[^)\s]+)\)/g;
+
+const resolveInternalUrl = (url: string) => {
+  const root = applicationRoot();
+  if (!root || root === '/' || url.startsWith(`${root}/`)) {
+    return url;
+  }
+  return `${root}${url}`;
+};
 
 const Bubble = styled.article<{ $role: ChatMessage['role'] }>`
   align-self: ${({ $role }) => ($role === 'user' ? 'flex-end' : 'flex-start')};
@@ -74,6 +85,40 @@ const TypingIndicator = styled.span`
   }
 `;
 
+const MessageContent = styled.div`
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  a {
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
+  }
+`;
+
+const renderMessageContent = (content: string) => {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of content.matchAll(MARKDOWN_LINK_PATTERN)) {
+    const [raw, label, url] = match;
+    const index = match.index ?? 0;
+    if (index > lastIndex) {
+      parts.push(content.slice(lastIndex, index));
+    }
+    parts.push(
+      <a key={`${url}-${index}`} href={resolveInternalUrl(url)}>
+        {label}
+      </a>,
+    );
+    lastIndex = index + raw.length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : content;
+};
+
 export interface MessageBubbleProps {
   message: ChatMessage;
   onConfirmAction: (actionId: string) => void;
@@ -88,14 +133,14 @@ export const MessageBubble = ({
 }: MessageBubbleProps) => (
   <Bubble $role={message.role} aria-label={`Mensagem ${message.role}`}>
     <Sender>{message.role === 'user' ? 'Você' : 'Assistente de IA'}</Sender>
-    {message.content}
+    <MessageContent>{renderMessageContent(message.content)}</MessageContent>
     {message.isStreaming && (
-        <TypingIndicator aria-label="A IA está respondendo" role="status">
-          <span />
-          <span />
-          <span />
-        </TypingIndicator>
-      )}
+      <TypingIndicator aria-label="A IA está respondendo" role="status">
+        <span />
+        <span />
+        <span />
+      </TypingIndicator>
+    )}
     {message.pendingActions?.map(action => (
       <ActionConfirmation
         key={action.id}

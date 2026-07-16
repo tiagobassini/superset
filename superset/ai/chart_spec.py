@@ -35,7 +35,7 @@ class ChartSpecification:
     viz_type: str
     time_column: str
     metric: str
-    time_grain: str = "P1Y"
+    time_grain: str | None = "P1Y"
     group_by: tuple[str, ...] = ()
 
     @classmethod
@@ -69,26 +69,32 @@ class ChartSpecification:
             viz_type=str(value["viz_type"]),
             time_column=str(value["time_column"]),
             metric=str(value["metric"]),
-            time_grain=str(value.get("time_grain", "P1Y")),
+            time_grain=cls._time_grain(value),
             group_by=tuple(group_by),
         )
+
+    @staticmethod
+    def _time_grain(value: dict[str, Any]) -> str | None:
+        if "time_grain" not in value:
+            return "P1Y"
+        time_grain = value.get("time_grain")
+        return str(time_grain) if time_grain not in (None, "") else None
 
     def to_chart_payload(self) -> dict[str, Any]:
         """Build the validated CreateChartCommand payload expected by Superset."""
         metric = self._metric_payload()
+        form_data = {
+            "granularity_sqla": self.time_column,
+            "time_grain_sqla": self.time_grain,
+            "metrics": [metric],
+            "groupby": list(self.group_by),
+        }
         return {
             "datasource_id": self.datasource_id,
             "datasource_type": self.datasource_type,
             "slice_name": self.chart_title,
             "viz_type": self.viz_type,
-            "params": json.dumps(
-                {
-                    "granularity_sqla": self.time_column,
-                    "time_grain_sqla": self.time_grain,
-                    "metrics": [metric],
-                    "groupby": list(self.group_by),
-                }
-            ),
+            "params": json.dumps(form_data),
         }
 
     def _metric_payload(self) -> dict[str, Any]:

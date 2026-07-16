@@ -205,6 +205,7 @@ class DeterministicAnalyticsPlanner:
             viz_type="echarts_timeseries_bar",
             time_column=chart_time_column,
             metric=chart_metric,
+            time_grain=self._chart_time_grain(chart_time_column, intent),
             group_by=(group_by,) if group_by else (),
         )
         chart_spec_payload = asdict(chart_specification)
@@ -401,13 +402,22 @@ class DeterministicAnalyticsPlanner:
                 f"FROM {table} GROUP BY {period_expression}"
             )
         return (
-            f"SELECT {time_column} AS period, {expression} AS {metric_alias} "
-            f"FROM {table} GROUP BY {time_column}"
+            f"SELECT strftime('%Y', {time_column}) AS year, "
+            f"{expression} AS {metric_alias} FROM {table} "
+            f"GROUP BY strftime('%Y', {time_column})"
         )
 
     @staticmethod
     def _aggregate_time_alias(intent: AnalyticsIntent) -> str:
-        return "month" if intent.time_grain == "month" else "period"
+        return "month" if intent.time_grain == "month" else "year"
+
+    @staticmethod
+    def _chart_time_grain(
+        time_column: str, intent: AnalyticsIntent
+    ) -> str | None:
+        if normalize_discovery_text(time_column) in {"year", "month", "period"}:
+            return None
+        return "P1M" if intent.time_grain == "month" else "P1Y"
 
     @staticmethod
     def _metric_alias(metric: str) -> str:
