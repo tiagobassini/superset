@@ -264,11 +264,11 @@ Especificação: [`autonomous-analytics-workflows.md`](autonomous-analytics-work
 - [x] Registrar justificativa da fonte escolhida no plano
 
 ### 6.3 Especificação e Validação de Recursos
-- [ ] Criar contrato tipado para especificação de chart e adaptador para `params` do Superset
-- [ ] Validar datasource, métrica, dimensão temporal, JSON de chart e destino antes da confirmação
-- [ ] Suportar fluxo banco/tabela → dataset → chart → dashboard
-- [ ] Exibir uma confirmação única para o conjunto de ações de escrita do plano
-- [ ] Tornar plano confirmado imutável, idempotente e interrompível por falha
+- [x] Criar contrato tipado para especificação de chart e adaptador para `params` do Superset
+- [x] Validar datasource, métrica, dimensão temporal, JSON de chart e destino antes da confirmação
+- [x] Suportar fluxo banco/tabela → dataset → chart → dashboard
+- [x] Exibir uma confirmação única para o conjunto de ações de escrita do plano
+- [x] Tornar plano confirmado imutável, idempotente e interrompível por falha
 
 ### 6.4 Progresso Incremental no Chat
 - [ ] Criar estados `planning`, `discovering`, `analyzing`, `awaiting_confirmation`, `executing`, `awaiting_user_input`, `completed` e `failed`

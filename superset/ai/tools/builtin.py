@@ -65,7 +65,11 @@ class BuiltinTool(AITool):
 
     def validate_params(self, params: dict[str, Any]) -> str | None:
         """Reject incomplete write payloads before asking the user to confirm."""
-        required = self.parameters_schema.get("required", [])
+        required = (
+            []
+            if self.name == "create_chart" and "chart_spec" in params
+            else self.parameters_schema.get("required", [])
+        )
         for field in required:
             value = params.get(field)
             if value is None or (isinstance(value, str) and not value.strip()):
@@ -75,6 +79,14 @@ class BuiltinTool(AITool):
             if params.get("saved_query_id") is None and params.get("database") is None:
                 return "A database or saved_query_id is required to create a dataset"
         if self.name == "create_chart":
+            if "chart_spec" in params:
+                from superset.ai.chart_spec import ChartSpecification
+
+                try:
+                    ChartSpecification.from_dict(params["chart_spec"])
+                except (TypeError, ValueError) as ex:
+                    return str(ex)
+                return None
             raw_params = params.get("params")
             if not isinstance(raw_params, str) or not raw_params.strip():
                 return "Chart params must be a non-empty JSON object"
@@ -307,6 +319,10 @@ def _get_current_context(_: dict[str, Any]) -> dict[str, Any]:
 def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.chart.create import CreateChartCommand
 
+    if "chart_spec" in params:
+        from superset.ai.chart_spec import ChartSpecification
+
+        params = ChartSpecification.from_dict(params["chart_spec"]).to_chart_payload()
     chart = CreateChartCommand(params).run()
     return {"id": chart.id, "name": chart.slice_name}
 
@@ -503,6 +519,7 @@ def default_tools() -> list[AITool]:
             "slice_name": {"type": "string"},
             "viz_type": {"type": "string"},
             "params": {"type": "string"},
+            "chart_spec": {"type": "object"},
         },
         "required": ["datasource_id", "datasource_type", "slice_name", "viz_type"],
     }
