@@ -22,6 +22,7 @@ import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import type { QueryEditor } from 'src/SqlLab/types';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import type { RootState } from 'src/views/store';
 import type { PageContext } from '../store/types';
 
@@ -45,14 +46,28 @@ const getNumericQueryParam = (
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const normalizePathname = (pathname: string, appRoot = ''): string => {
+  const root = appRoot.replace(/\/$/, '');
+  if (root && pathname === root) return '/';
+  if (root && pathname.startsWith(`${root}/`)) {
+    return pathname.slice(root.length) || '/';
+  }
+  return pathname;
+};
+
 export const getAIPageContext = (
   pathname: string,
   search: string,
   data: ContextData,
+  appRoot = '',
 ): PageContext => {
+  const normalizedPathname = normalizePathname(pathname, appRoot);
   const parameters = new URLSearchParams(search);
 
-  if (pathname.startsWith('/dashboard/')) {
+  if (
+    normalizedPathname.startsWith('/dashboard/') ||
+    normalizedPathname.startsWith('/superset/dashboard/')
+  ) {
     const title = data.dashboard?.dashboard_title ?? data.dashboard?.title;
     return {
       page: 'dashboard',
@@ -65,7 +80,7 @@ export const getAIPageContext = (
     };
   }
 
-  if (pathname.startsWith('/explore')) {
+  if (normalizedPathname.startsWith('/explore')) {
     const chartId =
       data.explore?.chartId ?? getNumericQueryParam(parameters, 'slice_id');
     return {
@@ -80,8 +95,8 @@ export const getAIPageContext = (
   }
 
   if (
-    pathname.startsWith('/superset/sqllab') ||
-    pathname.startsWith('/sqllab')
+    normalizedPathname.startsWith('/superset/sqllab') ||
+    normalizedPathname.startsWith('/sqllab')
   ) {
     return {
       page: 'sqllab',
@@ -90,6 +105,20 @@ export const getAIPageContext = (
         sql: data.sqlLab?.sql,
       },
     };
+  }
+
+  if (
+    normalizedPathname.startsWith('/tablemodelview/') ||
+    normalizedPathname.startsWith('/dataset/')
+  ) {
+    return { page: 'datasets' };
+  }
+
+  if (
+    normalizedPathname.startsWith('/chart/') ||
+    normalizedPathname.startsWith('/slice/')
+  ) {
+    return { page: 'charts' };
   }
 
   return { page: 'other' };
@@ -138,7 +167,7 @@ export const useAIContext = (): PageContext => {
   });
 
   return useMemo(
-    () => getAIPageContext(pathname, search, contextData),
+    () => getAIPageContext(pathname, search, contextData, applicationRoot()),
     [contextData, pathname, search],
   );
 };

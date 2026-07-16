@@ -90,6 +90,7 @@ const AIChatPanel: FC = () => {
     confirmAction,
     cancelAction,
     clearChatHistory,
+    context,
   } = useAIChat();
   const { showConfirm, ConfirmModal } = useConfirmModal();
   const closePanel = useCallback(() => dispatch(setOpen(false)), [dispatch]);
@@ -163,7 +164,7 @@ const AIChatPanel: FC = () => {
         onConfirmAction={confirmAction}
         onCancelAction={cancelAction}
       />
-      <ContextBadge context={state.currentContext} />
+      <ContextBadge context={context} />
       <ChatInput autoFocus disabled={isLoading} onSend={sendMessage} />
       {ConfirmModal}
     </Sidebar>

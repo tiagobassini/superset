@@ -36,6 +36,7 @@ jest.mock('./hooks/useAIChat', () => ({
     confirmAction: jest.fn(),
     cancelAction: jest.fn(),
     clearChatHistory: mockClearChatHistory,
+    context: { page: 'dashboard', resourceName: 'CBMES' },
   }),
 }));
 
@@ -85,6 +86,12 @@ test('focuses the message input after opening the panel', () => {
   expect(
     screen.getByRole('textbox', { name: 'Mensagem para IA' }),
   ).toHaveFocus();
+});
+
+test('shows the context resolved by the chat hook', () => {
+  renderPanel(true);
+
+  expect(screen.getByText('Contexto: CBMES')).toBeInTheDocument();
 });
 
 test('keeps a single minimize button and confirms before clearing the chat', () => {

@@ -320,6 +320,7 @@ export const useAIChat = () => {
   return {
     messages,
     isLoading: useSelector((state: RootState) => state.aiChat.isLoading),
+    context,
     sendMessage,
     confirmAction,
     cancelAction,

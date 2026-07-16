@@ -20,9 +20,14 @@ import { getActiveQueryEditor, getAIPageContext } from './useAIContext';
 
 test('creates dashboard context from Redux data', () => {
   expect(
-    getAIPageContext('/dashboard/sales/', '', {
-      dashboard: { id: 10, dashboard_title: 'Sales' },
-    }),
+    getAIPageContext(
+      '/dados/superset/dashboard/teste/',
+      '',
+      {
+        dashboard: { id: 10, dashboard_title: 'Sales' },
+      },
+      '/dados',
+    ),
   ).toMatchObject({
     page: 'dashboard',
     resourceId: 10,
@@ -33,26 +38,47 @@ test('creates dashboard context from Redux data', () => {
 
 test('creates Explore and SQL Lab contexts', () => {
   expect(
-    getAIPageContext('/explore/', '?slice_id=5', {
-      explore: { datasourceId: 3, vizType: 'bar' },
-    }),
+    getAIPageContext(
+      '/dados/explore/',
+      '?slice_id=5',
+      {
+        explore: { datasourceId: 3, vizType: 'bar' },
+      },
+      '/dados',
+    ),
   ).toMatchObject({
     page: 'explore',
     resourceId: 5,
     metadata: { chart_id: 5, datasource_id: 3, viz_type: 'bar' },
   });
   expect(
-    getAIPageContext('/superset/sqllab', '', {
-      sqlLab: { databaseId: 4, sql: 'SELECT 1' },
-    }),
+    getAIPageContext(
+      '/dados/sqllab',
+      '',
+      {
+        sqlLab: { databaseId: 4, sql: 'SELECT 1' },
+      },
+      '/dados',
+    ),
   ).toMatchObject({
     page: 'sqllab',
     metadata: { database_id: 4, sql: 'SELECT 1' },
   });
 });
 
+test('creates list contexts for datasets and charts', () => {
+  expect(
+    getAIPageContext('/dados/tablemodelview/list/', '', {}, '/dados'),
+  ).toEqual({ page: 'datasets' });
+  expect(getAIPageContext('/dados/chart/list/', '', {}, '/dados')).toEqual({
+    page: 'charts',
+  });
+});
+
 test('uses other context outside AI-aware pages', () => {
-  expect(getAIPageContext('/chart/list/', '', {})).toEqual({ page: 'other' });
+  expect(getAIPageContext('/dados/security/list_roles/', '', {}, '/dados')).toEqual({
+    page: 'other',
+  });
 });
 
 test('uses the most recently selected SQL Lab tab', () => {
