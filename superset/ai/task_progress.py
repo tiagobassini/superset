@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -45,6 +46,126 @@ TERMINAL_STATES = {
 }
 
 
+MESSAGES = {
+    "pt-BR": {
+        "plan_success": "Plano concluído com sucesso.",
+        "no_resources": "Nenhum recurso retornado.",
+        "plan_failed": "O plano foi interrompido porque uma etapa falhou.",
+        "failed_step": "Etapa {index}: {error}",
+        "chart_exists": (
+            'O gráfico "{name}" já existe usando outra fonte de dados. '
+            "Para continuar, escolha outro nome para o gráfico ou remova o "
+            "gráfico existente."
+        ),
+        "plan_completed_event": "Plano concluído.",
+        "plan_failed_event": "Falha durante a execução do plano.",
+    },
+    "en-US": {
+        "plan_success": "The plan finished successfully.",
+        "no_resources": "No resources were returned.",
+        "plan_failed": "The plan stopped because one step failed.",
+        "failed_step": "Step {index}: {error}",
+        "chart_exists": (
+            'Chart "{name}" already exists with a different datasource. '
+            "To continue, choose another chart name or remove the existing chart."
+        ),
+        "plan_completed_event": "Plan completed.",
+        "plan_failed_event": "Plan execution failed.",
+    },
+    "es-ES": {
+        "plan_success": "El plan finalizó correctamente.",
+        "no_resources": "No se devolvió ningún recurso.",
+        "plan_failed": "El plan se interrumpió porque falló una etapa.",
+        "failed_step": "Etapa {index}: {error}",
+        "chart_exists": (
+            'El gráfico "{name}" ya existe con otra fuente de datos. '
+            "Para continuar, elige otro nombre para el gráfico o elimina el "
+            "gráfico existente."
+        ),
+        "plan_completed_event": "Plan finalizado.",
+        "plan_failed_event": "Falló la ejecución del plan.",
+    },
+    "fr-FR": {
+        "plan_success": "Le plan s'est terminé avec succès.",
+        "no_resources": "Aucune ressource n'a été renvoyée.",
+        "plan_failed": "Le plan s'est arrêté car une étape a échoué.",
+        "failed_step": "Étape {index} : {error}",
+        "chart_exists": (
+            'Le graphique "{name}" existe déjà avec une autre source de données. '
+            "Pour continuer, choisissez un autre nom de graphique ou supprimez "
+            "le graphique existant."
+        ),
+        "plan_completed_event": "Plan terminé.",
+        "plan_failed_event": "Échec de l'exécution du plan.",
+    },
+}
+
+
+def _message(language: str, key: str, **kwargs: Any) -> str:
+    """Return a localized task message, falling back to Brazilian Portuguese."""
+
+    template = MESSAGES.get(language, MESSAGES["pt-BR"])[key]
+    return template.format(**kwargs)
+
+
+def _resource_summary(resources: list[dict[str, Any]]) -> str:
+    """Return a human-readable summary for created or reused resources."""
+
+    lines = []
+    for resource in resources:
+        name = (
+            resource.get("chart_name")
+            or resource.get("dashboard_title")
+            or resource.get("table_name")
+            or resource.get("label")
+            or resource.get("name")
+            or resource.get("id")
+        )
+        url = resource.get("url")
+        if url and name:
+            lines.append(f"- {name}: {url}")
+        elif name:
+            lines.append(f"- {name}")
+        else:
+            lines.append(f"- {resource}")
+    return "\n".join(lines)
+
+
+def _friendly_error(error: str | None, language: str) -> str:
+    """Convert safe technical tool errors into user-facing guidance."""
+
+    if not error:
+        return _message(language, "plan_failed")
+
+    chart_exists = re.fullmatch(
+        r"Chart `(?P<name>.+)` already exists with another datasource", error
+    )
+    if chart_exists:
+        return _message(language, "chart_exists", name=chart_exists.group("name"))
+
+    return error
+
+
+def _failure_summary(results: list[Any], language: str) -> str:
+    """Return a readable plan failure summary without exposing raw result objects."""
+
+    lines = [_message(language, "plan_failed")]
+    for index, result in enumerate(results, start=1):
+        if result.success:
+            continue
+        lines.append(
+            "- "
+            + _message(
+                language,
+                "failed_step",
+                index=index,
+                error=_friendly_error(result.error, language),
+            )
+        )
+        break
+    return "\n".join(lines)
+
+
 @dataclass(frozen=True)
 class TaskEvent:
     """A safe status update emitted to the chat client."""
@@ -60,10 +181,17 @@ class TaskEvent:
 class AITaskProgress:
     """Persist task events so clients can poll or reconnect to an SSE stream."""
 
-    def __init__(self, cache: Any, user_id: int, agent_id: str) -> None:
+    def __init__(
+        self,
+        cache: Any,
+        user_id: int,
+        agent_id: str,
+        response_language: str = "pt-BR",
+    ) -> None:
         self.cache = cache
         self.user_id = user_id
         self.agent_id = agent_id
+        self.response_language = response_language
 
     def create(self) -> str:
         """Create an empty user- and agent-bound task."""
@@ -148,7 +276,7 @@ class AITaskProgress:
                 {
                     "id": result.execution_plan["id"],
                     "type": "execution_plan",
-                    "description": "Confirmar o plano completo",
+                    "description": "Revisar e confirmar plano de execução",
                     "params": {**result.execution_plan, "task_id": task_id},
                     "requires_confirmation": True,
                     "status": "pending",
@@ -183,17 +311,24 @@ class AITaskProgress:
             if result.success and isinstance(result.data, dict)
         ]
         record["response"] = (
-            "Plano concluído com sucesso. Recursos criados ou reutilizados: "
-            f"{summary}"
+            _message(self.response_language, "plan_success")
+            + "\n"
+            + (
+                _resource_summary(summary)
+                if summary
+                else _message(self.response_language, "no_resources")
+            )
             if successful
-            else "O plano foi interrompido após uma etapa falhar. "
-            f"Resultados: {[result.to_dict() for result in results]}"
+            else _failure_summary(results, self.response_language)
         )
         self.cache.set(self._key(task_id), record, timeout=TASK_TTL)
         self.emit(
             task_id,
             "completed" if successful else "failed",
-            "Plano concluído." if successful else "Falha durante a execução do plano.",
+            _message(
+                self.response_language,
+                "plan_completed_event" if successful else "plan_failed_event",
+            ),
             "summary",
         )
 

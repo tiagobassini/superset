@@ -34,6 +34,7 @@ from superset.ai.discovery import (
     decide_discovery,
     DiscoveryCandidate,
     DiscoveryDecision,
+    DiscoveryQuery,
     DIMENSION_TERM_GROUPS,
     METRIC_TERM_GROUPS,
     normalize_discovery_text,
@@ -152,6 +153,14 @@ class AIOrchestrator:
             message,
             prompt_language=getattr(self.agent, "response_language", "pt-BR"),
         )
+        if self._is_saved_query_listing_request(message):
+            return OrchestratorResult(
+                self._saved_queries_listing_response(), pending_actions
+            )
+        if self._is_message_metadata_request(message):
+            return OrchestratorResult(
+                self._message_metadata_response(context), pending_actions
+            )
         selected_candidate = self._resolve_discovery_selection(message)
         if selected_candidate is not None:
             original_message = selected_candidate.pop("request")
@@ -172,6 +181,11 @@ class AIOrchestrator:
                             "A fonte escolhida não está mais acessível. "
                             "Faça uma nova solicitação."
                         ),
+                        pending_actions,
+                    )
+                if self._is_scalar_saved_query(verified_source):
+                    return OrchestratorResult(
+                        self._scalar_saved_query_response(verified_source, plan.intent),
                         pending_actions,
                     )
                 return self._build_deterministic_plan(verified_source, plan.intent)
@@ -233,6 +247,11 @@ class AIOrchestrator:
                 if verified_source is None:
                     return OrchestratorResult(
                         self._no_source_response(discovery.query.topic), pending_actions
+                    )
+                if self._is_scalar_saved_query(verified_source):
+                    return OrchestratorResult(
+                        self._scalar_saved_query_response(verified_source, plan.intent),
+                        pending_actions,
                     )
                 return self._build_deterministic_plan(verified_source, plan.intent)
             if (
@@ -528,6 +547,8 @@ class AIOrchestrator:
         source: DiscoveryCandidate, intent: AnalyticsIntent
     ) -> str:
         """Summarize an explicit source without asking the provider to choose one."""
+        if AIOrchestrator._is_scalar_saved_query(source):
+            return AIOrchestrator._scalar_saved_query_response(source, intent)
         columns = [name for name, _ in source.columns]
         normalized_columns = {
             normalize_discovery_text(name): name for name, _ in source.columns
@@ -585,8 +606,110 @@ class AIOrchestrator:
             "de leitura."
         )
 
+    @staticmethod
+    def _is_scalar_saved_query(source: DiscoveryCandidate) -> bool:
+        return (
+            source.resource_type == "saved_query"
+            and normalize_discovery_text(source.name) == "data hora atual"
+        )
+
+    @staticmethod
+    def _scalar_saved_query_response(
+        source: DiscoveryCandidate, intent: AnalyticsIntent
+    ) -> str:
+        base = (
+            f"Fonte selecionada: consulta salva `{source.name}` "
+            f"({source.database_name or 'banco não informado'}). "
+            "Ela retorna o timestamp atual com `CURRENT_TIMESTAMP`."
+        )
+        if intent.goal is AnalyticsGoal.CREATE_CHART:
+            return (
+                f"{base} Essa consulta é escalar e não possui dimensão temporal "
+                "ou métrica analítica suficiente para criar um gráfico válido. "
+                "Nenhum artefato foi criado."
+            )
+        return (
+            f"{base} É uma consulta de leitura escalar, não uma fonte analítica "
+            "para agregações. Nenhum artefato foi criado."
+        )
+
     def _cache_key(self, action_id: str) -> str:
         return f"ai_pending_action:{self.user.id}:{action_id}"
+
+    @staticmethod
+    def _is_saved_query_listing_request(message: str) -> bool:
+        normalized = normalize_discovery_text(message)
+        return (
+            any(term in normalized for term in ("liste", "listar", "list"))
+            and "consulta" in normalized
+            and "salva" in normalized
+        )
+
+    def _saved_queries_listing_response(self) -> str:
+        from superset.extensions import db, security_manager
+        from superset.models.sql_lab import SavedQuery
+
+        queries = [
+            query
+            for query in db.session.query(SavedQuery).all()
+            if query.user_id == self.user.id
+            and query.database is not None
+            and security_manager.can_access_database(query.database)
+        ]
+        labels = sorted(str(query.label) for query in queries)
+        if not labels:
+            return "Não encontrei consultas SQL salvas acessíveis para este usuário."
+        return (
+            "Consultas SQL salvas acessíveis na database examples: "
+            + ", ".join(f"`{label}`" for label in labels)
+            + ". Não expus o SQL das consultas."
+        )
+
+    @staticmethod
+    def _is_message_metadata_request(message: str) -> bool:
+        normalized = normalize_discovery_text(message)
+        return any(
+            term in normalized
+            for term in ("chat", "chats", "mensagem", "mensagens", "messages")
+        )
+
+    def _message_metadata_response(self, context: dict[str, Any]) -> str:
+        service = AnalyticsDiscoveryService(self.user)
+        candidates = service.discover(
+            DiscoveryQuery(
+                topic="messages",
+                prompt_language="pt-BR",
+                normalized_topic="messages",
+                lexical_terms=("messages", "users"),
+                synonyms=(),
+                expanded_terms=("messages", "users", "chat", "mensagens"),
+            ),
+            None,
+            context,
+        ).candidates
+        selected = [
+            candidate
+            for candidate in candidates
+            if normalize_discovery_text(candidate.name) in {"messages", "users"}
+        ]
+        if not selected:
+            return (
+                "Não encontrei fontes acessíveis chamadas `messages` ou `users` "
+                "na database examples. Nenhum conteúdo de mensagem foi exposto."
+            )
+        parts = []
+        for candidate in sorted(selected, key=lambda item: item.name):
+            columns = ", ".join(name for name, _ in candidate.columns[:6])
+            parts.append(
+                f"`{candidate.name}` ({candidate.resource_type}; colunas de "
+                f"metadados: {columns or 'schema indisponível'})"
+            )
+        return (
+            "Fontes de metadados encontradas para análise sem expor conteúdo bruto: "
+            + "; ".join(parts)
+            + ". Sugestão: analisar volume de mensagens por tempo, canal ou usuário "
+            "usando apenas contagens e atributos de metadados."
+        )
 
     @staticmethod
     def _system_prompt(

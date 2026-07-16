@@ -39,6 +39,13 @@ MAX_SEMANTIC_TERM_LENGTH = 80
 MAX_DISCOVERY_COLUMNS = 50
 MAX_DISCOVERY_CANDIDATES = 20
 MAX_DISCOVERY_CHOICES = 3
+PRIORITY_DISCOVERY_COLUMNS = frozenset(
+    {
+        "sp_pop_totl",
+        "sp_dyn_le00_in",
+        "sh_dyn_mort",
+    }
+)
 
 # Selecting a source is deliberately stricter than ranking it.  A source must
 # have enough independent signals and be clearly ahead of the next one before
@@ -92,6 +99,8 @@ MULTILINGUAL_TERM_GROUPS: tuple[frozenset[str], ...] = (
     frozenset({"populacao", "population", "poblacion"}),
     frozenset({"saude", "health", "salud", "sante"}),
     frozenset({"mortalidade", "mortality", "mortalidad", "mortalite"}),
+    frozenset({"mensagem", "mensagens", "message", "messages", "chat", "chats"}),
+    frozenset({"usuario", "usuarios", "user", "users"}),
 )
 
 METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
@@ -208,6 +217,22 @@ INTENT_PROFILE_TERMS: Mapping[str, tuple[str, ...]] = {
         "sp pop totl",
         "sp dyn le00 in",
         "sh dyn mort",
+    ),
+    "messages": (
+        "message",
+        "messages",
+        "mensagem",
+        "mensagens",
+        "chat",
+        "chats",
+        "user",
+        "users",
+        "usuario",
+        "usuarios",
+        "channel",
+        "thread",
+        "timestamp",
+        "ts",
     ),
 }
 
@@ -615,10 +640,10 @@ class AnalyticsDiscoveryService:
                     database_id=saved_query.db_id,
                     database_name=str(saved_query.database.database_name),
                     schema=saved_query.schema,
-                    columns=tuple((alias, "UNKNOWN") for alias in aliases),
-                    related_names=tables,
-                    description=str(getattr(saved_query, "description", "") or ""),
-                )
+                columns=self._columns_from_saved_query_aliases(aliases),
+                related_names=tables,
+                description=str(getattr(saved_query, "description", "") or ""),
+            )
             if candidate.resource_type == "table":
                 databases = {
                     database.id: database for database in self._accessible_databases()
@@ -759,7 +784,7 @@ class AnalyticsDiscoveryService:
             if not security_manager.can_access_database(saved_query.database):
                 continue
             aliases, tables = self._saved_query_metadata(saved_query.sql or "")
-            columns = tuple((alias, "UNKNOWN") for alias in aliases)
+            columns = self._columns_from_saved_query_aliases(aliases)
             candidates.append(
                 DiscoveryCandidate(
                     resource_type="saved_query",
@@ -967,9 +992,28 @@ class AnalyticsDiscoveryService:
                 "health",
                 "mortalidade",
                 "mortality",
+                "expectativa",
+                "vida",
+                "life",
+                "expectancy",
             }
         ):
             return "health"
+        if terms.intersection(
+            {
+                "chat",
+                "chats",
+                "mensagem",
+                "mensagens",
+                "message",
+                "messages",
+                "usuario",
+                "usuarios",
+                "user",
+                "users",
+            }
+        ):
+            return "messages"
         if terms.intersection({"venda", "vendas", "sale", "sales"}):
             return "sales_transactional"
         return None
@@ -1022,9 +1066,9 @@ class AnalyticsDiscoveryService:
 
     @staticmethod
     def _columns_from_dataset(dataset: Any) -> tuple[tuple[str, str], ...]:
-        return tuple(
+        return AnalyticsDiscoveryService._prioritized_columns(
             (str(column.column_name), str(column.type or "UNKNOWN"))
-            for column in dataset.columns[:MAX_DISCOVERY_COLUMNS]
+            for column in dataset.columns
         )
 
     @staticmethod
@@ -1040,13 +1084,46 @@ class AnalyticsDiscoveryService:
             columns = database.get_columns(Table(table_name, schema, catalog))
         except Exception:  # pylint: disable=broad-except
             return ()
-        return tuple(
+        return AnalyticsDiscoveryService._prioritized_columns(
             (
                 str(getattr(column, "column_name", None) or column.get("name", "")),
                 str(getattr(column, "type", None) or column.get("type", "UNKNOWN")),
             )
-            for column in columns[:MAX_DISCOVERY_COLUMNS]
+            for column in columns
         )
+
+    @staticmethod
+    def _prioritized_columns(
+        columns: Iterable[tuple[str, str]],
+    ) -> tuple[tuple[str, str], ...]:
+        selected: list[tuple[str, str]] = []
+        priority: list[tuple[str, str]] = []
+        for index, column in enumerate(columns):
+            name, _ = column
+            normalized = normalize_discovery_text(name).replace(" ", "_")
+            if index < MAX_DISCOVERY_COLUMNS:
+                selected.append(column)
+            elif normalized in PRIORITY_DISCOVERY_COLUMNS:
+                priority.append(column)
+        existing = {name for name, _ in selected}
+        selected.extend(column for column in priority if column[0] not in existing)
+        return tuple(selected)
+
+    @staticmethod
+    def _columns_from_saved_query_aliases(
+        aliases: Iterable[str],
+    ) -> tuple[tuple[str, str], ...]:
+        columns: list[tuple[str, str]] = []
+        for alias in aliases:
+            normalized = normalize_discovery_text(alias)
+            if normalized in {"period", "month", "year"}:
+                column_type = "DATE"
+            elif normalized.startswith(("sum ", "avg ", "count ", "metric")):
+                column_type = "NUMERIC"
+            else:
+                column_type = "UNKNOWN"
+            columns.append((alias, column_type))
+        return tuple(columns)
 
     @staticmethod
     def _saved_query_metadata(sql: str) -> tuple[tuple[str, ...], tuple[str, ...]]:

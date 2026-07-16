@@ -78,6 +78,11 @@ const isTerminalTaskState = (state?: ChatMessage['progressState']) =>
   state === 'completed' ||
   state === 'failed';
 
+const isPlanExecutionTerminalState = (state?: ChatMessage['progressState']) =>
+  state === 'awaiting_user_input' ||
+  state === 'completed' ||
+  state === 'failed';
+
 const toHistory = (messages: ChatMessage[]) =>
   messages.flatMap(message => {
     if (message.role !== 'user' && message.role !== 'assistant') return [];
@@ -253,7 +258,7 @@ export const useAIChat = () => {
           let latestResult = json as ChatResponse;
           let latestEvent =
             latestResult.events?.[latestResult.events.length - 1];
-          while (!isTerminalTaskState(latestResult.status)) {
+          while (!isPlanExecutionTerminalState(latestResult.status)) {
             dispatch(
               updateMessage({
                 ...parentMessage,

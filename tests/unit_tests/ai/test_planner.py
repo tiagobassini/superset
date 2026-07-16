@@ -221,6 +221,39 @@ def test_planner_handles_p31_to_p40_corrective_cases() -> None:
     assert names.intent.dimension == "name"
 
 
+def test_planner_handles_p41_to_p50_corrective_cases() -> None:
+    life = AnalyticsTaskPlanner().plan(
+        "Mostre a expectativa de vida por região ao longo do tempo."
+    )
+    materialized = AnalyticsTaskPlanner().plan(
+        "Transforme AI_TEST_P44 no dataset AI_TEST_P45 e crie o chart "
+        "AI_TEST_P45_POP."
+    )
+    explain_query = AnalyticsTaskPlanner().plan(
+        "Explique o que faz a consulta salva data_hora_atual."
+    )
+    chart_query = AnalyticsTaskPlanner().plan(
+        "Crie um gráfico usando a consulta salva data_hora_atual."
+    )
+    messages = AnalyticsTaskPlanner().plan(
+        "Busque informações de chats ou mensagens na database examples e proponha "
+        "uma análise, sem expor conteúdo das mensagens."
+    )
+
+    assert life.intent.metric == "life_expectancy"
+    assert life.intent.dimension == "region"
+    assert materialized.intent.goal is AnalyticsGoal.CREATE_CHART
+    assert materialized.intent.source_hint == "ai_test_p44"
+    assert materialized.intent.dataset_name == "ai_test_p45"
+    assert materialized.intent.chart_title == "ai_test_p45_pop"
+    assert explain_query.intent.goal is AnalyticsGoal.ANALYZE
+    assert explain_query.intent.source_hint == "data_hora_atual"
+    assert chart_query.intent.goal is AnalyticsGoal.CREATE_CHART
+    assert chart_query.intent.source_hint == "data_hora_atual"
+    assert messages.intent.discovery_query is not None
+    assert "messages" in messages.intent.discovery_query.expanded_terms
+
+
 def test_planner_uses_configured_agent_language_and_semantic_expander() -> None:
     calls: list[tuple[str, str]] = []
     planner = AnalyticsTaskPlanner(

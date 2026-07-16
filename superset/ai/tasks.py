@@ -93,7 +93,33 @@ def run_ai_plan_task(task_id: str, plan_id: str, agent_id: str, user_id: int) ->
     if agent is None or user is None:
         progress.emit(task_id, "failed", "O agente não está mais disponível.", "access")
         return
-    progress.emit(task_id, "executing", "Executando o plano aprovado.", "execution")
+    language = getattr(agent, "response_language", "pt-BR")
+    progress = AITaskProgress(cache_manager.cache, user_id, agent_id, language)
+    running_message = {
+        "pt-BR": "Executando o plano aprovado.",
+        "en-US": "Executing the approved plan.",
+        "es-ES": "Ejecutando el plan aprobado.",
+        "fr-FR": "Exécution du plan approuvé.",
+    }.get(language, "Executando o plano aprovado.")
+    step_done = {
+        "pt-BR": "concluída",
+        "en-US": "completed",
+        "es-ES": "finalizada",
+        "fr-FR": "terminée",
+    }.get(language, "concluída")
+    step_failed = {
+        "pt-BR": "falhou",
+        "en-US": "failed",
+        "es-ES": "falló",
+        "fr-FR": "échouée",
+    }.get(language, "falhou")
+    step_label = {
+        "pt-BR": "Etapa",
+        "en-US": "Step",
+        "es-ES": "Etapa",
+        "fr-FR": "Étape",
+    }.get(language, "Etapa")
+    progress.emit(task_id, "executing", running_message, "execution")
     try:
         with current_app.test_request_context():
             with override_user(user):
@@ -103,8 +129,8 @@ def run_ai_plan_task(task_id: str, plan_id: str, agent_id: str, user_id: int) ->
                     progress.emit(
                         task_id,
                         "executing",
-                        f"Etapa {index}: {action.tool_name} "
-                        f"{'concluída' if result.success else 'falhou'}.",
+                        f"{step_label} {index}: {action.tool_name} "
+                        f"{step_done if result.success else step_failed}.",
                         action.tool_name,
                         result.to_dict(),
                     )
@@ -113,8 +139,12 @@ def run_ai_plan_task(task_id: str, plan_id: str, agent_id: str, user_id: int) ->
                     create_default_registry(), user, agent_id, cache_manager.cache
                 ).confirm_and_execute(plan_id, on_step)
     except Exception:  # pylint: disable=broad-except
-        progress.emit(
-            task_id, "failed", "Não foi possível executar o plano.", "execution"
-        )
+        failed_message = {
+            "pt-BR": "Não foi possível executar o plano.",
+            "en-US": "The plan could not be executed.",
+            "es-ES": "No se pudo ejecutar el plan.",
+            "fr-FR": "Le plan n'a pas pu être exécuté.",
+        }.get(language, "Não foi possível executar o plano.")
+        progress.emit(task_id, "failed", failed_message, "execution")
         return
     progress.complete_plan(task_id, results)

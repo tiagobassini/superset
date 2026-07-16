@@ -106,7 +106,11 @@ class DeterministicAnalyticsPlanner:
             actions = [
                 PlannedAction(
                     "create_dataset",
-                    {"table_name": dataset_name, "saved_query_id": source.resource_id},
+                    {
+                        "table_name": dataset_name,
+                        "saved_query_id": source.resource_id,
+                        "overwrite": True,
+                    },
                 )
             ]
             effects = [f"criar ou reutilizar o dataset `{dataset_name}`"]
@@ -142,6 +146,7 @@ class DeterministicAnalyticsPlanner:
                         "schema": source.schema,
                         "label": label,
                         "sql": self._aggregate_sql(source, time_column, metric, intent),
+                        "overwrite": True,
                     },
                 )
             )
@@ -155,12 +160,17 @@ class DeterministicAnalyticsPlanner:
 
         dataset_action_index: int | None = None
         datasource_id: int | dict[str, str]
+        chart_time_column = time_column
+        chart_metric = metric
         if source.resource_type == "saved_query" or (
             intent.goal is AnalyticsGoal.CREATE_DATASET
             or intent.output_prefix is not None
         ):
             dataset_name = intent.dataset_name or self._dataset_name(topic, intent)
-            dataset_params: dict[str, Any] = {"table_name": dataset_name}
+            dataset_params: dict[str, Any] = {
+                "table_name": dataset_name,
+                "overwrite": True,
+            }
             if source.resource_type == "saved_query":
                 dataset_params["saved_query_id"] = source.resource_id
             else:
@@ -171,6 +181,8 @@ class DeterministicAnalyticsPlanner:
                         "sql": self._aggregate_sql(source, time_column, metric, intent),
                     }
                 )
+                chart_time_column = self._aggregate_time_alias(intent)
+                chart_metric = f"SUM({self._metric_alias(metric)})"
             dataset_action_index = len(actions)
             actions.append(PlannedAction("create_dataset", dataset_params))
             effects.append(f"criar ou reutilizar o dataset `{dataset_name}`")
@@ -191,8 +203,8 @@ class DeterministicAnalyticsPlanner:
             datasource_type="table",
             chart_title=chart_title,
             viz_type="echarts_timeseries_bar",
-            time_column=time_column,
-            metric=metric,
+            time_column=chart_time_column,
+            metric=chart_metric,
             group_by=(group_by,) if group_by else (),
         )
         chart_spec_payload = asdict(chart_specification)
@@ -201,11 +213,17 @@ class DeterministicAnalyticsPlanner:
         if dataset_action_index is None:
             chart_specification.validate_columns(source.columns)
         chart_action_index = len(actions)
-        actions.append(PlannedAction("create_chart", {"chart_spec": chart_spec_payload}))
+        actions.append(
+            PlannedAction(
+                "create_chart",
+                {"chart_spec": chart_spec_payload, "overwrite": True},
+            )
+        )
         effects = [
             *effects,
             f"criar o gráfico de barras `{chart_specification.chart_title}`",
-            f"usar `{time_column}` como dimensão temporal e `{metric}` como métrica",
+            f"usar `{chart_time_column}` como dimensão temporal e "
+            f"`{chart_metric}` como métrica",
         ]
         if group_by:
             effects.append(f"agrupar por `{group_by}`")
@@ -375,7 +393,7 @@ class DeterministicAnalyticsPlanner:
             expression = "COUNT(*)"
         else:
             expression = metric
-            metric_alias = metric.lower().replace("(", "_").replace(")", "")
+            metric_alias = DeterministicAnalyticsPlanner._metric_alias(metric)
         if intent.time_grain == "month":
             period_expression = f"strftime('%Y-%m', {time_column})"
             return (
@@ -386,6 +404,16 @@ class DeterministicAnalyticsPlanner:
             f"SELECT {time_column} AS period, {expression} AS {metric_alias} "
             f"FROM {table} GROUP BY {time_column}"
         )
+
+    @staticmethod
+    def _aggregate_time_alias(intent: AnalyticsIntent) -> str:
+        return "month" if intent.time_grain == "month" else "period"
+
+    @staticmethod
+    def _metric_alias(metric: str) -> str:
+        if metric == "COUNT(*)":
+            return "metric_value"
+        return metric.lower().replace("(", "_").replace(")", "")
 
     def _validate_action(self, action: PlannedAction) -> None:
         tool = self.registry.get(action.tool_name)

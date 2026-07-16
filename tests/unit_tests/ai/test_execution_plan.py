@@ -271,16 +271,18 @@ def test_deterministic_planner_chains_dataset_chart_and_dashboard(
         "add_chart_to_dashboard",
     ]
     assert plan.execution_plan.actions[0].params["table_name"] == "ai_test_p50_dataset"
+    assert plan.execution_plan.actions[0].params["overwrite"] is True
     assert plan.execution_plan.actions[1].params["chart_spec"] == {
         "datasource_id": {"$ref": "actions.0.id"},
         "datasource_type": "table",
         "chart_title": "ai_test_p50_chart",
         "viz_type": "echarts_timeseries_bar",
-        "time_column": "transaction_date",
-        "metric": "SUM(revenue)",
+        "time_column": "period",
+        "metric": "SUM(sum_revenue)",
         "time_grain": "P1Y",
         "group_by": [],
     }
+    assert plan.execution_plan.actions[1].params["overwrite"] is True
     assert plan.execution_plan.actions[2].params == {
         "chart_id": {"$ref": "actions.1.id"},
         "dashboard_id": 9,
@@ -315,7 +317,7 @@ def test_deterministic_planner_creates_dataset_from_saved_query() -> None:
     assert plan.execution_plan.actions == (
         PlannedAction(
             "create_dataset",
-            {"table_name": "ai_test_p20", "saved_query_id": 19},
+            {"table_name": "ai_test_p20", "saved_query_id": 19, "overwrite": True},
         ),
     )
 
@@ -340,6 +342,7 @@ def test_deterministic_planner_builds_saved_query_plan() -> None:
 
     assert plan.execution_plan.actions[0].tool_name == "save_sql_query"
     assert plan.execution_plan.actions[0].params["label"] == "ai_test_p44"
+    assert plan.execution_plan.actions[0].params["overwrite"] is True
     assert "SUM(SP_POP_TOTL)" in plan.execution_plan.actions[0].params["sql"]
 
 

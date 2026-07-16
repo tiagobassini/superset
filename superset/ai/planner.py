@@ -192,6 +192,17 @@ class AnalyticsTaskPlanner:
         "global_sales",
         "na_sales",
         "eu_sales",
+        "expectativa",
+        "vida",
+        "chats",
+        "chat",
+        "mensagens",
+        "mensagem",
+        "messages",
+        "message",
+        "usuarios",
+        "usuários",
+        "users",
     )
     _METRIC_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         (
@@ -333,14 +344,16 @@ class AnalyticsTaskPlanner:
             word in message for word in cls._CREATE_WORDS
         ):
             return AnalyticsGoal.CREATE_DASHBOARD
+        if chart:
+            return AnalyticsGoal.CREATE_CHART
         if any(word in message for word in cls._DATASET_WORDS) and any(
             word in message for word in cls._CREATE_WORDS
         ):
             return AnalyticsGoal.CREATE_DATASET
-        if any(word in message for word in cls._QUERY_WORDS):
+        if any(word in message for word in cls._QUERY_WORDS) and any(
+            word in message for word in cls._CREATE_WORDS
+        ):
             return AnalyticsGoal.CREATE_QUERY
-        if chart:
-            return AnalyticsGoal.CREATE_CHART
         return AnalyticsGoal.ANALYZE
 
     @classmethod
@@ -353,7 +366,9 @@ class AnalyticsTaskPlanner:
                 | frozenset({"create_dataset"})
             )
         if goal is AnalyticsGoal.CREATE_CHART:
-            return cls._DISCOVERY_TOOLS | cls._CHART_TOOLS
+            return cls._DISCOVERY_TOOLS | cls._CHART_TOOLS | frozenset(
+                {"create_dataset", "get_saved_query"}
+            )
         if goal is AnalyticsGoal.CREATE_DASHBOARD:
             return cls._DISCOVERY_TOOLS | cls._CHART_TOOLS | cls._DASHBOARD_TOOLS
         if goal is AnalyticsGoal.CREATE_DATASET:
@@ -389,6 +404,9 @@ class AnalyticsTaskPlanner:
         skip_saved_query_output = re.search(
             r"\bcri\w*\s+(?:uma\s+)?consulta\s+salva\s+", message
         )
+        transformed_source = cls._named_after(message, r"(?:transforme|transform)\s+")
+        if transformed_source and transformed_source not in cls._STOPWORDS:
+            return transformed_source
         typed = cls._named_after(
             message,
             r"(?:banco|base de dados|dataset|tabela|consulta salva)\s+"
@@ -568,6 +586,10 @@ class AnalyticsTaskPlanner:
             r"\bfrequentes?\b", message
         ):
             return "births"
+        if re.search(r"\bexpectativa\b", message) and re.search(
+            r"\bvida\b", message
+        ):
+            return "life_expectancy"
         for metric, aliases in cls._METRIC_ALIASES:
             if any(
                 re.search(rf"\b{re.escape(alias)}\b", message) for alias in aliases

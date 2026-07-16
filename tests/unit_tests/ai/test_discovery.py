@@ -337,7 +337,7 @@ def test_discovery_service_ranks_schema_matches_and_deduplicates_sources(
     assert "coluna temporal: order_date" in candidates["dataset"].reasons
     assert "table" not in candidates
     assert candidates["saved_query"].columns == (
-        ("year", "UNKNOWN"),
+        ("year", "DATE"),
         ("sales", "UNKNOWN"),
     )
     assert candidates["saved_query"].related_names == ("sales_fact",)

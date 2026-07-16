@@ -19,6 +19,7 @@
 import pytest
 
 from superset.ai.task_progress import AITaskProgress
+from superset.ai.tools.base import ToolResult
 
 
 class Cache:
@@ -89,3 +90,45 @@ def test_task_events_are_isolated_by_user_and_agent() -> None:
         AITaskProgress(cache, 5, "agent-1").events(task_id)
     with pytest.raises(KeyError):
         AITaskProgress(cache, 4, "agent-2").events(task_id)
+
+
+def test_plan_failure_response_is_human_readable_in_agent_language() -> None:
+    progress = AITaskProgress(Cache(), 4, "agent-1", "pt-BR")
+    task_id = progress.create()
+
+    progress.complete_plan(
+        task_id,
+        [
+            ToolResult(
+                False,
+                None,
+                "Chart `Vendas por ano` already exists with another datasource",
+            )
+        ],
+    )
+
+    response = progress.snapshot(task_id)["response"]
+    assert 'O gráfico "Vendas por ano" já existe usando outra fonte de dados' in response
+    assert "success" not in response
+    assert "data" not in response
+
+
+def test_plan_failure_response_uses_english_agent_language() -> None:
+    progress = AITaskProgress(Cache(), 4, "agent-1", "en-US")
+    task_id = progress.create()
+
+    progress.complete_plan(
+        task_id,
+        [
+            ToolResult(
+                False,
+                None,
+                "Chart `Sales by year` already exists with another datasource",
+            )
+        ],
+    )
+
+    response = progress.snapshot(task_id)["response"]
+    assert 'Chart "Sales by year" already exists with a different datasource' in response
+    assert "O plano" not in response
+    assert "success" not in response

@@ -44,8 +44,13 @@ const createWrapper = () => {
 };
 
 beforeEach(() => {
+  jest.useRealTimers();
   sessionStorage.clear();
   jest.restoreAllMocks();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 test('sends history and replaces the loading response with the AI response', async () => {
@@ -114,6 +119,76 @@ test('confirms and cancels pending actions by id', async () => {
   expect(getChat().messages[0].pendingActions?.[0].status).toBe('executed');
   await act(async () => getChat().cancelAction('cancel'));
   expect(getChat().messages[0].pendingActions?.[1].status).toBe('cancelled');
+});
+
+test('keeps polling a confirmed execution plan after the first awaiting snapshot', async () => {
+  jest.useFakeTimers();
+  sessionStorage.setItem(
+    'superset_ai_chat_history',
+    JSON.stringify([
+      {
+        id: 'message',
+        role: 'assistant',
+        content: 'Plano pronto',
+        timestamp: 1,
+        taskId: 'task-id',
+        progressState: 'awaiting_confirmation',
+        pendingActions: [
+          {
+            id: 'plan-id',
+            type: 'execution_plan',
+            description: 'Revisar e confirmar plano de execução',
+            params: { task_id: 'task-id' },
+            status: 'pending',
+          },
+        ],
+      },
+    ]),
+  );
+  jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+    json: {
+      task_id: 'task-id',
+      status: 'awaiting_confirmation',
+      response: 'Plano pronto',
+      pending_actions: [
+        {
+          id: 'plan-id',
+          type: 'execution_plan',
+          description: 'Revisar e confirmar plano de execução',
+          params: { task_id: 'task-id' },
+          status: 'pending',
+        },
+      ],
+      events: [],
+    },
+  } as never);
+  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      task_id: 'task-id',
+      status: 'completed',
+      response: 'Plano concluído.',
+      pending_actions: [],
+      events: [
+        { state: 'completed', message: 'Plano concluído.', sequence: 2 },
+      ],
+    },
+  } as never);
+  const { getChat } = createWrapper();
+
+  await waitFor(() => expect(getChat().messages).toHaveLength(1));
+  await act(async () => {
+    const confirmation = getChat().confirmAction('plan-id');
+    await Promise.resolve();
+    jest.advanceTimersByTime(750);
+    await confirmation;
+  });
+
+  expect(SupersetClient.get).toHaveBeenCalled();
+  expect(getChat().messages[0]).toMatchObject({
+    content: 'Plano concluído.',
+    progressState: 'completed',
+    pendingActions: [],
+  });
 });
 
 test('keeps the backend failure reason for the next assistant request', async () => {

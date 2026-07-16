@@ -321,17 +321,24 @@ def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.chart.create import CreateChartCommand
     from superset.extensions import db
 
+    overwrite = bool(params.get("overwrite"))
     if "chart_spec" in params:
         from superset.ai.chart_spec import ChartSpecification
 
         params = ChartSpecification.from_dict(params["chart_spec"]).to_chart_payload()
+        params["overwrite"] = overwrite
     if existing := _find_existing_chart(params):
-        return {
-            "id": existing.id,
-            "name": existing.slice_name,
-            "url": existing.url,
-            "reused": True,
-        }
+        if overwrite:
+            db.session.delete(existing)
+            db.session.commit()
+        else:
+            return {
+                "id": existing.id,
+                "name": existing.slice_name,
+                "url": existing.url,
+                "reused": True,
+            }
+    params.pop("overwrite", None)
     chart = CreateChartCommand(params).run()
     try:
         _validate_created_chart(chart)
@@ -377,7 +384,6 @@ def _find_existing_chart(params: dict[str, Any]) -> Any | None:
     except Exception:  # pylint: disable=broad-except
         return None
     return None
-
 
 def _validate_created_chart(chart: Any) -> None:
     """Execute the persisted chart query to reject invalid chart definitions."""
@@ -483,7 +489,7 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
                 "sql": saved_query["sql"],
             }
         )
-    if existing := _find_existing_dataset(attributes):
+    if existing := _find_existing_dataset(attributes, overwrite=bool(params.get("overwrite"))):
         return {
             "id": existing.id,
             "name": existing.table_name,
@@ -503,7 +509,9 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
     return {"id": dataset.id, "name": dataset.table_name, "url": dataset.url}
 
 
-def _find_existing_dataset(attributes: dict[str, Any]) -> Any | None:
+def _find_existing_dataset(
+    attributes: dict[str, Any], overwrite: bool = False
+) -> Any | None:
     """Reuse a compatible dataset and reject same-name conflicts."""
     try:
         from superset.connectors.sqla.models import SqlaTable
@@ -520,6 +528,17 @@ def _find_existing_dataset(attributes: dict[str, Any]) -> Any | None:
             and dataset.database_id == database_id
             and security_manager.can_access_datasource(dataset)
         ]
+        if matches and overwrite:
+            dataset = matches[0]
+            dataset.sql = attributes.get("sql")
+            dataset.schema = attributes.get("schema")
+            dataset.catalog = attributes.get("catalog")
+            for column in list(dataset.columns):
+                db.session.delete(column)
+            db.session.flush()
+            dataset.fetch_metadata()
+            db.session.commit()
+            return dataset
         for dataset in matches:
             same_schema = (dataset.schema or None) == (attributes.get("schema") or None)
             same_sql = (dataset.sql or None) == (attributes.get("sql") or None)
@@ -610,6 +629,13 @@ def _find_existing_saved_query(params: dict[str, Any], user_id: int) -> Any | No
                 and (query.catalog or None) == (params.get("catalog") or None)
             ):
                 return query
+        if matches and params.get("overwrite"):
+            query = matches[0]
+            query.sql = params["sql"]
+            query.schema = params.get("schema", "")
+            query.catalog = params.get("catalog")
+            db.session.commit()
+            return query
         if matches:
             raise ValueError(
                 f"Saved query `{params['label']}` already exists with different SQL"
@@ -698,6 +724,7 @@ def default_tools() -> list[AITool]:
             **sql_schema["properties"],
             "label": {"type": "string"},
             "description": {"type": "string"},
+            "overwrite": {"type": "boolean"},
         },
         "required": ["database_id", "sql", "label"],
     }
@@ -710,6 +737,7 @@ def default_tools() -> list[AITool]:
             "viz_type": {"type": "string"},
             "params": {"type": "string"},
             "chart_spec": {"type": "object"},
+            "overwrite": {"type": "boolean"},
         },
         "required": ["datasource_id", "datasource_type", "slice_name", "viz_type"],
     }
@@ -748,6 +776,7 @@ def default_tools() -> list[AITool]:
             "catalog": {"type": "string"},
             "sql": {"type": "string"},
             "saved_query_id": {"type": "integer"},
+            "overwrite": {"type": "boolean"},
         },
         "required": ["table_name"],
     }

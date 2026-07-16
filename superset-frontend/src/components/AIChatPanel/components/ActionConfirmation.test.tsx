@@ -41,6 +41,54 @@ test('shows action parameters and dispatches an explicit confirmation', () => {
   expect(onConfirm).toHaveBeenCalledWith('action-id');
 });
 
+test('renders execution plans as human-readable sections', () => {
+  render(
+    <ActionConfirmation
+      action={{
+        id: 'plan-id',
+        type: 'execution_plan',
+        description: 'Revisar e confirmar plano de execução',
+        params: {
+          chart_specification: {
+            chart_title: 'Vendas por ano',
+            metric: 'SUM(na_sales)',
+            time_column: 'year',
+            group_by: [],
+            viz_type: 'echarts_timeseries_bar',
+          },
+          source: {
+            name: 'video_game_sales',
+            database: 'examples',
+            schema: 'main',
+          },
+          effects: ['criar o gráfico de barras `Vendas por ano`'],
+          findings: ['coluna temporal verificada: `year`'],
+          read_steps: ['validar o schema do dataset selecionado'],
+          actions: [
+            {
+              tool_name: 'create_chart',
+              params: { chart_spec: { chart_title: 'Vendas por ano' } },
+            },
+          ],
+        },
+        status: 'pending',
+      }}
+      onCancel={jest.fn()}
+      onConfirm={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByText('Resumo')).toBeInTheDocument();
+  expect(screen.getByText(/video_game_sales/)).toBeInTheDocument();
+  expect(
+    screen.getByText('Visualização: barras temporais'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Métrica: SUM(na_sales)')).toBeInTheDocument();
+  expect(screen.getByText('O que será feito')).toBeInTheDocument();
+  expect(screen.queryByText('chart_specification')).not.toBeInTheDocument();
+  expect(screen.queryByText('actions')).not.toBeInTheDocument();
+});
+
 test('shows the safe backend error when confirmed execution fails', () => {
   render(
     <ActionConfirmation
