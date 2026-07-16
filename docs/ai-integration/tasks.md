@@ -306,15 +306,15 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 - [x] Testar normalização e equivalências entre os quatro idiomas, incluindo nomes como `international_sales`, `vendas-internacionais`, `ventes_annuelles` e `ventas por año`.
 
 ### 7.2 Índice de descoberta seguro e pontuação de fontes
-- [ ] Criar serviço de descoberta que pesquise, sob as permissões do usuário, bancos, tabelas, datasets e saved queries.
-- [ ] Pesquisar nomes, descrições, schemas/colunas permitidos e metadados seguros, inclusive quando o nome da fonte não tiver relação com o tema solicitado.
-- [ ] Pontuar correspondências encontradas em colunas de tabelas/datasets e em colunas inferidas do retorno de saved queries, sem depender da correspondência no nome da fonte.
-- [ ] Para saved queries, analisar o SQL já autorizado e/ou schema de resultado limitado para obter aliases, tabelas de origem e colunas; nunca enviar dados brutos, credenciais ou SQL sensível ao modelo.
-- [ ] Aplicar ranking determinístico por correspondência exata, normalizada, sinônimos multilíngues, compatibilidade de schema e contexto da página.
-- [ ] Identificar em cada candidato colunas adequadas para tempo, métrica, dimensão e identificador antes de propor um gráfico.
-- [ ] Deduplicar recursos que representam a mesma fonte e registrar a justificativa/rastreabilidade da pontuação.
-- [ ] Manter RBAC, permissões de datasource, RLS e escopo de saved queries em todas as buscas e perfis.
-- [ ] Testar ranking, isolamento entre usuários e ausência de vazamento de recursos sem permissão.
+- [x] Criar serviço de descoberta que pesquise, sob as permissões do usuário, bancos, tabelas, datasets e saved queries.
+- [x] Pesquisar nomes, descrições, schemas/colunas permitidos e metadados seguros, inclusive quando o nome da fonte não tiver relação com o tema solicitado.
+- [x] Pontuar correspondências encontradas em colunas de tabelas/datasets e em colunas inferidas do retorno de saved queries, sem depender da correspondência no nome da fonte.
+- [x] Para saved queries, analisar o SQL já autorizado e/ou schema de resultado limitado para obter aliases, tabelas de origem e colunas; nunca enviar dados brutos, credenciais ou SQL sensível ao modelo.
+- [x] Aplicar ranking determinístico por correspondência exata, normalizada, sinônimos multilíngues, compatibilidade de schema e contexto da página.
+- [x] Identificar em cada candidato colunas adequadas para tempo, métrica, dimensão e identificador antes de propor um gráfico.
+- [x] Deduplicar recursos que representam a mesma fonte e registrar a justificativa/rastreabilidade da pontuação.
+- [x] Manter RBAC, permissões de datasource, RLS e escopo de saved queries em todas as buscas e perfis.
+- [x] Testar ranking, isolamento entre usuários e ausência de vazamento de recursos sem permissão.
 
 ### 7.3 Resolução de ambiguidade e proposta ao usuário
 - [ ] Definir limiar de confiança e margem entre candidatos para seleção automática segura.

@@ -16,9 +16,12 @@
 # under the License.
 """Tests for safe analytics discovery helpers."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from superset.ai.discovery import (
+    AnalyticsDiscoveryService,
     build_discovery_query,
     classify_columns,
     MAX_SEMANTIC_TERMS,
@@ -138,3 +141,223 @@ def test_rank_resources_uses_multilingual_query_expansion() -> None:
         rank_resources(resources, build_discovery_query("ventes"))[0]["name"]
         == "international_sales"
     )
+
+
+def test_discovery_service_ranks_schema_matches_and_deduplicates_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = SimpleNamespace(
+        id=1,
+        database_name="Examples",
+        get_default_schema=lambda _: "public",
+        get_all_table_names_in_schema=lambda **_: {("fato_001", "public", None)},
+        get_columns=lambda _: [
+            SimpleNamespace(column_name="order_date", type="DATE"),
+            SimpleNamespace(column_name="sale_id", type="INTEGER"),
+            SimpleNamespace(column_name="amount", type="NUMERIC"),
+        ],
+    )
+    dataset = SimpleNamespace(
+        id=10,
+        table_name="fato_001",
+        database_id=1,
+        database=database,
+        schema="public",
+        catalog=None,
+        description="Indicadores comerciais",
+        columns=[
+            SimpleNamespace(column_name="order_date", type="DATE"),
+            SimpleNamespace(column_name="sale_id", type="INTEGER"),
+            SimpleNamespace(column_name="amount", type="NUMERIC"),
+        ],
+    )
+    saved_query = SimpleNamespace(
+        id=20,
+        user_id=7,
+        database=database,
+        db_id=1,
+        schema="public",
+        label="relatorio_final",
+        description="",
+        sql="SELECT order_date AS year, amount AS sales FROM sales_fact",
+    )
+
+    class Query:
+        def __init__(self, values: list[object]) -> None:
+            self.values = values
+
+        def order_by(self, *_: object) -> "Query":
+            return self
+
+        def all(self) -> list[object]:
+            return self.values
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(
+            query=lambda model: Query(
+                [database]
+                if model.__name__ == "Database"
+                else [dataset]
+                if model.__name__ == "SqlaTable"
+                else [saved_query]
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database", lambda _: True
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+
+    result = AnalyticsDiscoveryService(SimpleNamespace(id=7)).discover(
+        build_discovery_query("ventes"),
+        intent=SimpleNamespace(time_grain="year", metric="count"),
+    )
+
+    candidates = {candidate.resource_type: candidate for candidate in result.candidates}
+    assert result.searched == {
+        "databases": 1,
+        "datasets": 1,
+        "tables": 1,
+        "saved_queries": 1,
+    }
+    assert candidates["dataset"].name == "fato_001"
+    assert candidates["dataset"].score > 0
+    assert "coluna temporal: order_date" in candidates["dataset"].reasons
+    assert "table" not in candidates
+    assert candidates["saved_query"].columns == (
+        ("year", "UNKNOWN"),
+        ("sales", "UNKNOWN"),
+    )
+    assert candidates["saved_query"].related_names == ("sales_fact",)
+    assert (
+        "fontes da consulta relacionadas: sales_fact"
+        in candidates["saved_query"].reasons
+    )
+    assert "sql" not in candidates["saved_query"].to_dict()
+
+
+def test_discovery_service_never_returns_inaccessible_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = SimpleNamespace(id=1, database_name="Allowed")
+    denied_database = SimpleNamespace(id=2, database_name="Denied")
+    allowed_dataset = SimpleNamespace(
+        id=10,
+        table_name="sales",
+        database_id=1,
+        database=database,
+        schema="public",
+        catalog=None,
+        description="",
+        columns=[],
+    )
+    denied_dataset = SimpleNamespace(
+        id=11,
+        table_name="secret_sales",
+        database_id=2,
+        database=denied_database,
+        schema="private",
+        catalog=None,
+        description="",
+        columns=[],
+    )
+
+    class Query:
+        def __init__(self, values: list[object]) -> None:
+            self.values = values
+
+        def order_by(self, *_: object) -> "Query":
+            return self
+
+        def all(self) -> list[object]:
+            return self.values
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(
+            query=lambda model: Query(
+                [database, denied_database]
+                if model.__name__ == "Database"
+                else [allowed_dataset, denied_dataset]
+                if model.__name__ == "SqlaTable"
+                else []
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database",
+        lambda item: item.id == 1,
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource",
+        lambda item: item.id == 10,
+    )
+    monkeypatch.setattr(AnalyticsDiscoveryService, "_table_candidates", lambda *_: [])
+
+    result = AnalyticsDiscoveryService(SimpleNamespace(id=7)).discover(
+        build_discovery_query("sales")
+    )
+
+    assert [candidate.name for candidate in result.candidates] == ["sales", "Allowed"]
+
+
+def test_saved_query_discovery_enforces_owner_and_database_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    allowed_database = SimpleNamespace(id=1, database_name="Allowed")
+    denied_database = SimpleNamespace(id=2, database_name="Denied")
+    queries = [
+        SimpleNamespace(
+            id=1,
+            user_id=7,
+            database=allowed_database,
+            db_id=1,
+            schema="public",
+            label="mine",
+            description="vendas",
+            sql="SELECT amount AS sales FROM orders",
+        ),
+        SimpleNamespace(
+            id=2,
+            user_id=8,
+            database=allowed_database,
+            db_id=1,
+            schema="public",
+            label="other-user",
+            description="vendas",
+            sql="SELECT amount AS sales FROM orders",
+        ),
+        SimpleNamespace(
+            id=3,
+            user_id=7,
+            database=denied_database,
+            db_id=2,
+            schema="private",
+            label="denied-db",
+            description="vendas",
+            sql="SELECT amount AS sales FROM orders",
+        ),
+    ]
+
+    class Query:
+        def all(self) -> list[object]:
+            return queries
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session", SimpleNamespace(query=lambda _: Query())
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database",
+        lambda database: database.id == 1,
+    )
+
+    candidates = AnalyticsDiscoveryService(
+        SimpleNamespace(id=7)
+    )._saved_query_candidates()
+
+    assert [candidate.name for candidate in candidates] == ["mine"]
+    assert candidates[0].columns == (("sales", "UNKNOWN"),)
+    assert "SELECT" not in str(candidates[0].to_dict())

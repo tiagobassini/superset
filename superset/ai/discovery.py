@@ -18,17 +18,25 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
-from collections.abc import Callable, Iterable
-from dataclasses import dataclass
-from typing import Any
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass, replace
+from typing import Any, TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.ai.planner import AnalyticsIntent
 
 SemanticExpander = Callable[[str, str], Iterable[str]]
 
 MAX_DISCOVERY_TERMS = 24
 MAX_SEMANTIC_TERMS = 8
 MAX_SEMANTIC_TERM_LENGTH = 80
+MAX_DISCOVERY_COLUMNS = 50
+MAX_DISCOVERY_CANDIDATES = 20
 
 # This small, versioned vocabulary is intentionally local and deterministic.
 # Provider-suggested terms are optional additions and never replace lexical search.
@@ -69,6 +77,62 @@ class DiscoveryQuery:
     lexical_terms: tuple[str, ...]
     synonyms: tuple[str, ...]
     expanded_terms: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class DiscoveryCandidate:
+    """A permission-filtered data source ranked for an analytics request."""
+
+    resource_type: str
+    resource_id: int | None
+    name: str
+    database_id: int | None
+    database_name: str | None
+    schema: str | None
+    columns: tuple[tuple[str, str], ...]
+    source_key: str
+    description: str = ""
+    related_names: tuple[str, ...] = ()
+    score: int = 0
+    reasons: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return only safe metadata suitable for a provider or chat client."""
+        return {
+            "type": self.resource_type,
+            "id": self.resource_id,
+            "name": self.name,
+            "database_id": self.database_id,
+            "database": self.database_name,
+            "schema": self.schema,
+            "related_sources": list(self.related_names),
+            "columns": [
+                {"name": name, "type": column_type}
+                for name, column_type in self.columns
+            ],
+            "score": self.score,
+            "reasons": list(self.reasons),
+        }
+
+
+@dataclass(frozen=True)
+class DiscoveryResult:
+    """Safe discovery output and counts used for audit and chat progress."""
+
+    query: DiscoveryQuery
+    candidates: tuple[DiscoveryCandidate, ...]
+    searched: Mapping[str, int]
+
+    def to_dict(self, limit: int = 5) -> dict[str, Any]:
+        """Return a compact, provider-safe representation of the discovery."""
+        return {
+            "topic": self.query.topic,
+            "terms": list(self.query.expanded_terms),
+            "searched": dict(self.searched),
+            "candidates": [
+                candidate.to_dict() for candidate in self.candidates[:limit]
+            ],
+        }
 
 
 def build_discovery_query(
@@ -140,7 +204,8 @@ def classify_columns(columns: Iterable[dict[str, Any]]) -> dict[str, list[str]]:
         column_type = str(column.get("type") or "").casefold()
         normalized = _normalize(name)
         if any(token in column_type for token in ("date", "time")) or any(
-            token in normalized for token in ("date", "data", "year", "ano")
+            token in normalized
+            for token in ("date", "data", "fecha", "year", "ano", "annee")
         ):
             groups["temporal"].append(name)
         elif normalized == "id" or normalized.endswith(" id"):
@@ -148,11 +213,320 @@ def classify_columns(columns: Iterable[dict[str, Any]]) -> dict[str, list[str]]:
         elif any(
             token in column_type
             for token in ("int", "numeric", "decimal", "float", "double")
+        ) or any(
+            token in normalized
+            for token in (
+                "amount",
+                "valor",
+                "total",
+                "revenue",
+                "receita",
+                "sales",
+                "ventas",
+                "ventes",
+            )
         ):
             groups["measures"].append(name)
         else:
             groups["dimensions"].append(name)
     return groups
+
+
+class AnalyticsDiscoveryService:
+    """Discover and rank only data sources available to the active user."""
+
+    def __init__(self, user: Any) -> None:
+        self.user = user
+
+    def discover(
+        self,
+        query: DiscoveryQuery,
+        intent: "AnalyticsIntent | None" = None,
+        context: Mapping[str, Any] | None = None,
+    ) -> DiscoveryResult:
+        """Search accessible live metadata without returning rows or raw SQL."""
+        databases = self._accessible_databases()
+        candidates = [
+            *self._database_candidates(databases),
+            *self._dataset_candidates(),
+            *self._table_candidates(databases),
+            *self._saved_query_candidates(),
+        ]
+        scored = [
+            self._score_candidate(candidate, query, intent, context or {})
+            for candidate in candidates
+        ]
+        deduplicated = self._deduplicate(scored)
+        ranked = sorted(
+            deduplicated, key=lambda item: (-item.score, item.name.casefold())
+        )
+        return DiscoveryResult(
+            query=query,
+            candidates=tuple(ranked[:MAX_DISCOVERY_CANDIDATES]),
+            searched={
+                "databases": len(databases),
+                "datasets": sum(
+                    candidate.resource_type == "dataset" for candidate in candidates
+                ),
+                "tables": sum(
+                    candidate.resource_type == "table" for candidate in candidates
+                ),
+                "saved_queries": sum(
+                    candidate.resource_type == "saved_query" for candidate in candidates
+                ),
+            },
+        )
+
+    def _accessible_databases(self) -> list[Any]:
+        from superset.extensions import db, security_manager
+        from superset.models.core import Database
+
+        return [
+            database
+            for database in db.session.query(Database)
+            .order_by(Database.database_name)
+            .all()
+            if security_manager.can_access_database(database)
+        ]
+
+    def _database_candidates(
+        self, databases: Iterable[Any]
+    ) -> list[DiscoveryCandidate]:
+        return [
+            DiscoveryCandidate(
+                resource_type="database",
+                resource_id=database.id,
+                name=str(database.database_name),
+                database_id=database.id,
+                database_name=str(database.database_name),
+                schema=None,
+                columns=(),
+                source_key=f"database:{database.id}",
+            )
+            for database in databases
+        ]
+
+    def _dataset_candidates(self) -> list[DiscoveryCandidate]:
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.extensions import db, security_manager
+
+        candidates: list[DiscoveryCandidate] = []
+        for dataset in db.session.query(SqlaTable).all():
+            if not security_manager.can_access_datasource(dataset):
+                continue
+            columns = self._columns_from_dataset(dataset)
+            candidates.append(
+                DiscoveryCandidate(
+                    resource_type="dataset",
+                    resource_id=dataset.id,
+                    name=str(dataset.table_name),
+                    database_id=dataset.database_id,
+                    database_name=str(dataset.database.database_name),
+                    schema=dataset.schema,
+                    columns=columns,
+                    source_key=self._source_key(
+                        dataset.database_id,
+                        dataset.schema,
+                        dataset.catalog,
+                        dataset.table_name,
+                    ),
+                    description=str(getattr(dataset, "description", "") or ""),
+                )
+            )
+        return candidates
+
+    def _table_candidates(self, databases: Iterable[Any]) -> list[DiscoveryCandidate]:
+        """Read table names and schemas only after database authorization."""
+        candidates: list[DiscoveryCandidate] = []
+        for database in databases:
+            schema = database.get_default_schema(None)
+            if not schema:
+                continue
+            try:
+                tables = database.get_all_table_names_in_schema(
+                    catalog=None, schema=schema
+                )
+            except Exception:  # pylint: disable=broad-except
+                logger.info(
+                    "Skipping inaccessible table metadata for database %s", database.id
+                )
+                continue
+            for table_name, table_schema, catalog in tables:
+                columns = self._columns_from_table(
+                    database, table_name, table_schema, catalog
+                )
+                candidates.append(
+                    DiscoveryCandidate(
+                        resource_type="table",
+                        resource_id=None,
+                        name=str(table_name),
+                        database_id=database.id,
+                        database_name=str(database.database_name),
+                        schema=table_schema,
+                        columns=columns,
+                        source_key=self._source_key(
+                            database.id, table_schema, catalog, table_name
+                        ),
+                    )
+                )
+        return candidates
+
+    def _saved_query_candidates(self) -> list[DiscoveryCandidate]:
+        from superset.extensions import db, security_manager
+        from superset.models.sql_lab import SavedQuery
+
+        candidates: list[DiscoveryCandidate] = []
+        for saved_query in db.session.query(SavedQuery).all():
+            if saved_query.user_id != self.user.id or saved_query.database is None:
+                continue
+            if not security_manager.can_access_database(saved_query.database):
+                continue
+            aliases, tables = self._saved_query_metadata(saved_query.sql or "")
+            columns = tuple((alias, "UNKNOWN") for alias in aliases)
+            candidates.append(
+                DiscoveryCandidate(
+                    resource_type="saved_query",
+                    resource_id=saved_query.id,
+                    name=str(saved_query.label),
+                    database_id=saved_query.db_id,
+                    database_name=str(saved_query.database.database_name),
+                    schema=saved_query.schema,
+                    columns=columns,
+                    source_key=(
+                        f"saved_query:{saved_query.id}:" + ",".join(sorted(tables))
+                    ),
+                    description=str(getattr(saved_query, "description", "") or ""),
+                    related_names=tables,
+                )
+            )
+        return candidates
+
+    def _score_candidate(
+        self,
+        candidate: DiscoveryCandidate,
+        query: DiscoveryQuery,
+        intent: "AnalyticsIntent | None",
+        context: Mapping[str, Any],
+    ) -> DiscoveryCandidate:
+        """Rank name, schema and intent compatibility with explainable signals."""
+        reasons: list[str] = []
+        score = self._text_score(candidate.name, query.expanded_terms)
+        if score:
+            reasons.append("nome relacionado ao tema")
+        description_score = self._text_score(
+            candidate.description, query.expanded_terms
+        )
+        if description_score:
+            score += min(8, description_score)
+            reasons.append("descrição relacionada ao tema")
+        related_matches = [
+            name
+            for name in candidate.related_names
+            if self._text_score(name, query.expanded_terms)
+        ]
+        if related_matches:
+            score += min(12, len(related_matches) * 6)
+            reasons.append(
+                f"fontes da consulta relacionadas: {', '.join(related_matches[:3])}"
+            )
+        column_matches = [
+            name
+            for name, _ in candidate.columns
+            if self._text_score(name, query.expanded_terms)
+        ]
+        if column_matches:
+            score += min(18, len(column_matches) * 6)
+            reasons.append(f"colunas relacionadas: {', '.join(column_matches[:3])}")
+        groups = classify_columns(
+            [
+                {"name": name, "type": column_type}
+                for name, column_type in candidate.columns
+            ]
+        )
+        if getattr(intent, "time_grain", None) == "year" and groups["temporal"]:
+            score += 12
+            reasons.append(f"coluna temporal: {groups['temporal'][0]}")
+        if getattr(intent, "metric", None) == "count" and groups["identifiers"]:
+            score += 8
+            reasons.append(f"identificador para contagem: {groups['identifiers'][0]}")
+        elif groups["measures"]:
+            score += 6
+            reasons.append(f"medida disponível: {groups['measures'][0]}")
+        resource_name = str(context.get("resource_name") or "")
+        if resource_name and normalize_discovery_text(
+            resource_name
+        ) == normalize_discovery_text(candidate.name):
+            score += 10
+            reasons.append("fonte no contexto atual")
+        return replace(candidate, score=score, reasons=tuple(reasons))
+
+    @staticmethod
+    def _deduplicate(
+        candidates: Iterable[DiscoveryCandidate],
+    ) -> list[DiscoveryCandidate]:
+        priority = {"dataset": 3, "saved_query": 2, "table": 1, "database": 0}
+        selected: dict[str, DiscoveryCandidate] = {}
+        for candidate in candidates:
+            existing = selected.get(candidate.source_key)
+            if existing is None or (
+                candidate.score,
+                priority[candidate.resource_type],
+            ) > (existing.score, priority[existing.resource_type]):
+                selected[candidate.source_key] = candidate
+        return list(selected.values())
+
+    @staticmethod
+    def _source_key(
+        database_id: int, schema: str | None, catalog: str | None, name: str
+    ) -> str:
+        return ":".join(
+            ("source", str(database_id), str(catalog or ""), str(schema or ""), name)
+        )
+
+    @staticmethod
+    def _columns_from_dataset(dataset: Any) -> tuple[tuple[str, str], ...]:
+        return tuple(
+            (str(column.column_name), str(column.type or "UNKNOWN"))
+            for column in dataset.columns[:MAX_DISCOVERY_COLUMNS]
+        )
+
+    @staticmethod
+    def _columns_from_table(
+        database: Any,
+        table_name: str,
+        schema: str,
+        catalog: str | None,
+    ) -> tuple[tuple[str, str], ...]:
+        from superset.sql.parse import Table
+
+        try:
+            columns = database.get_columns(Table(table_name, schema, catalog))
+        except Exception:  # pylint: disable=broad-except
+            return ()
+        return tuple(
+            (
+                str(getattr(column, "column_name", None) or column.get("name", "")),
+                str(getattr(column, "type", None) or column.get("type", "UNKNOWN")),
+            )
+            for column in columns[:MAX_DISCOVERY_COLUMNS]
+        )
+
+    @staticmethod
+    def _saved_query_metadata(sql: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        """Extract aliases and source table labels without exposing SQL text."""
+        aliases = re.findall(r"\bAS\s+([A-Za-z_][\w$]*)", sql, flags=re.IGNORECASE)
+        tables = re.findall(
+            r"\b(?:FROM|JOIN)\s+([A-Za-z_][\w.$]*)", sql, flags=re.IGNORECASE
+        )
+        return _unique_names(aliases), _unique_names(tables)
+
+    @staticmethod
+    def _text_score(value: str, terms: Iterable[str]) -> int:
+        normalized = normalize_discovery_text(value)
+        return sum(
+            10 if term == normalized else 4 if term in normalized else 0
+            for term in terms
+        )
 
 
 def _resource_name(resource: dict[str, Any]) -> str:
@@ -198,6 +572,18 @@ def _unique_terms(
         if len(terms) == limit:
             break
     return tuple(terms)
+
+
+def _unique_names(values: Iterable[str]) -> tuple[str, ...]:
+    """Deduplicate identifiers while preserving their original display value."""
+    names: list[str] = []
+    normalized_names: set[str] = set()
+    for value in values:
+        normalized = normalize_discovery_text(value)
+        if normalized and normalized not in normalized_names:
+            names.append(value)
+            normalized_names.add(normalized)
+    return tuple(names)
 
 
 def _dictionary_synonyms(terms: Iterable[str]) -> tuple[str, ...]:
