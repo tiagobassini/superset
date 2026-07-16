@@ -1,0 +1,56 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Celery execution for reconnectable AI analytics tasks."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from superset.ai.exceptions import AIProviderError
+from superset.ai.models import AIAgent
+from superset.ai.orchestrator import AIOrchestrator
+from superset.ai.task_progress import AITaskProgress
+from superset.ai.tools.registry import create_default_registry
+from superset.extensions import cache_manager, celery_app, db, security_manager
+
+
+@celery_app.task(name="ai.run_task")
+def run_ai_task(
+    task_id: str, agent_id: str, user_id: int, payload: dict[str, Any]
+) -> None:
+    """Run an AI request out of band while publishing safe progress events."""
+    progress = AITaskProgress(cache_manager.cache, user_id, agent_id)
+    agent = db.session.get(AIAgent, agent_id)
+    user = security_manager.get_user_by_id(user_id)
+    if agent is None or user is None or not agent.is_active:
+        progress.emit(task_id, "failed", "O agente não está mais disponível.", "access")
+        return
+    allowed_roles = {role.id for role in agent.allowed_roles}
+    user_roles = {role.id for role in user.roles}
+    if allowed_roles and not allowed_roles.intersection(user_roles):
+        progress.emit(task_id, "failed", "Você não tem acesso a este agente.", "access")
+        return
+    progress.emit(task_id, "discovering", "Procurando fontes de dados acessíveis.", "discovery")
+    progress.emit(task_id, "analyzing", "Analisando as fontes encontradas.", "analysis")
+    try:
+        result = AIOrchestrator(agent, create_default_registry(), user).chat(
+            payload["message"], payload.get("history", []), payload.get("context", {})
+        )
+    except AIProviderError:
+        progress.emit(task_id, "failed", "Não foi possível obter uma resposta da IA.", "provider")
+        return
+    progress.complete(task_id, result)

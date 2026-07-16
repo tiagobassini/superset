@@ -324,28 +324,28 @@ def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
 
         params = ChartSpecification.from_dict(params["chart_spec"]).to_chart_payload()
     chart = CreateChartCommand(params).run()
-    return {"id": chart.id, "name": chart.slice_name}
+    return {"id": chart.id, "name": chart.slice_name, "url": chart.url}
 
 
 def _edit_chart(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.chart.update import UpdateChartCommand
 
     chart = UpdateChartCommand(params["chart_id"], params["data"]).run()
-    return {"id": chart.id, "name": chart.slice_name}
+    return {"id": chart.id, "name": chart.slice_name, "url": chart.url}
 
 
 def _create_dashboard(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.dashboard.create import CreateDashboardCommand
 
     dashboard = CreateDashboardCommand(params).run()
-    return {"id": dashboard.id, "title": dashboard.dashboard_title}
+    return {"id": dashboard.id, "title": dashboard.dashboard_title, "url": dashboard.url}
 
 
 def _edit_dashboard(params: dict[str, Any]) -> dict[str, Any]:
     from superset.commands.dashboard.update import UpdateDashboardCommand
 
     dashboard = UpdateDashboardCommand(params["dashboard_id"], params["data"]).run()
-    return {"id": dashboard.id, "title": dashboard.dashboard_title}
+    return {"id": dashboard.id, "title": dashboard.dashboard_title, "url": dashboard.url}
 
 
 def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
@@ -378,7 +378,7 @@ def _create_dataset(params: dict[str, Any]) -> dict[str, Any]:
             }
         )
     dataset = CreateDatasetCommand(attributes).run()
-    return {"id": dataset.id, "name": dataset.table_name}
+    return {"id": dataset.id, "name": dataset.table_name, "url": dataset.url}
 
 
 def _run_sql_query(params: dict[str, Any]) -> dict[str, Any]:

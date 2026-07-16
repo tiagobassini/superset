@@ -88,14 +88,14 @@ export const MessageBubble = ({
 }: MessageBubbleProps) => (
   <Bubble $role={message.role} aria-label={`Mensagem ${message.role}`}>
     <Sender>{message.role === 'user' ? 'Você' : 'Assistente de IA'}</Sender>
-    {message.content ||
-      (message.isStreaming && (
+    {message.content}
+    {message.isStreaming && (
         <TypingIndicator aria-label="A IA está respondendo" role="status">
           <span />
           <span />
           <span />
         </TypingIndicator>
-      ))}
+      )}
     {message.pendingActions?.map(action => (
       <ActionConfirmation
         key={action.id}

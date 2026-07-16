@@ -271,12 +271,12 @@ Especificação: [`autonomous-analytics-workflows.md`](autonomous-analytics-work
 - [x] Tornar plano confirmado imutável, idempotente e interrompível por falha
 
 ### 6.4 Progresso Incremental no Chat
-- [ ] Criar estados `planning`, `discovering`, `analyzing`, `awaiting_confirmation`, `executing`, `awaiting_user_input`, `completed` e `failed`
-- [ ] Expor tarefas e eventos por SSE, com polling como fallback
-- [ ] Persistir tarefa/eventos para reconexão após recarregar a página
-- [ ] Atualizar uma única mensagem de progresso no chat, sem poluir o histórico
-- [ ] Manter animação de loading durante processamento e removê-la apenas em espera, conclusão ou falha
-- [ ] Exibir resumo final com achados, recursos criados e links
+- [x] Criar estados `planning`, `discovering`, `analyzing`, `awaiting_confirmation`, `executing`, `awaiting_user_input`, `completed` e `failed`
+- [x] Expor tarefas e eventos por SSE, com polling como fallback
+- [x] Persistir tarefa/eventos para reconexão após recarregar a página
+- [x] Atualizar uma única mensagem de progresso no chat, sem poluir o histórico
+- [x] Manter animação de loading durante processamento e removê-la apenas em espera, conclusão ou falha
+- [x] Exibir resumo final com achados, recursos criados e links
 
 ### 6.5 Segurança, Auditoria e Testes
 - [ ] Revalidar permissões antes de cada etapa de escrita e isolar tarefas por usuário/agente

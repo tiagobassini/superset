@@ -29,7 +29,21 @@ from flask import Response
 from superset.ai import api
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.orchestrator import OrchestratorResult, PendingAction
+from superset.ai.task_progress import AITaskProgress
 from superset.ai.tools.base import ToolResult
+
+
+class TaskCache:
+    """Minimal cache implementation used to assert AI task transport behavior."""
+
+    def __init__(self) -> None:
+        self.values: dict[str, object] = {}
+
+    def get(self, key: str) -> object | None:
+        return self.values.get(key)
+
+    def set(self, key: str, value: object, timeout: int) -> None:
+        self.values[key] = value
 
 
 def invoke(resource: object, name: str) -> Callable[[], Response | tuple[Response, int]]:
@@ -99,6 +113,54 @@ def test_chat_returns_response_and_pending_actions(
     assert isinstance(response, Response)
     assert response.get_json()["response"] == "I can create it."
     assert response.get_json()["pending_actions"][0]["type"] == "create_dashboard"
+
+
+def test_task_events_support_polling_and_sse_reconnection(
+    app: Any, resource: api.AIRestApi, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configured_agent = agent()
+    cache = TaskCache()
+    monkeypatch.setattr(resource, "_get_agent", lambda _: configured_agent)
+    monkeypatch.setattr(resource, "_can_use", lambda _: True)
+    monkeypatch.setattr(api, "cache_manager", SimpleNamespace(cache=cache))
+    delayed: list[tuple[object, ...]] = []
+    monkeypatch.setattr(api.run_ai_task, "delay", lambda *args: delayed.append(args))
+    with app.test_request_context(
+        "/api/v1/ai/tasks",
+        method="POST",
+        json={"message": "Analise vendas", "history": [], "context": {"page": "other"}},
+    ):
+        from flask import g
+
+        g.user = SimpleNamespace(id=1, roles=[])
+        response, status = invoke(resource, "create_task")()  # type: ignore[misc]
+
+    task_id = response.get_json()["task_id"]
+    assert status == 202
+    assert delayed[0][0] == task_id
+    progress = AITaskProgress(cache, 1, configured_agent.id)
+    progress.emit(task_id, "analyzing", "Analisando", "analysis")
+    progress.complete(task_id, OrchestratorResult("Análise pronta.", []))
+    with app.test_request_context(
+        f"/api/v1/ai/tasks/{task_id}?after=1",
+        method="GET",
+    ):
+        from flask import g
+
+        g.user = SimpleNamespace(id=1, roles=[])
+        response = invoke(resource, "get_task")(task_id)
+    assert [event["state"] for event in response.get_json()["events"]] == [
+        "analyzing",
+        "completed",
+    ]
+
+    with app.test_request_context(f"/api/v1/ai/tasks/{task_id}/events?after=2"):
+        from flask import g
+
+        g.user = SimpleNamespace(id=1, roles=[])
+        response = invoke(resource, "task_events")(task_id)
+    assert response.mimetype == "text/event-stream"
+    assert "event: progress" in response.get_data(as_text=True)
 
 
 @pytest.mark.parametrize(

@@ -58,7 +58,7 @@ test('sends history and replaces the loading response with the AI response', asy
 
   expect(post).toHaveBeenCalledWith(
     expect.objectContaining({
-      endpoint: '/api/v1/ai/chat',
+      endpoint: '/api/v1/ai/tasks',
       jsonPayload: expect.objectContaining({ message: 'Olá', history: [] }),
     }),
   );
@@ -155,7 +155,7 @@ test('keeps the backend failure reason for the next assistant request', async ()
   });
   expect(post).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      endpoint: '/api/v1/ai/chat',
+      endpoint: '/api/v1/ai/tasks',
       jsonPayload: expect.objectContaining({
         history: expect.arrayContaining([
           expect.objectContaining({

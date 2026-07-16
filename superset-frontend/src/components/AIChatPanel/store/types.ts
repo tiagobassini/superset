@@ -48,12 +48,23 @@ export interface PendingAction {
 
 export interface ChatMessage {
   id: string;
+  /** Server task identifier, retained in session history for reconnection. */
+  taskId?: string;
   role: MessageRole;
   content: string;
   timestamp: number;
   /** Actions returned by the AI that await user confirmation */
   pendingActions?: PendingAction[];
   isStreaming?: boolean;
+  progressState?:
+    | 'planning'
+    | 'discovering'
+    | 'analyzing'
+    | 'awaiting_confirmation'
+    | 'awaiting_user_input'
+    | 'executing'
+    | 'completed'
+    | 'failed';
 }
 
 export interface AIAgent {

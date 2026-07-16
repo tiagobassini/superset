@@ -29,6 +29,8 @@ from superset.ai.crypto import encrypt_api_key
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.models import AIAgent, AIGlobalSettings, get_ai_global_settings
 from superset.ai.orchestrator import AIOrchestrator
+from superset.ai.task_progress import AITaskProgress
+from superset.ai.tasks import run_ai_task
 from superset.ai.schemas import (
     AgentSchema,
     ChatRequestSchema,
@@ -36,7 +38,8 @@ from superset.ai.schemas import (
     GlobalAISettingsSchema,
 )
 from superset.ai.tools.registry import create_default_registry
-from superset.extensions import db, security_manager
+from superset.extensions import cache_manager, db, security_manager
+from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, requires_json
 
 
@@ -145,6 +148,83 @@ class AIRestApi(BaseSupersetApi):
         if not result.success:
             return self._error(result.error or "Action failed", 400)
         return jsonify({"status": "executed", "result": result.data})
+
+    @expose("/tasks", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def create_task(self) -> Response:
+        """Run an AI request while recording reconnectable progress events."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            payload = self.chat_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = self._get_agent(payload.get("agent_id"))
+        if agent is None:
+            return self._error("Agent not found", 404)
+        if not agent.is_active or not self._can_use(agent):
+            return self._error("Agent access denied", 403)
+        progress = AITaskProgress(cache_manager.cache, g.user.id, str(agent.id))
+        task_id = progress.create()
+        progress.emit(task_id, "planning", "Planejando a análise.", "plan")
+        run_ai_task.delay(task_id, str(agent.id), g.user.id, payload)
+        return jsonify(progress.snapshot(task_id)), 202
+
+    @expose("/tasks/<string:task_id>", methods=("GET",))
+    @protect()
+    @safe
+    def get_task(self, task_id: str) -> Response:
+        """Return persisted progress events, supporting polling after reload."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            task = self._get_task_snapshot(task_id)
+        except (KeyError, ValueError):
+            return self._error("Task not found", 404)
+        return jsonify(task)
+
+    @expose("/tasks/<string:task_id>/events", methods=("GET",))
+    @protect()
+    @safe
+    def task_events(self, task_id: str) -> Response:
+        """Expose task events as an SSE-compatible one-shot reconnect response."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            events = self._get_task_events(task_id)
+        except (KeyError, ValueError):
+            return self._error("Task not found", 404)
+        body = "".join(
+            f"id: {event['sequence']}\nevent: progress\ndata: {json.dumps(event)}\n\n"
+            for event in events
+        )
+        return Response(
+            body,
+            mimetype="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    def _get_task_events(self, task_id: str) -> list[dict[str, Any]]:
+        """Read task events after the requested cursor for polling or SSE recovery."""
+        agent = self._get_agent(request.args.get("agent_id"))
+        if agent is None or not self._can_use(agent):
+            raise KeyError("Agent access denied")
+        after = int(request.args.get("after", 0))
+        return AITaskProgress(cache_manager.cache, g.user.id, str(agent.id)).events(
+            task_id, after
+        )
+
+    def _get_task_snapshot(self, task_id: str) -> dict[str, Any]:
+        """Read the current public task state for the polling fallback."""
+        agent = self._get_agent(request.args.get("agent_id"))
+        if agent is None or not self._can_use(agent):
+            raise KeyError("Agent access denied")
+        after = int(request.args.get("after", 0))
+        return AITaskProgress(cache_manager.cache, g.user.id, str(agent.id)).snapshot(
+            task_id, after
+        )
 
     @expose("/agents", methods=("GET",))
     @protect()

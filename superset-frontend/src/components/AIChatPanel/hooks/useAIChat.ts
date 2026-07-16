@@ -41,7 +41,18 @@ import {
   saveHistory,
 } from '../utils/sessionStorage';
 
-type ChatResponse = { response?: string; pending_actions?: PendingAction[] };
+type TaskEvent = {
+  state: ChatMessage['progressState'];
+  message: string;
+  sequence: number;
+};
+type ChatResponse = {
+  task_id?: string;
+  status?: ChatMessage['progressState'];
+  response?: string;
+  pending_actions?: PendingAction[];
+  events?: TaskEvent[];
+};
 type ConfirmResponse = { status?: PendingAction['status']; result?: unknown };
 
 const errorMessage = (error: unknown) => {
@@ -52,6 +63,12 @@ const errorMessage = (error: unknown) => {
   }
   return 'Não foi possível executar a ação.';
 };
+
+const isTerminalTaskState = (state?: ChatMessage['progressState']) =>
+  state === 'awaiting_confirmation' ||
+  state === 'awaiting_user_input' ||
+  state === 'completed' ||
+  state === 'failed';
 
 const toHistory = (messages: ChatMessage[]) =>
   messages.flatMap(message => {
@@ -98,16 +115,17 @@ export const useAIChat = () => {
       const responseMessage: ChatMessage = {
         id: nanoid(),
         role: 'assistant',
-        content: '',
+        content: 'Planejando a análise.',
         timestamp: Date.now(),
         isStreaming: true,
+        progressState: 'planning',
       };
       dispatch(addMessage(userMessage));
       dispatch(addMessage(responseMessage));
       dispatch(setLoading(true));
       try {
         const { json } = await SupersetClient.post({
-          endpoint: '/api/v1/ai/chat',
+          endpoint: '/api/v1/ai/tasks',
           jsonPayload: {
             message: text,
             agent_id: selectedAgentId ?? undefined,
@@ -117,12 +135,34 @@ export const useAIChat = () => {
           stringify: false,
         });
         const result = json as ChatResponse;
+        let latestEvent = result.events?.[result.events.length - 1];
+        let latestResult = result;
+        while (result.task_id && !isTerminalTaskState(latestResult.status)) {
+          dispatch(
+            updateMessage({
+              ...responseMessage,
+              content: latestEvent?.message ?? 'Planejando a análise.',
+              isStreaming: true,
+              progressState: latestEvent?.state ?? 'planning',
+              taskId: result.task_id,
+            }),
+          );
+          await new Promise(resolve => window.setTimeout(resolve, 750));
+          const { json: taskJson } = await SupersetClient.get({
+            endpoint: `/api/v1/ai/tasks/${result.task_id}?agent_id=${selectedAgentId ?? ''}&after=${latestEvent?.sequence ?? 0}`,
+          });
+          latestResult = taskJson as ChatResponse;
+          latestEvent = latestResult.events?.[latestResult.events.length - 1] ?? latestEvent;
+        }
+        const state = latestResult.status ?? latestEvent?.state;
         dispatch(
           updateMessage({
             ...responseMessage,
-            content: result.response ?? '',
-            isStreaming: false,
-            pendingActions: result.pending_actions,
+            content: latestResult.response ?? latestEvent?.message ?? '',
+            isStreaming: !isTerminalTaskState(state),
+            progressState: state,
+            pendingActions: latestResult.pending_actions,
+            taskId: result.task_id,
           }),
         );
       } catch {

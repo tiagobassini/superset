@@ -45,29 +45,29 @@ class Command:
             builtin._create_chart,
             "superset.commands.chart.create.CreateChartCommand",
             {"slice_name": "Sales"},
-            SimpleNamespace(id=11, slice_name="Sales"),
-            {"id": 11, "name": "Sales"},
+            SimpleNamespace(id=11, slice_name="Sales", url="/explore/?slice_id=11"),
+            {"id": 11, "name": "Sales", "url": "/explore/?slice_id=11"},
         ),
         (
             builtin._edit_chart,
             "superset.commands.chart.update.UpdateChartCommand",
             {"chart_id": 11, "data": {"slice_name": "Revenue"}},
-            SimpleNamespace(id=11, slice_name="Revenue"),
-            {"id": 11, "name": "Revenue"},
+            SimpleNamespace(id=11, slice_name="Revenue", url="/explore/?slice_id=11"),
+            {"id": 11, "name": "Revenue", "url": "/explore/?slice_id=11"},
         ),
         (
             builtin._create_dashboard,
             "superset.commands.dashboard.create.CreateDashboardCommand",
             {"dashboard_title": "Executive"},
-            SimpleNamespace(id=12, dashboard_title="Executive"),
-            {"id": 12, "title": "Executive"},
+            SimpleNamespace(id=12, dashboard_title="Executive", url="/superset/dashboard/12/"),
+            {"id": 12, "title": "Executive", "url": "/superset/dashboard/12/"},
         ),
         (
             builtin._edit_dashboard,
             "superset.commands.dashboard.update.UpdateDashboardCommand",
             {"dashboard_id": 12, "data": {"dashboard_title": "Board"}},
-            SimpleNamespace(id=12, dashboard_title="Board"),
-            {"id": 12, "title": "Board"},
+            SimpleNamespace(id=12, dashboard_title="Board", url="/superset/dashboard/12/"),
+            {"id": 12, "title": "Board", "url": "/superset/dashboard/12/"},
         ),
     ],
 )
@@ -88,7 +88,7 @@ def test_write_command_handlers_return_safe_resource_summary(
 def test_create_dataset_validates_physical_table_before_creating(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    Command.result = SimpleNamespace(id=7, table_name="orders")
+    Command.result = SimpleNamespace(id=7, table_name="orders", url="/tablemodelview/edit/7")
     monkeypatch.setattr(
         "superset.commands.dataset.create.CreateDatasetCommand", Command
     )
@@ -101,7 +101,7 @@ def test_create_dataset_validates_physical_table_before_creating(
 
     assert builtin._create_dataset(
         {"database": 1, "table_name": "orders", "schema": "public"}
-    ) == {"id": 7, "name": "orders"}
+    ) == {"id": 7, "name": "orders", "url": "/tablemodelview/edit/7"}
     assert validated == [
         {"database_id": 1, "table_name": "orders", "schema": "public", "catalog": None}
     ]
@@ -110,7 +110,9 @@ def test_create_dataset_validates_physical_table_before_creating(
 def test_create_dataset_uses_owned_saved_query_for_virtual_dataset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    Command.result = SimpleNamespace(id=8, table_name="monthly_sales")
+    Command.result = SimpleNamespace(
+        id=8, table_name="monthly_sales", url="/tablemodelview/edit/8"
+    )
     monkeypatch.setattr(
         "superset.commands.dataset.create.CreateDatasetCommand", Command
     )
@@ -127,7 +129,7 @@ def test_create_dataset_uses_owned_saved_query_for_virtual_dataset(
 
     assert builtin._create_dataset(
         {"saved_query_id": 4, "table_name": "monthly_sales"}
-    ) == {"id": 8, "name": "monthly_sales"}
+    ) == {"id": 8, "name": "monthly_sales", "url": "/tablemodelview/edit/8"}
     assert Command.payload == (
         {
             "table_name": "monthly_sales",
