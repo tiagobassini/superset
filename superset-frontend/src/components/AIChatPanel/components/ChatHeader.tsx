@@ -34,14 +34,22 @@ const Controls = styled.div`
 `;
 
 export interface ChatHeaderProps {
-  onClose: () => void;
   onMinimize: () => void;
+  onClearChat: () => void;
 }
 
-export const ChatHeader = ({ onClose, onMinimize }: ChatHeaderProps) => (
+export const ChatHeader = ({ onMinimize, onClearChat }: ChatHeaderProps) => (
   <Header>
     Assistente de IA
     <Controls>
+      <Button
+        buttonSize="xsmall"
+        buttonStyle="tertiary"
+        onClick={onClearChat}
+        aria-label="Limpar conversa com assistente de IA"
+      >
+        Limpar
+      </Button>
       <Button
         buttonSize="xsmall"
         buttonStyle="tertiary"
@@ -49,14 +57,6 @@ export const ChatHeader = ({ onClose, onMinimize }: ChatHeaderProps) => (
         aria-label="Minimizar assistente de IA"
       >
         −
-      </Button>
-      <Button
-        buttonSize="xsmall"
-        buttonStyle="tertiary"
-        onClick={onClose}
-        aria-label="Fechar assistente de IA"
-      >
-        ×
       </Button>
     </Controls>
   </Header>

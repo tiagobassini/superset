@@ -26,6 +26,8 @@ jest.mock('./hooks/useAgents', () => ({
   useAgents: () => ({ agents: [] }),
 }));
 
+const mockClearChatHistory = jest.fn();
+
 jest.mock('./hooks/useAIChat', () => ({
   useAIChat: () => ({
     messages: [],
@@ -33,7 +35,7 @@ jest.mock('./hooks/useAIChat', () => ({
     sendMessage: jest.fn(),
     confirmAction: jest.fn(),
     cancelAction: jest.fn(),
-    clearChatHistory: jest.fn(),
+    clearChatHistory: mockClearChatHistory,
   }),
 }));
 
@@ -83,4 +85,27 @@ test('focuses the message input after opening the panel', () => {
   expect(
     screen.getByRole('textbox', { name: 'Mensagem para IA' }),
   ).toHaveFocus();
+});
+
+test('keeps a single minimize button and confirms before clearing the chat', () => {
+  renderPanel(true);
+
+  expect(
+    screen.getAllByRole('button', { name: 'Minimizar assistente de IA' }),
+  ).toHaveLength(1);
+
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Limpar conversa com assistente de IA',
+    }),
+  );
+
+  expect(
+    screen.getByText('Todas as mensagens desta conversa serão apagadas.'),
+  ).toBeInTheDocument();
+  expect(mockClearChatHistory).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Limpar conversa' }));
+
+  expect(mockClearChatHistory).toHaveBeenCalledTimes(1);
 });

@@ -21,7 +21,7 @@ import { ChatInput } from './ChatInput';
 
 test('sends a trimmed message with Ctrl+Enter and clears the input', () => {
   const onSend = jest.fn();
-  render(<ChatInput onClear={jest.fn()} onSend={onSend} />);
+  render(<ChatInput onSend={onSend} />);
   const input = screen.getByRole('textbox', { name: 'Mensagem para IA' });
 
   fireEvent.change(input, { target: { value: '  Criar gráfico  ' } });
@@ -31,20 +31,8 @@ test('sends a trimmed message with Ctrl+Enter and clears the input', () => {
   expect(input).toHaveValue('');
 });
 
-test('clears both the input and persisted chat history on user request', () => {
-  const onClear = jest.fn();
-  render(<ChatInput onClear={onClear} onSend={jest.fn()} />);
-  const input = screen.getByRole('textbox', { name: 'Mensagem para IA' });
-
-  fireEvent.change(input, { target: { value: 'Mensagem' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Limpar' }));
-
-  expect(onClear).toHaveBeenCalledTimes(1);
-  expect(input).toHaveValue('');
-});
-
 test('moves focus to the textarea when requested by the chat panel', () => {
-  render(<ChatInput autoFocus onClear={jest.fn()} onSend={jest.fn()} />);
+  render(<ChatInput autoFocus onSend={jest.fn()} />);
 
   expect(
     screen.getByRole('textbox', { name: 'Mensagem para IA' }),

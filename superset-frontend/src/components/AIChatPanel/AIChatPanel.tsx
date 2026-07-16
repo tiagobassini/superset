@@ -30,6 +30,7 @@ import { ChatInput } from './components/ChatInput';
 import { useAgents } from './hooks/useAgents';
 import { useAIChat } from './hooks/useAIChat';
 import { AI_CHAT_MOBILE_BREAKPOINT, AI_CHAT_PANEL_WIDTH } from './layout';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
 /**
  * AIChatPanel — Floating AI assistant sidebar.
@@ -90,7 +91,18 @@ const AIChatPanel: FC = () => {
     cancelAction,
     clearChatHistory,
   } = useAIChat();
+  const { showConfirm, ConfirmModal } = useConfirmModal();
   const closePanel = useCallback(() => dispatch(setOpen(false)), [dispatch]);
+  const requestClearChatHistory = useCallback(() => {
+    showConfirm({
+      title: 'Limpar conversa?',
+      body: 'Todas as mensagens desta conversa serão apagadas.',
+      confirmText: 'Limpar conversa',
+      cancelText: 'Cancelar',
+      confirmButtonStyle: 'danger',
+      onConfirm: clearChatHistory,
+    });
+  }, [clearChatHistory, showConfirm]);
   const selectedAgent = agents.find(
     agent => agent.id === state.selectedAgentId,
   );
@@ -131,7 +143,10 @@ const AIChatPanel: FC = () => {
         }
       }}
     >
-      <ChatHeader onClose={closePanel} onMinimize={closePanel} />
+      <ChatHeader
+        onClearChat={requestClearChatHistory}
+        onMinimize={closePanel}
+      />
       <ModelSelector
         agents={agents}
         value={state.selectedAgentId}
@@ -149,12 +164,8 @@ const AIChatPanel: FC = () => {
         onCancelAction={cancelAction}
       />
       <ContextBadge context={state.currentContext} />
-      <ChatInput
-        autoFocus
-        disabled={isLoading}
-        onClear={clearChatHistory}
-        onSend={sendMessage}
-      />
+      <ChatInput autoFocus disabled={isLoading} onSend={sendMessage} />
+      {ConfirmModal}
     </Sidebar>
   );
 };

@@ -27,14 +27,13 @@ const Container = styled.div`
 
 const Controls = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 export interface ChatInputProps {
   autoFocus?: boolean;
   disabled?: boolean;
-  onClear: () => void;
   onSend: (text: string) => void;
 }
 
@@ -42,7 +41,6 @@ export interface ChatInputProps {
 export const ChatInput = ({
   autoFocus = false,
   disabled = false,
-  onClear,
   onSend,
 }: ChatInputProps) => {
   const [text, setText] = useState('');
@@ -71,17 +69,6 @@ export const ChatInput = ({
         value={text}
       />
       <Controls>
-        <Button
-          buttonSize="small"
-          buttonStyle="tertiary"
-          disabled={!text || disabled}
-          onClick={() => {
-            setText('');
-            onClear();
-          }}
-        >
-          Limpar
-        </Button>
         <Button
           buttonSize="small"
           disabled={!text.trim() || disabled}

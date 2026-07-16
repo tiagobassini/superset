@@ -229,8 +229,10 @@ export const useAIChat = () => {
         typeof action.params.task_id === 'string'
           ? action.params.task_id
           : undefined;
-      const parentMessage = messages.find(message =>
-        message.pendingActions?.some(pending => pending.id === action.id),
+      const parentMessage = messages.find((message: ChatMessage) =>
+        message.pendingActions?.some(
+          (pending: PendingAction) => pending.id === action.id,
+        ),
       );
       dispatch(updatePendingAction({ ...action, status: 'confirmed' }));
       try {
