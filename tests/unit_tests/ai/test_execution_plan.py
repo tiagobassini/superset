@@ -20,8 +20,14 @@ from types import SimpleNamespace
 
 import pytest
 
+from superset.ai.analytics_execution import (
+    AnalyticsPlanValidationError,
+    DeterministicAnalyticsPlanner,
+)
 from superset.ai.chart_spec import ChartSpecification
+from superset.ai.discovery import DiscoveryCandidate
 from superset.ai.execution_plan import ExecutionPlanService, PlannedAction
+from superset.ai.planner import AnalyticsGoal, AnalyticsIntent
 from superset.ai.tools.base import AITool, ToolResult
 from superset.ai.tools.registry import ToolRegistry
 
@@ -59,10 +65,134 @@ class WriteTool(AITool):
         self.name = name
         self.result = result
         self.calls = 0
+        self.params: list[dict[str, object]] = []
 
     def execute(self, user, params):
         self.calls += 1
+        self.params.append(params)
         return self.result
+
+
+def _dataset_source(columns: tuple[tuple[str, str], ...]) -> DiscoveryCandidate:
+    return DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=7,
+        name="international_sales",
+        database_id=1,
+        database_name="Examples",
+        schema="public",
+        columns=columns,
+        source_key="source:1:public:international_sales",
+    )
+
+
+def test_deterministic_planner_builds_valid_chart_plan_from_verified_dataset() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.CREATE_CHART,
+        topic="vendas",
+        metric="count",
+        time_grain="year",
+    )
+
+    plan = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    ).build(
+        _dataset_source(
+            (("order_date", "DATE"), ("sale_id", "INTEGER"), ("amount", "NUMERIC"))
+        ),
+        intent,
+    )
+
+    assert plan.execution_plan.user_id == 4
+    assert plan.execution_plan.actions[0].tool_name == "create_chart"
+    assert plan.chart_specification.datasource_id == 7
+    assert plan.chart_specification.time_column == "order_date"
+    assert plan.chart_specification.metric == "COUNT(*)"
+    assert "Nenhum recurso foi criado" in plan.to_chat_text()
+
+
+def test_deterministic_planner_rejects_annual_chart_without_verified_time() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.CREATE_CHART,
+        topic="vendas",
+        metric="count",
+        time_grain="year",
+    )
+
+    with pytest.raises(AnalyticsPlanValidationError, match="temporal"):
+        DeterministicAnalyticsPlanner(
+            registry, SimpleNamespace(id=4), "agent-1"
+        ).build(_dataset_source((("amount", "NUMERIC"),)), intent)
+
+
+def test_deterministic_planner_reuses_dashboard_with_dependent_publish_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    for name in ("create_chart", "add_chart_to_dashboard"):
+        registry.register(WriteTool(name, ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.PUBLISH_CHART,
+        topic="vendas",
+        target_dashboard="CBMES",
+        metric="count",
+        time_grain="year",
+    )
+    planner = DeterministicAnalyticsPlanner(registry, SimpleNamespace(id=4), "agent-1")
+    monkeypatch.setattr(planner, "_find_dashboard_id", lambda _: 9)
+
+    plan = planner.build(
+        _dataset_source((("order_date", "DATE"), ("amount", "NUMERIC"))), intent
+    )
+
+    assert [action.tool_name for action in plan.execution_plan.actions] == [
+        "create_chart",
+        "add_chart_to_dashboard",
+    ]
+    assert plan.execution_plan.actions[1].params == {
+        "chart_id": {"$ref": "actions.0.id"},
+        "dashboard_id": 9,
+    }
+
+
+def test_execution_plan_resolves_a_prior_action_id_before_execution() -> None:
+    registry = ToolRegistry()
+    chart = WriteTool("create_chart", ToolResult(True, {"id": 12}))
+    publish = WriteTool("add_chart_to_dashboard", ToolResult(True, {"id": 9}))
+    registry.register(chart)
+    registry.register(publish)
+    service = ExecutionPlanService(
+        registry, SimpleNamespace(id=4), "agent-1", Cache()
+    )
+    plan = service.create(
+        [
+            PlannedAction(
+                "create_chart",
+                {
+                    "chart_spec": {
+                        "datasource_id": 7,
+                        "datasource_type": "table",
+                        "chart_title": "Vendas por ano",
+                        "viz_type": "echarts_timeseries_bar",
+                        "time_column": "order_date",
+                        "metric": "COUNT(*)",
+                    }
+                },
+            ),
+            PlannedAction(
+                "add_chart_to_dashboard",
+                {"chart_id": {"$ref": "actions.0.id"}, "dashboard_id": 9},
+            ),
+        ]
+    )
+
+    service.confirm_and_execute(plan.id)
+
+    assert publish.params == [{"chart_id": 12, "dashboard_id": 9}]
 
 
 def test_chart_spec_requires_source_time_and_metric_and_builds_payload() -> None:

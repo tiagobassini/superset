@@ -23,6 +23,10 @@ from dataclasses import asdict, dataclass
 from typing import Any
 from uuid import uuid4
 
+from superset.ai.analytics_execution import (
+    AnalyticsPlanValidationError,
+    DeterministicAnalyticsPlanner,
+)
 from superset.ai.crypto import decrypt_api_key
 from superset.ai.discovery import (
     AnalyticsDiscoveryService,
@@ -32,7 +36,7 @@ from superset.ai.discovery import (
 )
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.models import AIAgent, get_ai_global_settings
-from superset.ai.planner import AnalyticsTaskPlanner
+from superset.ai.planner import AnalyticsGoal, AnalyticsIntent, AnalyticsTaskPlanner
 from superset.ai.providers import (
     AnthropicProviderAdapter,
     OllamaProviderAdapter,
@@ -149,6 +153,9 @@ class AIOrchestrator:
                 original_message,
                 prompt_language=getattr(self.agent, "response_language", "pt-BR"),
             )
+            selected_source = DiscoveryCandidate.from_dict(selected_candidate)
+            if self._requires_deterministic_execution_plan(plan.intent):
+                return self._build_deterministic_plan(selected_source, plan.intent)
             messages = [
                 messages[0],
                 *self._compact_history(history),
@@ -181,6 +188,11 @@ class AIOrchestrator:
                     ),
                     pending_actions,
                 )
+            should_build_plan = decision.selected is not None and (
+                self._requires_deterministic_execution_plan(plan.intent)
+            )
+            if should_build_plan:
+                return self._build_deterministic_plan(decision.selected, plan.intent)
             if decision.selected is not None:
                 messages.insert(
                     1,
@@ -246,6 +258,32 @@ class AIOrchestrator:
             if pending_actions:
                 return OrchestratorResult(response.content, pending_actions)
         raise AIProviderError("AI provider exceeded the maximum number of tool calls")
+
+    def _build_deterministic_plan(
+        self, source: DiscoveryCandidate, intent: AnalyticsIntent
+    ) -> OrchestratorResult:
+        """Stop before writes and present a backend-validated analytics plan."""
+        try:
+            plan = DeterministicAnalyticsPlanner(
+                self.registry, self.user, str(self.agent.id)
+            ).build(source, intent)
+        except AnalyticsPlanValidationError as ex:
+            return OrchestratorResult(
+                "Não foi possível gerar um plano seguro com a fonte selecionada: "
+                f"{ex}. Deseja escolher outra fonte?",
+                [],
+            )
+        return OrchestratorResult(plan.to_chat_text(), [])
+
+    @staticmethod
+    def _requires_deterministic_execution_plan(intent: AnalyticsIntent) -> bool:
+        """Reserve structured execution planning for requests that create output."""
+        return intent.goal in {
+            AnalyticsGoal.CREATE_CHART,
+            AnalyticsGoal.PUBLISH_CHART,
+            AnalyticsGoal.CREATE_DATASET,
+            AnalyticsGoal.CREATE_DASHBOARD,
+        }
 
     def _requires_confirmation(self, tool_name: str) -> bool:
         """Allow SQL auto-execution only for explicitly configured roles."""

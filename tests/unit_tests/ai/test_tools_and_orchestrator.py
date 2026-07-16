@@ -128,6 +128,14 @@ def _patch_discovery(
     return calls
 
 
+def _planning_registry() -> ToolRegistry:
+    registry = ToolRegistry()
+    chart_tool = StubTool(requires_confirmation=True)
+    chart_tool.name = "create_chart"
+    registry.register(chart_tool)
+    return registry
+
+
 def test_orchestrator_proposes_concrete_sources_when_discovery_is_ambiguous(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -144,7 +152,9 @@ def test_orchestrator_proposes_concrete_sources_when_discovery_is_ambiguous(
     agent = SimpleNamespace(
         id="agent-1", provider="openai", model="test", api_key_encrypted=None
     )
-    orchestrator = AIOrchestrator(agent, ToolRegistry(), SimpleNamespace(id=42), cache)
+    orchestrator = AIOrchestrator(
+        agent, _planning_registry(), SimpleNamespace(id=42), cache
+    )
 
     result = orchestrator.chat(
         "Crie um gráfico de vendas por ano", [], {"page": "home"}
@@ -165,9 +175,7 @@ def test_orchestrator_resumes_ambiguous_discovery_by_index_without_researching(
         _discovery_candidate("sales_history", 36, 12),
     )
     discovery_calls = _patch_discovery(monkeypatch, candidates)
-    provider = StubProvider(
-        [ProviderResponse("Vou continuar com a fonte selecionada.")]
-    )
+    provider = StubProvider([])
     monkeypatch.setattr(
         AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
     )
@@ -175,14 +183,17 @@ def test_orchestrator_resumes_ambiguous_discovery_by_index_without_researching(
     agent = SimpleNamespace(
         id="agent-1", provider="openai", model="test", api_key_encrypted=None
     )
-    orchestrator = AIOrchestrator(agent, ToolRegistry(), SimpleNamespace(id=42), cache)
+    orchestrator = AIOrchestrator(
+        agent, _planning_registry(), SimpleNamespace(id=42), cache
+    )
 
     orchestrator.chat("Crie um gráfico de vendas por ano", [], {"page": "home"})
     result = orchestrator.chat("2", [], {"page": "home"})
 
     assert len(discovery_calls) == 1
-    assert result.response == "Vou continuar com a fonte selecionada."
-    assert "sales_history" in provider.messages[0][1]["content"]
+    assert "Plano de análise pronto" in result.response
+    assert "sales_history" in result.response
+    assert provider.messages == []
     assert cache.get(orchestrator._discovery_selection_key()) is None
 
 
@@ -227,7 +238,7 @@ def test_orchestrator_uses_a_clear_discovery_winner_without_question(
             _discovery_candidate("sales_history", 30, 12),
         ),
     )
-    provider = StubProvider([ProviderResponse("Fonte analisada.")])
+    provider = StubProvider([])
     monkeypatch.setattr(
         AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
     )
@@ -236,14 +247,15 @@ def test_orchestrator_uses_a_clear_discovery_winner_without_question(
     )
 
     orchestrator = AIOrchestrator(
-        agent, ToolRegistry(), SimpleNamespace(id=42), StubCache()
+        agent, _planning_registry(), SimpleNamespace(id=42), StubCache()
     )
     result = orchestrator.chat(
         "Crie um gráfico de vendas por ano", [], {"page": "home"}
     )
 
-    assert result.response == "Fonte analisada."
-    assert "selected automatically" in provider.messages[0][1]["content"]
+    assert "Plano de análise pronto" in result.response
+    assert "international_sales" in result.response
+    assert provider.messages == []
 
 
 def test_orchestrator_explains_when_discovery_finds_no_source(

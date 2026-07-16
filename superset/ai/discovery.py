@@ -121,6 +121,31 @@ class DiscoveryCandidate:
             "reasons": list(self.reasons),
         }
 
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "DiscoveryCandidate":
+        """Restore a candidate previously stored in the short-lived chat cache."""
+        columns = tuple(
+            (str(column.get("name", "")), str(column.get("type", "UNKNOWN")))
+            for column in value.get("columns", [])
+            if isinstance(column, Mapping) and column.get("name")
+        )
+        return cls(
+            resource_type=str(value["type"]),
+            resource_id=value.get("id"),
+            name=str(value["name"]),
+            database_id=value.get("database_id"),
+            database_name=value.get("database"),
+            schema=value.get("schema"),
+            columns=columns,
+            source_key=(
+                f"cached:{value.get('type')}:{value.get('database_id')}:"
+                f"{value.get('id')}:{value.get('name')}"
+            ),
+            related_names=tuple(str(name) for name in value.get("related_sources", [])),
+            score=int(value.get("score", 0)),
+            reasons=tuple(str(reason) for reason in value.get("reasons", [])),
+        )
+
 
 @dataclass(frozen=True)
 class DiscoveryResult:

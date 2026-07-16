@@ -325,12 +325,12 @@ Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomou
 - [x] Criar testes unitários e E2E para seleção automática, ambiguidade e nenhuma fonte encontrada.
 
 ### 7.4 Planejamento determinístico de ponta a ponta
-- [ ] Fazer o backend transformar a fonte escolhida e a intenção em um `AIExecutionPlan` validado, sem delegar ao modelo a montagem de payloads do Superset.
-- [ ] Planejar leituras, perfil agregado, criação/reuso de dataset, especificação de chart, criação/reuso de dashboard e publicação conforme necessário.
-- [ ] Gerar especificação de chart a partir das colunas efetivamente verificadas e validar datasource, métrica, dimensão temporal, viz type e destino antes de exibir confirmação.
-- [ ] Permitir que o Ollama auxilie na interpretação, priorização e narrativa, mas impedir respostas textuais que substituam chamadas/etapas estruturadas do plano.
-- [ ] Exibir um único plano legível com fontes, achados, recursos a criar/editar e efeitos esperados; nenhuma escrita é iniciada antes da aprovação explícita.
-- [ ] Testar o pedido genérico “elabore um gráfico em barras das vendas por ano” até a apresentação do plano, sem exigir nome de tabela na primeira interação.
+- [x] Fazer o backend transformar a fonte escolhida e a intenção em um `AIExecutionPlan` validado, sem delegar ao modelo a montagem de payloads do Superset.
+- [x] Planejar leituras, perfil agregado, criação/reuso de dataset, especificação de chart, criação/reuso de dashboard e publicação conforme necessário.
+- [x] Gerar especificação de chart a partir das colunas efetivamente verificadas e validar datasource, métrica, dimensão temporal, viz type e destino antes de exibir confirmação.
+- [x] Permitir que o Ollama auxilie na interpretação, priorização e narrativa, mas impedir respostas textuais que substituam chamadas/etapas estruturadas do plano.
+- [x] Exibir um único plano legível com fontes, achados, recursos a criar/editar e efeitos esperados; nenhuma escrita é iniciada antes da aprovação explícita.
+- [x] Testar o pedido genérico “elabore um gráfico em barras das vendas por ano” até a apresentação do plano, sem exigir nome de tabela na primeira interação.
 
 ### 7.5 Aprovação única, execução e retorno ao chat
 - [ ] Fazer a confirmação aprovar o plano imutável completo, e não apenas uma ação isolada, com opção de cancelar antes da execução.

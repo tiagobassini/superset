@@ -51,7 +51,9 @@ class AIExecutionPlan:
 class ExecutionPlanService:
     """Persist, validate and execute a plan exactly once through registered tools."""
 
-    def __init__(self, registry: ToolRegistry, user: Any, agent_id: str, cache: Any) -> None:
+    def __init__(
+        self, registry: ToolRegistry, user: Any, agent_id: str, cache: Any
+    ) -> None:
         self.registry = registry
         self.user = user
         self.agent_id = agent_id
@@ -63,8 +65,15 @@ class ExecutionPlanService:
             raise ValueError("An execution plan requires at least one action")
         for action in actions:
             self._validate(action)
-        plan = AIExecutionPlan(str(uuid4()), self.user.id, self.agent_id, tuple(actions))
-        self.cache.set(self._key(plan.id), {"plan": asdict(plan), "status": "pending"}, timeout=PLAN_TTL)
+        self._validate_references(actions)
+        plan = AIExecutionPlan(
+            str(uuid4()), self.user.id, self.agent_id, tuple(actions)
+        )
+        self.cache.set(
+            self._key(plan.id),
+            {"plan": asdict(plan), "status": "pending"},
+            timeout=PLAN_TTL,
+        )
         return plan
 
     def confirm_and_execute(self, plan_id: str) -> list[ToolResult]:
@@ -74,7 +83,9 @@ class ExecutionPlanService:
             raise AIActionExpiredError("AI execution plan was not found or has expired")
         plan = record["plan"]
         if plan["user_id"] != self.user.id or plan["agent_id"] != self.agent_id:
-            raise AIActionExpiredError("AI execution plan does not belong to this user or agent")
+            raise AIActionExpiredError(
+                "AI execution plan does not belong to this user or agent"
+            )
         if record["status"] == "executed":
             return [ToolResult(**result) for result in record["results"]]
         if record["status"] != "pending":
@@ -88,17 +99,38 @@ class ExecutionPlanService:
         try:
             for item in plan["actions"]:
                 action = PlannedAction(item["tool_name"], item["params"])
-                self._validate(action)
+                resolved_action = PlannedAction(
+                    action.tool_name, self._resolve_references(action.params, results)
+                )
+                self._validate(resolved_action)
                 tool = self.registry.get(action.tool_name)
                 assert tool is not None
                 if tool not in self.registry.tools_for_user(self.user):
-                    raise AIActionExpiredError("AI execution plan is no longer authorized")
-                result = tool.execute(self.user, action.params)
+                    raise AIActionExpiredError(
+                        "AI execution plan is no longer authorized"
+                    )
+                result = tool.execute(self.user, resolved_action.params)
                 results.append(result)
                 if not result.success:
-                    self.cache.set(self._key(plan_id), {"plan": plan, "status": "failed", "results": [asdict(value) for value in results]}, timeout=PLAN_TTL)
+                    self.cache.set(
+                        self._key(plan_id),
+                        {
+                            "plan": plan,
+                            "status": "failed",
+                            "results": [asdict(value) for value in results],
+                        },
+                        timeout=PLAN_TTL,
+                    )
                     return results
-            self.cache.set(self._key(plan_id), {"plan": plan, "status": "executed", "results": [asdict(value) for value in results]}, timeout=PLAN_TTL)
+            self.cache.set(
+                self._key(plan_id),
+                {
+                    "plan": plan,
+                    "status": "executed",
+                    "results": [asdict(value) for value in results],
+                },
+                timeout=PLAN_TTL,
+            )
             return results
         finally:
             self.cache.delete(self._lock_key(plan_id))
@@ -109,9 +141,65 @@ class ExecutionPlanService:
             raise ValueError(f"Invalid planned write action: {action.tool_name}")
         if action.tool_name == "create_chart" and "chart_spec" in action.params:
             ChartSpecification.from_dict(action.params["chart_spec"])
+        if self._contains_reference(action.params):
+            return
         validator = getattr(tool, "validate_params", lambda _: None)
         if error := validator(action.params):
             raise ValueError(error)
+
+    @classmethod
+    def _validate_references(cls, actions: list[PlannedAction]) -> None:
+        """Allow only backward references to an earlier action result id."""
+        for index, action in enumerate(actions):
+            for reference in cls._references(action.params):
+                parts = reference.split(".")
+                if (
+                    len(parts) != 3
+                    or parts[0] != "actions"
+                    or parts[2] != "id"
+                    or not parts[1].isdigit()
+                    or int(parts[1]) >= index
+                ):
+                    raise ValueError(f"Invalid planned action reference: {reference}")
+
+    @classmethod
+    def _resolve_references(
+        cls, value: Any, results: list[ToolResult]
+    ) -> Any:
+        if isinstance(value, dict) and set(value) == {"$ref"}:
+            parts = value["$ref"].split(".")
+            if len(parts) != 3 or not parts[1].isdigit():
+                raise ValueError("Invalid planned action reference")
+            result = results[int(parts[1])]
+            if not result.success or not isinstance(result.data, dict):
+                raise ValueError("Referenced planned action did not return an id")
+            return result.data[parts[2]]
+        if isinstance(value, dict):
+            return {
+                key: cls._resolve_references(item, results)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [cls._resolve_references(item, results) for item in value]
+        return value
+
+    @classmethod
+    def _references(cls, value: Any) -> list[str]:
+        if isinstance(value, dict) and set(value) == {"$ref"}:
+            return [str(value["$ref"])]
+        if isinstance(value, dict):
+            return [
+                reference
+                for item in value.values()
+                for reference in cls._references(item)
+            ]
+        if isinstance(value, list):
+            return [reference for item in value for reference in cls._references(item)]
+        return []
+
+    @classmethod
+    def _contains_reference(cls, value: Any) -> bool:
+        return bool(cls._references(value))
 
     def _key(self, plan_id: str) -> str:
         return f"ai_execution_plan:{self.user.id}:{plan_id}"
