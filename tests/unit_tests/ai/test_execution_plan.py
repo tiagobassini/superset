@@ -38,6 +38,15 @@ class Cache:
     def set(self, key: str, value: object, timeout: int) -> None:
         self.values[key] = value
 
+    def add(self, key: str, value: object, timeout: int) -> bool:
+        if key in self.values:
+            return False
+        self.values[key] = value
+        return True
+
+    def delete(self, key: str) -> None:
+        self.values.pop(key, None)
+
 
 class WriteTool(AITool):
     """A validated write operation with configurable deterministic result."""
@@ -111,3 +120,17 @@ def test_execution_plan_stops_after_first_failed_step() -> None:
     assert results == [ToolResult(False, None, "invalid table")]
     assert first.calls == 1
     assert second.calls == 0
+
+
+def test_execution_plan_revalidates_tool_access_and_rejects_active_duplicate() -> None:
+    registry = ToolRegistry()
+    tool = WriteTool("create_dataset", ToolResult(True, {"id": 1}))
+    registry.register(tool)
+    cache = Cache()
+    service = ExecutionPlanService(registry, SimpleNamespace(id=4), "agent-1", cache)
+    plan = service.create([PlannedAction("create_dataset", {"table_name": "sales"})])
+    cache.add(service._lock_key(plan.id), True, timeout=600)
+
+    with pytest.raises(Exception, match="already executing"):
+        service.confirm_and_execute(plan.id)
+    assert tool.calls == 0

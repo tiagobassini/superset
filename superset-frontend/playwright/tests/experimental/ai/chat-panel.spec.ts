@@ -29,8 +29,30 @@ test('sends a message and displays the AI assistant response', async ({
   await page.route('**/api/v1/ai/agents', route =>
     route.fulfill({ json: { result: [] } }),
   );
-  await page.route('**/api/v1/ai/chat', route =>
-    route.fulfill({ json: { response: 'Resposta de teste', pending_actions: [] } }),
+  await page.route('**/api/v1/ai/tasks', route =>
+    route.fulfill({
+      status: 202,
+      json: {
+        task_id: 'task-1',
+        status: 'planning',
+        events: [
+          { sequence: 1, state: 'planning', message: 'Planejando a análise.' },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/v1/ai/tasks/task-1?**', route =>
+    route.fulfill({
+      json: {
+        task_id: 'task-1',
+        status: 'completed',
+        response: 'Resposta de teste',
+        pending_actions: [],
+        events: [
+          { sequence: 2, state: 'completed', message: 'Análise concluída.' },
+        ],
+      },
+    }),
   );
   const authPage = new AuthPage(page);
   await authPage.goto();

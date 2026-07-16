@@ -79,27 +79,29 @@ class ExecutionPlanService:
             return [ToolResult(**result) for result in record["results"]]
         if record["status"] != "pending":
             raise AIActionExpiredError("AI execution plan cannot be executed")
+        if not self.cache.add(self._lock_key(plan_id), True, timeout=PLAN_TTL):
+            latest = self.cache.get(self._key(plan_id))
+            if latest and latest["status"] == "executed":
+                return [ToolResult(**result) for result in latest["results"]]
+            raise AIActionExpiredError("AI execution plan is already executing")
         results: list[ToolResult] = []
-        for item in plan["actions"]:
-            action = PlannedAction(item["tool_name"], item["params"])
-            self._validate(action)
-            tool = self.registry.get(action.tool_name)
-            assert tool is not None
-            result = tool.execute(self.user, action.params)
-            results.append(result)
-            if not result.success:
-                self.cache.set(
-                    self._key(plan_id),
-                    {"plan": plan, "status": "failed", "results": [asdict(value) for value in results]},
-                    timeout=PLAN_TTL,
-                )
-                return results
-        self.cache.set(
-            self._key(plan_id),
-            {"plan": plan, "status": "executed", "results": [asdict(value) for value in results]},
-            timeout=PLAN_TTL,
-        )
-        return results
+        try:
+            for item in plan["actions"]:
+                action = PlannedAction(item["tool_name"], item["params"])
+                self._validate(action)
+                tool = self.registry.get(action.tool_name)
+                assert tool is not None
+                if tool not in self.registry.tools_for_user(self.user):
+                    raise AIActionExpiredError("AI execution plan is no longer authorized")
+                result = tool.execute(self.user, action.params)
+                results.append(result)
+                if not result.success:
+                    self.cache.set(self._key(plan_id), {"plan": plan, "status": "failed", "results": [asdict(value) for value in results]}, timeout=PLAN_TTL)
+                    return results
+            self.cache.set(self._key(plan_id), {"plan": plan, "status": "executed", "results": [asdict(value) for value in results]}, timeout=PLAN_TTL)
+            return results
+        finally:
+            self.cache.delete(self._lock_key(plan_id))
 
     def _validate(self, action: PlannedAction) -> None:
         tool = self.registry.get(action.tool_name)
@@ -113,3 +115,6 @@ class ExecutionPlanService:
 
     def _key(self, plan_id: str) -> str:
         return f"ai_execution_plan:{self.user.id}:{plan_id}"
+
+    def _lock_key(self, plan_id: str) -> str:
+        return f"{self._key(plan_id)}:lock"

@@ -20,12 +20,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from flask import current_app
+from superset.ai.audit import audit_task
 from superset.ai.exceptions import AIProviderError
 from superset.ai.models import AIAgent
 from superset.ai.orchestrator import AIOrchestrator
 from superset.ai.task_progress import AITaskProgress
 from superset.ai.tools.registry import create_default_registry
 from superset.extensions import cache_manager, celery_app, db, security_manager
+from superset.utils.core import override_user
 
 
 @celery_app.task(name="ai.run_task")
@@ -38,19 +41,38 @@ def run_ai_task(
     user = security_manager.get_user_by_id(user_id)
     if agent is None or user is None or not agent.is_active:
         progress.emit(task_id, "failed", "O agente não está mais disponível.", "access")
+        audit_task("ai_task_blocked", user_id, task_id, agent_id)
         return
     allowed_roles = {role.id for role in agent.allowed_roles}
     user_roles = {role.id for role in user.roles}
     if allowed_roles and not allowed_roles.intersection(user_roles):
         progress.emit(task_id, "failed", "Você não tem acesso a este agente.", "access")
+        audit_task("ai_task_blocked", user_id, task_id, agent_id)
         return
     progress.emit(task_id, "discovering", "Procurando fontes de dados acessíveis.", "discovery")
     progress.emit(task_id, "analyzing", "Analisando as fontes encontradas.", "analysis")
     try:
-        result = AIOrchestrator(agent, create_default_registry(), user).chat(
-            payload["message"], payload.get("history", []), payload.get("context", {})
-        )
+        # Tool permissions use ``g.user``; Celery has an app context but no
+        # request context unless it is explicitly established here.
+        with current_app.test_request_context():
+            with override_user(user):
+                result = AIOrchestrator(agent, create_default_registry(), user).chat(
+                    payload["message"],
+                    payload.get("history", []),
+                    payload.get("context", {}),
+                )
     except AIProviderError:
         progress.emit(task_id, "failed", "Não foi possível obter uma resposta da IA.", "provider")
+        audit_task("ai_task_failed", user_id, task_id, agent_id)
+        return
+    except Exception:  # pylint: disable=broad-except
+        progress.emit(
+            task_id,
+            "failed",
+            "Não foi possível concluir a tarefa da IA.",
+            "execution",
+        )
+        audit_task("ai_task_failed", user_id, task_id, agent_id)
         return
     progress.complete(task_id, result)
+    audit_task("ai_task_completed", user_id, task_id, agent_id)

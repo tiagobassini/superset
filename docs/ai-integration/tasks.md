@@ -1,6 +1,6 @@
 # Tarefas de Desenvolvimento — AI Integration Plugin
 
-> Referência: [overview.md](./overview.md) | [frontend-chat-sidebar.md](./frontend-chat-sidebar.md) | [backend-api-tools.md](./backend-api-tools.md) | [settings-agents-page.md](./settings-agents-page.md) | [security-permissions.md](./security-permissions.md)
+> Referência: [overview.md](./overview.md) | [frontend-chat-sidebar.md](./frontend-chat-sidebar.md) | [backend-api-tools.md](./backend-api-tools.md) | [settings-agents-page.md](./settings-agents-page.md) | [security-permissions.md](./security-permissions.md) | [autonomous-analytics-workflows.md](./autonomous-analytics-workflows.md) | [multilingual-autonomous-discovery.md](./multilingual-autonomous-discovery.md)
 
 ---
 
@@ -279,12 +279,76 @@ Especificação: [`autonomous-analytics-workflows.md`](autonomous-analytics-work
 - [x] Exibir resumo final com achados, recursos criados e links
 
 ### 6.5 Segurança, Auditoria e Testes
-- [ ] Revalidar permissões antes de cada etapa de escrita e isolar tarefas por usuário/agente
-- [ ] Expirar planos pendentes e impedir confirmações/executações duplicadas
-- [ ] Auditar criação, confirmação, cancelamento, bloqueio, conclusão e falha de tarefas
-- [ ] Testes unitários de planejamento, descoberta, validação e estados
-- [ ] Testes de integração de SSE/polling, expiração, autorização e reconexão
-- [ ] Testes E2E do fluxo completo e de falhas intermediárias
+- [x] Revalidar permissões antes de cada etapa de escrita e isolar tarefas por usuário/agente
+- [x] Expirar planos pendentes e impedir confirmações/executações duplicadas
+- [x] Auditar criação, confirmação, cancelamento, bloqueio, conclusão e falha de tarefas
+- [x] Testes unitários de planejamento, descoberta, validação e estados
+- [x] Testes de integração de SSE/polling, expiração, autorização e reconexão
+- [x] Testes E2E do fluxo completo e de falhas intermediárias
+
+---
+
+## Fase 7 — Descoberta Multilíngue e Planos Analíticos Autônomos
+
+Especificação: [`multilingual-autonomous-discovery.md`](multilingual-autonomous-discovery.md).
+
+> Esta fase corrige a lacuna observada no primeiro prompt do chat: para um
+> pedido como “elabore um gráfico em barras das vendas por ano”, o assistente
+> deve pesquisar as fontes acessíveis antes de pedir o nome de uma tabela.
+> Nenhum nome ou conteúdo armazenado no banco será alterado.
+
+### 7.1 Normalização e expansão multilíngue do tema
+- [ ] Criar um contrato tipado de `DiscoveryQuery` com tema, idioma do prompt, sinônimos e termos expandidos.
+- [ ] Normalizar texto somente em memória: caixa, acentos, pontuação, separadores (`_`, `-`, espaço), singular/plural e tokens compostos.
+- [ ] Expandir o tema entre pt-BR, en-US, es-ES e fr-FR, sem traduzir ou modificar nomes persistidos de bancos, tabelas, datasets ou consultas salvas.
+- [ ] Combinar dicionário versionado de termos analíticos comuns (por exemplo, `vendas` ↔ `sales` ↔ `ventas` ↔ `ventes`) com expansão semântica limitada do provedor.
+- [ ] Limitar tamanho, quantidade de termos e tempo da expansão; falhas do provedor devem degradar para a busca lexical local.
+- [ ] Testar normalização e equivalências entre os quatro idiomas, incluindo nomes como `international_sales`, `vendas-internacionais`, `ventes_annuelles` e `ventas por año`.
+
+### 7.2 Índice de descoberta seguro e pontuação de fontes
+- [ ] Criar serviço de descoberta que pesquise, sob as permissões do usuário, bancos, tabelas, datasets e saved queries.
+- [ ] Pesquisar nomes, descrições, schemas/colunas permitidos e metadados seguros, inclusive quando o nome da fonte não tiver relação com o tema solicitado.
+- [ ] Pontuar correspondências encontradas em colunas de tabelas/datasets e em colunas inferidas do retorno de saved queries, sem depender da correspondência no nome da fonte.
+- [ ] Para saved queries, analisar o SQL já autorizado e/ou schema de resultado limitado para obter aliases, tabelas de origem e colunas; nunca enviar dados brutos, credenciais ou SQL sensível ao modelo.
+- [ ] Aplicar ranking determinístico por correspondência exata, normalizada, sinônimos multilíngues, compatibilidade de schema e contexto da página.
+- [ ] Identificar em cada candidato colunas adequadas para tempo, métrica, dimensão e identificador antes de propor um gráfico.
+- [ ] Deduplicar recursos que representam a mesma fonte e registrar a justificativa/rastreabilidade da pontuação.
+- [ ] Manter RBAC, permissões de datasource, RLS e escopo de saved queries em todas as buscas e perfis.
+- [ ] Testar ranking, isolamento entre usuários e ausência de vazamento de recursos sem permissão.
+
+### 7.3 Resolução de ambiguidade e proposta ao usuário
+- [ ] Definir limiar de confiança e margem entre candidatos para seleção automática segura.
+- [ ] Quando houver uma fonte claramente superior, selecioná-la e informar resumidamente o motivo no plano.
+- [ ] Quando houver empate ou confiança insuficiente, apresentar até três candidatos com nome, tipo, banco, colunas relevantes e justificativa, pedindo que o usuário escolha.
+- [ ] Não perguntar “qual é a tabela?” antes de executar a descoberta; entrar em `awaiting_user_input` apenas após apresentar alternativas concretas ou constatar ausência de fontes.
+- [ ] Aceitar a escolha do usuário por nome, índice ou referência inequívoca e retomar o mesmo plano sem repetir a descoberta desnecessariamente.
+- [ ] Criar testes unitários e E2E para seleção automática, ambiguidade e nenhuma fonte encontrada.
+
+### 7.4 Planejamento determinístico de ponta a ponta
+- [ ] Fazer o backend transformar a fonte escolhida e a intenção em um `AIExecutionPlan` validado, sem delegar ao modelo a montagem de payloads do Superset.
+- [ ] Planejar leituras, perfil agregado, criação/reuso de dataset, especificação de chart, criação/reuso de dashboard e publicação conforme necessário.
+- [ ] Gerar especificação de chart a partir das colunas efetivamente verificadas e validar datasource, métrica, dimensão temporal, viz type e destino antes de exibir confirmação.
+- [ ] Permitir que o Ollama auxilie na interpretação, priorização e narrativa, mas impedir respostas textuais que substituam chamadas/etapas estruturadas do plano.
+- [ ] Exibir um único plano legível com fontes, achados, recursos a criar/editar e efeitos esperados; nenhuma escrita é iniciada antes da aprovação explícita.
+- [ ] Testar o pedido genérico “elabore um gráfico em barras das vendas por ano” até a apresentação do plano, sem exigir nome de tabela na primeira interação.
+
+### 7.5 Aprovação única, execução e retorno ao chat
+- [ ] Fazer a confirmação aprovar o plano imutável completo, e não apenas uma ação isolada, com opção de cancelar antes da execução.
+- [ ] Executar as etapas de escrita de forma idempotente e sequencial após aprovação; interromper com erro por etapa e não continuar após falha.
+- [ ] Publicar progresso parcial no chat durante descoberta, planejamento e execução, preservando a animação enquanto houver trabalho pendente.
+- [ ] Exibir resultado final com fontes selecionadas, decisões, recursos criados/reutilizados, links e falhas acionáveis.
+- [ ] Testar ponta a ponta com fontes em inglês, português, espanhol e francês, inclusive o fluxo dataset/tabela ou saved query → chart → dashboard.
+- [ ] Medir tokens, latência e número de chamadas; garantir que a descoberta/ranking local reduza o contexto enviado ao Ollama.
+
+### 7.6 Catálogo de metadados e atualização de temas (otimização posterior)
+- [ ] Definir um catálogo derivado e não autoritativo **por fonte**, e não uma lista fechada de temas, contendo somente metadados seguros, termos normalizados, idiomas detectados, colunas relevantes e versão/frescor.
+- [ ] Popular e atualizar o catálogo a partir de schemas e saved queries já acessíveis, sem alterar os objetos originais do Superset nem seus dados.
+- [ ] Inferir temas no momento da indexação ou da consulta a partir dos metadados da fonte; um tema solicitado pela primeira vez não depende de pré-cadastro e não cria uma regra de exclusão.
+- [ ] Sempre combinar candidatos do catálogo com fontes novas, ausentes, expiradas ou possivelmente alteradas obtidas por descoberta ao vivo; uma fonte não catalogada nunca pode ser descartada apenas por essa condição.
+- [ ] Invalidar por TTL, alteração de dataset/database/saved query, sincronização de metadados e ação manual do administrador; quando o frescor for desconhecido, executar descoberta ao vivo.
+- [ ] Usar o catálogo apenas como pré-seleção/ranking. A validação final de schema, permissões e existência deve ser sempre ao vivo antes de gerar ou executar o plano.
+- [ ] Medir ganho de latência e tokens contra a descoberta ao vivo; manter a descoberta ao vivo como fallback seguro.
+- [ ] Implementar esta subtarefa somente após os critérios funcionais das tarefas 7.1–7.5 estarem atendidos e medidos.
 
 ---
 

@@ -26,6 +26,7 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.ai.crypto import encrypt_api_key
+from superset.ai.audit import audit_task
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.models import AIAgent, AIGlobalSettings, get_ai_global_settings
 from superset.ai.orchestrator import AIOrchestrator
@@ -49,6 +50,22 @@ class AIRestApi(BaseSupersetApi):
     resource_name = "ai"
     allow_browser_login = True
     class_permission_name = "AIAgentResource"
+    method_permission_name = {
+        "chat": "use_ai_chat",
+        "confirm_action": "use_ai_chat",
+        "cancel_action": "use_ai_chat",
+        "create_task": "use_ai_chat",
+        "get_task": "use_ai_chat",
+        "task_events": "use_ai_chat",
+        "list_agents": "use_ai_chat",
+        "get_global_settings": "manage_ai_agents",
+        "update_global_settings": "manage_ai_agents",
+        "get_agent": "manage_ai_agents",
+        "create_agent": "manage_ai_agents",
+        "update_agent": "manage_ai_agents",
+        "delete_agent": "manage_ai_agents",
+        "test_agent": "manage_ai_agents",
+    }
     chat_schema = ChatRequestSchema()
     confirm_schema = ConfirmActionRequestSchema()
     agent_schema = AgentSchema()
@@ -105,8 +122,8 @@ class AIRestApi(BaseSupersetApi):
         agent = self._get_agent(payload.get("agent_id"))
         if agent is None:
             return self._error("Agent not found", 404)
-        if not agent.is_active or not self._can_use(agent):
-            return self._error("Agent access denied", 403)
+        if error := self._validate_agent_access(agent):
+            return error
         try:
             result = AIOrchestrator(agent, create_default_registry(), g.user).chat(
                 payload["message"], payload["history"], payload["context"]
@@ -137,17 +154,47 @@ class AIRestApi(BaseSupersetApi):
         agent = self._get_agent(payload.get("agent_id"))
         if agent is None:
             return self._error("Agent not found", 404)
-        if not agent.is_active or not self._can_use(agent):
-            return self._error("Agent access denied", 403)
+        if error := self._validate_agent_access(agent):
+            return error
+        audit_task("ai_action_confirmed", g.user.id, str(payload["action_id"]), str(agent.id))
         try:
             result = AIOrchestrator(
                 agent, create_default_registry(), g.user
             ).confirm_and_execute(str(payload["action_id"]))
         except AIActionExpiredError as ex:
+            audit_task("ai_action_failed", g.user.id, str(payload["action_id"]), str(agent.id))
             return self._error(str(ex), 404)
         if not result.success:
+            audit_task("ai_action_failed", g.user.id, str(payload["action_id"]), str(agent.id))
             return self._error(result.error or "Action failed", 400)
+        audit_task("ai_action_completed", g.user.id, str(payload["action_id"]), str(agent.id))
         return jsonify({"status": "executed", "result": result.data})
+
+    @expose("/cancel_action", methods=("POST",))
+    @protect()
+    @safe
+    @requires_json
+    def cancel_action(self) -> Response:
+        """Invalidate a pending action after the user declines its confirmation."""
+        self._require_enabled()
+        self._require("can_use_ai_chat")
+        try:
+            payload = self.confirm_schema.load(request.json)
+        except ValidationError as ex:
+            return self._error(str(ex), 400)
+        agent = self._get_agent(payload.get("agent_id"))
+        if agent is None:
+            return self._error("Agent not found", 404)
+        if error := self._validate_agent_access(agent):
+            return error
+        try:
+            AIOrchestrator(agent, create_default_registry(), g.user).cancel_pending_action(
+                str(payload["action_id"])
+            )
+        except AIActionExpiredError as ex:
+            return self._error(str(ex), 404)
+        audit_task("ai_action_cancelled", g.user.id, str(payload["action_id"]), str(agent.id))
+        return jsonify({"status": "cancelled"})
 
     @expose("/tasks", methods=("POST",))
     @protect()
@@ -164,11 +211,12 @@ class AIRestApi(BaseSupersetApi):
         agent = self._get_agent(payload.get("agent_id"))
         if agent is None:
             return self._error("Agent not found", 404)
-        if not agent.is_active or not self._can_use(agent):
-            return self._error("Agent access denied", 403)
+        if error := self._validate_agent_access(agent):
+            return error
         progress = AITaskProgress(cache_manager.cache, g.user.id, str(agent.id))
         task_id = progress.create()
         progress.emit(task_id, "planning", "Planejando a análise.", "plan")
+        audit_task("ai_task_created", g.user.id, task_id, str(agent.id))
         run_ai_task.delay(task_id, str(agent.id), g.user.id, payload)
         return jsonify(progress.snapshot(task_id)), 202
 
@@ -394,6 +442,16 @@ class AIRestApi(BaseSupersetApi):
             .filter_by(is_default=True, is_active=True)
             .first()
         )
+
+    def _validate_agent_access(self, agent: AIAgent) -> tuple[Response, int] | None:
+        """Return a safe, actionable access error for a selected AI agent."""
+        if not agent.is_active:
+            return self._error("O agente selecionado está inativo.", 409)
+        if not self._can_use(agent):
+            return self._error(
+                "Seu perfil não tem permissão para usar o agente selecionado.", 403
+            )
+        return None
 
     @staticmethod
     def _can_use(agent: AIAgent) -> bool:

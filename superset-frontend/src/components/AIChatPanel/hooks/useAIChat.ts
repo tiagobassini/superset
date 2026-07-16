@@ -55,7 +55,15 @@ type ChatResponse = {
 };
 type ConfirmResponse = { status?: PendingAction['status']; result?: unknown };
 
-const errorMessage = (error: unknown) => {
+const errorMessage = async (error: unknown) => {
+  if (error instanceof Response) {
+    try {
+      const body = (await error.clone().json()) as { message?: unknown };
+      if (typeof body.message === 'string') return body.message;
+    } catch {
+      return `A solicitação foi recusada (${error.status}).`;
+    }
+  }
   if (error instanceof Error && error.message) return error.message;
   if (error && typeof error === 'object' && 'message' in error) {
     const { message } = error as { message?: unknown };
@@ -165,12 +173,11 @@ export const useAIChat = () => {
             taskId: result.task_id,
           }),
         );
-      } catch {
+      } catch (error) {
         dispatch(
           updateMessage({
             ...responseMessage,
-            content:
-              'Não foi possível obter uma resposta da IA. Tente novamente.',
+            content: await errorMessage(error),
             isStreaming: false,
           }),
         );
@@ -188,13 +195,22 @@ export const useAIChat = () => {
     [messages],
   );
   const cancelAction = useCallback(
-    (actionId: string) => {
+    async (actionId: string) => {
       const action = getAction(actionId);
       if (action?.status === 'pending') {
+        try {
+          await SupersetClient.post({
+            endpoint: '/api/v1/ai/cancel_action',
+            jsonPayload: { action_id: action.id, agent_id: selectedAgentId ?? undefined },
+            stringify: false,
+          });
+        } catch {
+          return;
+        }
         dispatch(updatePendingAction({ ...action, status: 'cancelled' }));
       }
     },
-    [dispatch, getAction],
+    [dispatch, getAction, selectedAgentId],
   );
   const confirmAction = useCallback(
     async (actionId: string) => {
@@ -223,7 +239,7 @@ export const useAIChat = () => {
           updatePendingAction({
             ...action,
             status: 'failed',
-            error: errorMessage(error),
+            error: await errorMessage(error),
           }),
         );
       }

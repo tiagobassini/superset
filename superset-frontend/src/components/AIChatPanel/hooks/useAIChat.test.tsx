@@ -74,7 +74,7 @@ test('shows an assistant error message when chat request fails', async () => {
 
   await act(async () => getChat().sendMessage('Olá'));
 
-  expect(getChat().messages[1].content).toContain('Não foi possível');
+  expect(getChat().messages[1].content).toBe('offline');
 });
 
 test('confirms and cancels pending actions by id', async () => {
@@ -112,7 +112,7 @@ test('confirms and cancels pending actions by id', async () => {
   await waitFor(() => expect(getChat().messages).toHaveLength(1));
   await act(async () => getChat().confirmAction('confirm'));
   expect(getChat().messages[0].pendingActions?.[0].status).toBe('executed');
-  act(() => getChat().cancelAction('cancel'));
+  await act(async () => getChat().cancelAction('cancel'));
   expect(getChat().messages[0].pendingActions?.[1].status).toBe('cancelled');
 });
 

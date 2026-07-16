@@ -67,6 +67,9 @@ class OllamaProviderAdapter(AIProviderAdapter):
                     # Qwen3's hidden reasoning consumes output tokens and delays
                     # tool calls without adding value to Superset operations.
                     "think": False,
+                    # A bounded, low-variance response is more reliable for
+                    # CPU-only tool orchestration than a long prose answer.
+                    "options": {"num_predict": 256, "temperature": 0.1},
                 },
             )
             response.raise_for_status()

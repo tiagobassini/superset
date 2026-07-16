@@ -163,6 +163,28 @@ def test_task_events_support_polling_and_sse_reconnection(
     assert "event: progress" in response.get_data(as_text=True)
 
 
+def test_task_creation_is_audited_without_chat_content(
+    app: Any, resource: api.AIRestApi, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configured_agent = agent()
+    events: list[dict[str, object]] = []
+    monkeypatch.setattr(resource, "_get_agent", lambda _: configured_agent)
+    monkeypatch.setattr(resource, "_can_use", lambda _: True)
+    monkeypatch.setattr(api, "cache_manager", SimpleNamespace(cache=TaskCache()))
+    monkeypatch.setattr(api.run_ai_task, "delay", lambda *_: None)
+    monkeypatch.setattr("superset.extensions.event_logger.log", lambda **value: events.append(value))
+    with app.test_request_context(
+        "/api/v1/ai/tasks", method="POST", json={"message": "segredo", "context": {"page": "other"}}
+    ):
+        from flask import g
+
+        g.user = SimpleNamespace(id=1, roles=[])
+        invoke(resource, "create_task")()
+
+    assert events[0]["action"] == "ai_task_created"
+    assert "segredo" not in str(events[0]["curated_payload"])
+
+
 @pytest.mark.parametrize(
     ("exception", "status"),
     [(AIProviderError("unavailable"), 502), (None, 403)],
@@ -188,7 +210,10 @@ def test_chat_reports_provider_and_agent_access_errors(
         response, actual_status = invoke(resource, "chat")()  # type: ignore[misc]
 
     assert actual_status == status
-    assert response.get_json()["message"] in {"unavailable", "Agent access denied"}
+    assert response.get_json()["message"] in {
+        "unavailable",
+        "Seu perfil não tem permissão para usar o agente selecionado.",
+    }
 
 
 def test_chat_rejects_invalid_payload_and_unknown_agent(
@@ -260,6 +285,27 @@ def test_confirm_action_reports_expired_action(
         response, status = invoke(resource, "confirm_action")()  # type: ignore[misc]
     assert status == 404
     assert response.get_json()["message"] == "expired"
+
+
+def test_cancel_action_invalidates_pending_action_and_is_audited(
+    app: Any, resource: api.AIRestApi, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configured_agent = agent()
+    events: list[dict[str, object]] = []
+    monkeypatch.setattr(resource, "_get_agent", lambda _: configured_agent)
+    monkeypatch.setattr(resource, "_can_use", lambda _: True)
+    monkeypatch.setattr(api.AIOrchestrator, "cancel_pending_action", lambda *_: None)
+    monkeypatch.setattr("superset.extensions.event_logger.log", lambda **value: events.append(value))
+    with app.test_request_context(
+        "/api/v1/ai/cancel_action", method="POST", json={"action_id": str(uuid4())}
+    ):
+        from flask import g
+
+        g.user = SimpleNamespace(id=1, roles=[])
+        response = invoke(resource, "cancel_action")()
+
+    assert response.get_json() == {"status": "cancelled"}
+    assert events[0]["action"] == "ai_action_cancelled"
 
 
 def test_list_and_get_agents_honor_detail_mode(
