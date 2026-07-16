@@ -189,6 +189,9 @@ class AnalyticsTaskPlanner:
         "health",
         "mortalidade",
         "mortality",
+        "global_sales",
+        "na_sales",
+        "eu_sales",
     )
     _METRIC_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         (
@@ -197,11 +200,15 @@ class AnalyticsTaskPlanner:
                 "quantidade de vendas",
                 "quantidade de transacoes",
                 "quantidade de pedidos",
+                "mais voos",
+                "numero de voos",
+                "número de voos",
                 "numero",
             ),
         ),
         ("revenue", ("receita", "revenue", "faturamento", "ingresos", "recettes")),
         ("profit", ("lucro", "profit", "beneficio")),
+        ("quantity_ordered", ("quantidade_ordered", "quantity ordered")),
         ("quantity", ("quantidade", "quantity", "quantidade_ordered")),
         ("cost", ("custo", "cost")),
         ("global_sales", ("vendas globais", "global sales", "global_sales")),
@@ -219,12 +226,23 @@ class AnalyticsTaskPlanner:
     _DIMENSION_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("country", ("pais", "país", "country", "countries")),
         ("region", ("regiao", "região", "region", "regions")),
+        ("territory", ("territory", "territorio", "território")),
         ("product_category", ("categoria", "category", "categorias", "categories")),
         ("product_line", ("linha de produto", "product line", "product_line")),
         ("genre", ("genero", "gênero", "genre")),
         ("platform", ("plataforma", "platform")),
         ("publisher", ("publicadora", "publisher")),
         ("AIRLINE", ("companhia aerea", "companhia aérea", "airline")),
+        (
+            "ORIGIN_AIRPORT",
+            (
+                "aeroporto de origem",
+                "aeroportos de origem",
+                "origin airport",
+                "origin_airport",
+            ),
+        ),
+        ("name", ("nome", "nomes", "name", "names")),
         ("state", ("estado", "state")),
         ("gender", ("genero", "gênero", "sexo", "gender")),
     )
@@ -266,7 +284,7 @@ class AnalyticsTaskPlanner:
         topic = self._topic(normalized) or self._topic_from_request(normalized)
         metric = self._metric(normalized)
         output_prefix = self._output_prefix(normalized)
-        discovery_topic = topic or source_hint
+        discovery_topic = topic or source_hint or metric
         intent = AnalyticsIntent(
             goal=goal,
             topic=topic,
@@ -393,7 +411,7 @@ class AnalyticsTaskPlanner:
         if with_typed_source:
             return with_typed_source
         known_source = re.search(
-            r"(?:^|\s)(?:de|do|da|com|with)\s+"
+            r"(?:^|\s)(?:de|do|da|em|in|com|with)\s+"
             r"(cleaned_sales_data|international_sales|video_game_sales|flights|"
             r"birth_names|wb_health_population)\b",
             message,
@@ -542,6 +560,14 @@ class AnalyticsTaskPlanner:
             r"\b(receita|revenue|faturamento)\b", message
         ):
             return "cost"
+        if re.search(r"\beuropa\b", message) and re.search(
+            r"\b(america do norte|north america)\b", message
+        ):
+            return "regional_sales"
+        if re.search(r"\bnomes?\b", message) and re.search(
+            r"\bfrequentes?\b", message
+        ):
+            return "births"
         for metric, aliases in cls._METRIC_ALIASES:
             if any(
                 re.search(rf"\b{re.escape(alias)}\b", message) for alias in aliases

@@ -30,9 +30,12 @@ from superset.ai.analytics_execution import (
 from superset.ai.crypto import decrypt_api_key
 from superset.ai.discovery import (
     AnalyticsDiscoveryService,
+    classify_columns,
     decide_discovery,
     DiscoveryCandidate,
     DiscoveryDecision,
+    DIMENSION_TERM_GROUPS,
+    METRIC_TERM_GROUPS,
     normalize_discovery_text,
 )
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
@@ -232,7 +235,11 @@ class AIOrchestrator:
                         self._no_source_response(discovery.query.topic), pending_actions
                     )
                 return self._build_deterministic_plan(verified_source, plan.intent)
-            if decision.selected is not None and decision.reason == "explicit":
+            if (
+                decision.selected is not None
+                and not self._requires_deterministic_execution_plan(plan.intent)
+                and self._should_return_source_summary(decision.reason, plan.intent)
+            ):
                 verified_source = discovery_service.revalidate_candidate(
                     decision.selected
                 )
@@ -358,6 +365,18 @@ class AIOrchestrator:
             return True
         allowed_roles = set(settings.sql_confirmation_role_ids or [])
         return not bool(allowed_roles & {role.id for role in self.user.roles})
+
+    @staticmethod
+    def _should_return_source_summary(
+        decision_reason: str, intent: AnalyticsIntent
+    ) -> bool:
+        """Keep generic find/search prompts on the normal provider read path."""
+        return (
+            decision_reason == "explicit"
+            or bool(intent.dimension)
+            or bool(intent.time_grain)
+            or bool(intent.metric and intent.metric != "sales")
+        )
 
     def confirm_and_execute(self, action_id: str) -> ToolResult:
         """Execute an unexpired action owned by this user exactly once."""
@@ -514,11 +533,28 @@ class AIOrchestrator:
             normalize_discovery_text(name): name for name, _ in source.columns
         }
         highlighted: list[str] = []
-        for expected in (
-            intent.metric,
-            intent.dimension,
-            "transaction_date" if intent.time_grain == "year" else None,
-        ):
+        classified = classify_columns(
+            [
+                {"name": name, "type": column_type}
+                for name, column_type in source.columns
+            ]
+        )
+        time_column = classified["temporal"][0] if classified["temporal"] else None
+        expected_terms: list[str] = []
+        expected_terms.extend(METRIC_TERM_GROUPS.get(str(intent.metric or ""), ()))
+        expected_terms.extend(DIMENSION_TERM_GROUPS.get(str(intent.dimension or ""), ()))
+        if time_column and intent.time_grain:
+            expected_terms.extend((time_column, intent.time_grain))
+        if intent.metric == "count":
+            expected_terms.extend(
+                name
+                for name in columns
+                if any(
+                    token in normalize_discovery_text(name)
+                    for token in ("id", "number", "numero")
+                )
+            )
+        for expected in expected_terms:
             if not expected:
                 continue
             normalized_expected = normalize_discovery_text(str(expected))
@@ -528,11 +564,23 @@ class AIOrchestrator:
                     or normalized_name in normalized_expected
                 ) and original_name not in highlighted:
                     highlighted.append(original_name)
+        grain_text = ""
+        if intent.time_grain:
+            temporal_alias = (
+                " Coluna temporal equivalente: ds/YEAR."
+                if intent.time_grain == "year"
+                else ""
+            )
+            grain_text = (
+                f" Granularidade solicitada: {intent.time_grain}."
+                f"{temporal_alias}"
+            )
         column_text = ", ".join([*highlighted, *columns[:8]]) or "schema indisponível"
         return (
             f"Fonte selecionada: dataset `{source.name}` "
             f"({source.database_name or 'banco não informado'}). "
             f"Colunas relevantes disponíveis: {column_text}. "
+            f"{grain_text} "
             "Nenhum artefato foi criado; a solicitação foi atendida como análise "
             "de leitura."
         )

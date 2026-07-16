@@ -97,10 +97,13 @@ MULTILINGUAL_TERM_GROUPS: tuple[frozenset[str], ...] = (
 METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "revenue": ("revenue", "receita", "faturamento"),
     "profit": ("profit", "lucro", "beneficio", "margin"),
+    "count": ("id", "number", "numero", "flight number", "flight_number"),
+    "quantity_ordered": ("quantity ordered", "quantity_ordered"),
     "quantity": ("quantity", "quantidade", "quantity ordered", "quantity_ordered"),
     "cost": ("cost", "custo"),
     "sales": ("sales", "sale", "vendas", "ventas", "ventes"),
     "global_sales": ("global sales", "global_sales"),
+    "regional_sales": ("na sales", "na_sales", "eu sales", "eu_sales"),
     "na_sales": ("na sales", "na_sales", "north america"),
     "eu_sales": ("eu sales", "eu_sales", "europe"),
     "delay": ("delay", "delays", "atraso", "atrasos"),
@@ -115,6 +118,7 @@ METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
 DIMENSION_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "country": ("country", "country name", "country_name", "pais", "país"),
     "region": ("region", "regiao", "região"),
+    "territory": ("territory", "territorio", "território"),
     "product_category": (
         "product category",
         "product_category",
@@ -126,6 +130,13 @@ DIMENSION_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "platform": ("platform", "plataforma"),
     "publisher": ("publisher", "publicadora"),
     "AIRLINE": ("airline", "companhia aerea", "companhia aérea"),
+    "ORIGIN_AIRPORT": (
+        "origin airport",
+        "origin_airport",
+        "aeroporto de origem",
+        "aeroportos de origem",
+    ),
+    "name": ("name", "nome", "nomes"),
     "state": ("state", "estado"),
     "gender": ("gender", "sexo"),
 }
@@ -426,7 +437,17 @@ def classify_columns(columns: Iterable[dict[str, Any]]) -> dict[str, list[str]]:
         normalized = _normalize(name)
         if any(token in column_type for token in ("date", "time")) or any(
             token in normalized
-            for token in ("date", "data", "fecha", "year", "ano", "annee", "period")
+            for token in (
+                "date",
+                "data",
+                "fecha",
+                "year",
+                "ano",
+                "annee",
+                "period",
+                "month",
+                "mes",
+            )
         ):
             groups["temporal"].append(name)
         elif normalized == "id" or normalized.endswith(" id"):
@@ -804,6 +825,9 @@ class AnalyticsDiscoveryService:
         if metric_matches:
             score += min(18, len(metric_matches) * 9)
             reasons.append(f"medida solicitada: {metric_matches[0]}")
+            if self._has_exact_column(candidate, metric_matches[0]):
+                score += 8
+                reasons.append(f"medida exata: {metric_matches[0]}")
         requested_dimension = str(getattr(intent, "dimension", "") or "")
         dimension_matches = self._matching_dimension_columns(
             candidate, requested_dimension
@@ -811,6 +835,9 @@ class AnalyticsDiscoveryService:
         if dimension_matches:
             score += min(14, len(dimension_matches) * 7)
             reasons.append(f"dimensão solicitada: {dimension_matches[0]}")
+            if self._has_exact_column(candidate, dimension_matches[0]):
+                score += 6
+                reasons.append(f"dimensão exata: {dimension_matches[0]}")
         if getattr(intent, "time_grain", None) == "year" and groups["temporal"]:
             score += 12
             reasons.append(f"coluna temporal: {groups['temporal'][0]}")
@@ -868,6 +895,14 @@ class AnalyticsDiscoveryService:
             if any(normalize_discovery_text(term) in normalized for term in terms):
                 matches.append(name)
         return tuple(matches)
+
+    @staticmethod
+    def _has_exact_column(candidate: DiscoveryCandidate, column_name: str) -> bool:
+        normalized_column = normalize_discovery_text(column_name)
+        return any(
+            normalize_discovery_text(name) == normalized_column
+            for name, _ in candidate.columns
+        )
 
     @classmethod
     def _intent_profile_score(

@@ -201,6 +201,26 @@ def test_planner_handles_p16_to_p20_corrective_cases() -> None:
     assert materialized.intent.dataset_name == "ai_test_p20"
 
 
+def test_planner_handles_p31_to_p40_corrective_cases() -> None:
+    flights = AnalyticsTaskPlanner().plan(
+        "Mostre os 10 aeroportos de origem com mais voos."
+    )
+    names = AnalyticsTaskPlanner().plan(
+        "Faça um gráfico AI_TEST_P38 com os 10 nomes mais frequentes em birth_names."
+    )
+
+    assert flights.intent.goal is AnalyticsGoal.ANALYZE
+    assert flights.intent.metric == "count"
+    assert flights.intent.dimension == "ORIGIN_AIRPORT"
+    assert flights.intent.discovery_query is not None
+    assert "voos" in flights.intent.discovery_query.expanded_terms
+    assert names.intent.goal is AnalyticsGoal.CREATE_CHART
+    assert names.intent.chart_title == "ai_test_p38"
+    assert names.intent.source_hint == "birth_names"
+    assert names.intent.metric == "births"
+    assert names.intent.dimension == "name"
+
+
 def test_planner_uses_configured_agent_language_and_semantic_expander() -> None:
     calls: list[tuple[str, str]] = []
     planner = AnalyticsTaskPlanner(
