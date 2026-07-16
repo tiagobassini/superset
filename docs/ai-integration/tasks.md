@@ -250,11 +250,11 @@ Tarefas de setup que desbloqueiam todas as demais.
 Especificação: [`autonomous-analytics-workflows.md`](autonomous-analytics-workflows.md).
 
 ### 6.1 Planejamento de Intenção
-- [ ] Criar `AnalyticsTaskPlanner` e modelos tipados de intenção, plano e etapa
-- [ ] Interpretar tema, fonte, métrica, dimensão temporal e destino
-- [ ] Cobrir sinônimos em pt-BR para criar/adicionar/publicar gráficos
-- [ ] Resolver nomes ambíguos por busca de recurso; pedir esclarecimento apenas quando indispensável
-- [ ] Substituir a filtragem exclusiva por palavras-chave pela seleção baseada no plano
+- [x] Criar `AnalyticsTaskPlanner` e modelos tipados de intenção, plano e etapa
+- [x] Interpretar tema, fonte, métrica, dimensão temporal e destino
+- [x] Cobrir sinônimos em pt-BR para criar/adicionar/publicar gráficos
+- [x] Resolver nomes ambíguos por busca de recurso; pedir esclarecimento apenas quando indispensável
+- [x] Substituir a filtragem exclusiva por palavras-chave pela seleção baseada no plano
 
 ### 6.2 Descoberta e Perfil de Dados
 - [ ] Implementar busca e pontuação de bancos, tabelas, datasets e dashboards candidatos

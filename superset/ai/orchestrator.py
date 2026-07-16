@@ -26,6 +26,7 @@ from uuid import uuid4
 from superset.ai.crypto import decrypt_api_key
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
 from superset.ai.models import AIAgent, get_ai_global_settings
+from superset.ai.planner import AnalyticsTaskPlanner
 from superset.ai.providers import (
     AnthropicProviderAdapter,
     OllamaProviderAdapter,
@@ -41,53 +42,6 @@ PENDING_ACTION_TTL = 600
 MAX_TOOL_ROUNDS = 8
 MAX_HISTORY_MESSAGES = 6
 MAX_HISTORY_MESSAGE_LENGTH = 1_000
-
-# Tool definitions are sent with every native Ollama request. Keep all tools
-# enabled on the agent, but transport only domains named by the user.
-TOOL_DOMAINS = {
-    "dataset": {
-        "list_databases",
-        "list_database_tables",
-        "get_table_schema",
-        "list_datasets",
-        "get_dataset_schema",
-        "create_dataset",
-    },
-    "chart": {
-        "list_datasets",
-        "get_dataset_schema",
-        "list_charts",
-        "create_chart",
-    },
-    "dashboard": {
-        "list_charts",
-        "list_dashboards",
-        "create_dashboard",
-        "add_chart_to_dashboard",
-    },
-    "query": {
-        "list_saved_queries",
-        "get_saved_query",
-        "run_sql_query",
-        "save_sql_query",
-    },
-}
-DOMAIN_KEYWORDS = {
-    "dataset": (
-        "dataset",
-        "tabela",
-        "table",
-        "coluna",
-        "schema",
-        "banco",
-        "database",
-        "dados",
-    ),
-    "chart": ("chart", "gráfico", "grafico", "visualização", "visualizacao"),
-    "dashboard": ("dashboard", "painel"),
-    "query": ("sql", "query", "consulta"),
-}
-EDIT_KEYWORDS = ("edit", "editar", "altere", "alterar", "atualize", "atualizar")
 
 
 @dataclass(frozen=True)
@@ -171,7 +125,8 @@ class AIOrchestrator:
                 for tool in tools
                 if tool.get("function", {}).get("name") in enabled_tool_names
             ]
-        tools = self._tools_for_message(tools, message)
+        plan = AnalyticsTaskPlanner().plan(message)
+        tools = self._tools_for_plan(tools, plan.tool_names)
         for _ in range(MAX_TOOL_ROUNDS):
             response = self.provider.chat_with_tools(messages, tools, self.agent.model)
             if not response.tool_calls:
@@ -315,31 +270,26 @@ class AIOrchestrator:
         ]
 
     @staticmethod
-    def _tools_for_message(
-        tools: list[dict[str, Any]], message: str
+    def _tools_for_plan(
+        tools: list[dict[str, Any]], tool_names: frozenset[str]
     ) -> list[dict[str, Any]]:
-        """Return enabled tools for BI domains explicitly named in a request."""
-        normalized = message.casefold()
-        selected_names = set().union(
-            *(
-                TOOL_DOMAINS[domain]
-                for domain, keywords in DOMAIN_KEYWORDS.items()
-                if any(keyword in normalized for keyword in keywords)
-            )
-        )
-        if any(keyword in normalized for keyword in EDIT_KEYWORDS):
-            if any(keyword in normalized for keyword in DOMAIN_KEYWORDS["chart"]):
-                selected_names.add("edit_chart")
-            if any(keyword in normalized for keyword in DOMAIN_KEYWORDS["dashboard"]):
-                selected_names.add("edit_dashboard")
-        if not selected_names:
-            return tools
+        """Return allowed tools selected by the deterministic analytics plan."""
         selected = [
             tool
             for tool in tools
-            if tool.get("function", {}).get("name") in selected_names
+            if tool.get("function", {}).get("name") in tool_names
         ]
         return selected or tools
+
+    @staticmethod
+    def _tools_for_message(
+        tools: list[dict[str, Any]], message: str
+    ) -> list[dict[str, Any]]:
+        """Compatibility bridge for callers migrating to planned tool selection."""
+        plan = AnalyticsTaskPlanner().plan(message)
+        if plan.intent.goal.value == "analyze" and plan.intent.topic is None:
+            return tools
+        return AIOrchestrator._tools_for_plan(tools, plan.tool_names)
 
     @staticmethod
     def _sanitize(value: Any, max_length: int = 200) -> str:

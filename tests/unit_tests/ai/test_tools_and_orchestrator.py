@@ -24,6 +24,7 @@ from typing import Any
 import pytest
 
 from superset.ai.orchestrator import AIOrchestrator
+from superset.ai.planner import AnalyticsTaskPlanner
 from superset.ai.providers.base import ProviderResponse, ToolCall
 from superset.ai.tools.base import AITool, ToolResult
 from superset.ai.tools.builtin import BuiltinTool
@@ -107,6 +108,26 @@ def test_default_registry_contains_all_mvp_tools() -> None:
         "list_saved_queries",
         "run_sql_query",
         "save_sql_query",
+    }
+
+
+def test_orchestrator_plan_keeps_dashboard_tools_for_publish_request() -> None:
+    tools = [
+        {"function": {"name": name}}
+        for name in ("list_dashboards", "add_chart_to_dashboard", "create_chart")
+    ]
+
+    selected = AIOrchestrator._tools_for_plan(
+        tools,
+        AnalyticsTaskPlanner()
+        .plan("Adicione um gráfico de vendas ao dashboard CBMES")
+        .tool_names,
+    )
+
+    assert {tool["function"]["name"] for tool in selected} >= {
+        "list_dashboards",
+        "add_chart_to_dashboard",
+        "create_chart",
     }
 
 
