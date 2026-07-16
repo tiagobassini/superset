@@ -73,6 +73,7 @@ class AnalyticsTaskPlanner:
             "get_table_schema",
             "list_datasets",
             "get_dataset_schema",
+            "profile_dataset",
         }
     )
     _CHART_TOOLS = frozenset(

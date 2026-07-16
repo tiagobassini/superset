@@ -257,11 +257,11 @@ Especificação: [`autonomous-analytics-workflows.md`](autonomous-analytics-work
 - [x] Substituir a filtragem exclusiva por palavras-chave pela seleção baseada no plano
 
 ### 6.2 Descoberta e Perfil de Dados
-- [ ] Implementar busca e pontuação de bancos, tabelas, datasets e dashboards candidatos
-- [ ] Implementar ferramenta segura `profile_dataset` ou `analyze_table` com agregações e limites rígidos
-- [ ] Identificar colunas candidatas de data, dimensão, identificador e medida
-- [ ] Respeitar RBAC, datasource permissions, RLS e limite de linhas em toda leitura
-- [ ] Registrar justificativa da fonte escolhida no plano
+- [x] Implementar busca e pontuação de bancos, tabelas, datasets e dashboards candidatos
+- [x] Implementar ferramenta segura `profile_dataset` ou `analyze_table` com agregações e limites rígidos
+- [x] Identificar colunas candidatas de data, dimensão, identificador e medida
+- [x] Respeitar RBAC, datasource permissions, RLS e limite de linhas em toda leitura
+- [x] Registrar justificativa da fonte escolhida no plano
 
 ### 6.3 Especificação e Validação de Recursos
 - [ ] Criar contrato tipado para especificação de chart e adaptador para `params` do Superset

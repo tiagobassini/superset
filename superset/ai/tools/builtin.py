@@ -151,11 +151,12 @@ def _get_table_schema(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _list_datasets(params: dict[str, Any]) -> list[dict[str, Any]]:
+    from superset.ai.discovery import rank_resources
     from superset.connectors.sqla.models import SqlaTable
     from superset.extensions import db, security_manager
 
     search = (params.get("search") or "").lower()
-    return [
+    datasets = [
         {
             "id": dataset.id,
             "name": dataset.table_name,
@@ -165,6 +166,7 @@ def _list_datasets(params: dict[str, Any]) -> list[dict[str, Any]]:
         if search in dataset.table_name.lower()
         and security_manager.can_access_datasource(dataset)
     ]
+    return rank_resources(datasets, search)
 
 
 def _get_dataset_schema(params: dict[str, Any]) -> dict[str, Any]:
@@ -188,25 +190,60 @@ def _get_dataset_schema(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _profile_dataset(params: dict[str, Any]) -> dict[str, Any]:
+    """Return aggregate-only dataset metadata through the SQL Lab command path."""
+    from superset.ai.discovery import classify_columns
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import db, security_manager
+
+    dataset = db.session.get(SqlaTable, params["dataset_id"])
+    if dataset is None or not security_manager.can_access_datasource(dataset):
+        raise ValueError("Dataset not found or access denied")
+    columns = [
+        {"name": column.column_name, "type": column.type}
+        for column in dataset.columns
+    ]
+    groups = classify_columns(columns)
+    quote = dataset.database.quote_identifier
+    if dataset.sql:
+        source = f"({dataset.sql}) AS ai_profile_source"
+    else:
+        parts = [part for part in (dataset.catalog, dataset.schema, dataset.table_name) if part]
+        source = ".".join(quote(part) for part in parts)
+    sql = f"SELECT COUNT(*) AS row_count FROM {source}"
+    result = _run_sql_query(
+        {"database_id": dataset.database.id, "schema": dataset.schema, "sql": sql, "limit": 1}
+    )
+    return {
+        "dataset_id": dataset.id,
+        "dataset_name": dataset.table_name,
+        "row_count": result,
+        "columns": groups,
+    }
+
+
 def _list_charts(params: dict[str, Any]) -> list[dict[str, Any]]:
+    from superset.ai.discovery import rank_resources
     from superset.extensions import db, security_manager
     from superset.models.slice import Slice
 
     search = (params.get("search") or "").lower()
-    return [
+    charts = [
         {"id": chart.id, "name": chart.slice_name, "viz_type": chart.viz_type}
         for chart in db.session.query(Slice).all()
         if search in chart.slice_name.lower()
         and security_manager.can_access_chart(chart)
     ]
+    return rank_resources(charts, search)
 
 
 def _list_dashboards(params: dict[str, Any]) -> list[dict[str, Any]]:
+    from superset.ai.discovery import rank_resources
     from superset.extensions import db, security_manager
     from superset.models.dashboard import Dashboard
 
     search = (params.get("search") or "").lower()
-    return [
+    dashboards = [
         {
             "id": dashboard.id,
             "title": dashboard.dashboard_title,
@@ -216,6 +253,7 @@ def _list_dashboards(params: dict[str, Any]) -> list[dict[str, Any]]:
         if search in dashboard.dashboard_title.lower()
         and security_manager.can_access_dashboard(dashboard)
     ]
+    return rank_resources(dashboards, search)
 
 
 def _list_saved_queries(_: dict[str, Any]) -> list[dict[str, Any]]:
@@ -426,6 +464,11 @@ def default_tools() -> list[AITool]:
         "properties": {"dataset_id": {"type": "integer"}},
         "required": ["dataset_id"],
     }
+    profile_dataset_schema = {
+        "type": "object",
+        "properties": {"dataset_id": {"type": "integer"}},
+        "required": ["dataset_id"],
+    }
     saved_query_schema = {
         "type": "object",
         "properties": {"saved_query_id": {"type": "integer"}},
@@ -528,6 +571,12 @@ def default_tools() -> list[AITool]:
             "Get an accessible dataset schema.",
             dataset_schema,
             _get_dataset_schema,
+        ),
+        BuiltinTool(
+            "profile_dataset",
+            "Profile an accessible dataset with aggregate-only statistics.",
+            profile_dataset_schema,
+            _profile_dataset,
         ),
         BuiltinTool(
             "list_charts", "List accessible charts.", search_schema, _list_charts

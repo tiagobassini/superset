@@ -308,3 +308,35 @@ def test_get_dataset_schema_checks_access_before_returning_columns(
     )
     with pytest.raises(ValueError, match="access denied"):
         builtin._get_dataset_schema({"dataset_id": 2})
+
+
+def test_profile_dataset_returns_only_aggregate_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = SimpleNamespace(id=3, quote_identifier=lambda value: f'"{value}"')
+    dataset = SimpleNamespace(
+        id=2,
+        table_name="sales",
+        schema="public",
+        catalog=None,
+        sql=None,
+        database=database,
+        columns=[
+            SimpleNamespace(column_name="order_date", type="DATE"),
+            SimpleNamespace(column_name="amount", type="NUMERIC"),
+        ],
+    )
+    monkeypatch.setattr(
+        "superset.extensions.db.session", SimpleNamespace(get=lambda *_: dataset)
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+    monkeypatch.setattr(builtin, "_run_sql_query", lambda _: {"data": [[42]]})
+
+    result = builtin._profile_dataset({"dataset_id": 2})
+
+    assert result["dataset_id"] == 2
+    assert result["row_count"] == {"data": [[42]]}
+    assert result["columns"]["temporal"] == ["order_date"]
+    assert result["columns"]["measures"] == ["amount"]
