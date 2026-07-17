@@ -227,6 +227,46 @@ os recursos resultantes.
 | P158 | `Existe um campo que represente "valor médio" ou "average_value" em alguma tabela?` | Busca campos pré-calculados; oferece como calculá-los se não encontrar. | não |
 | P159 | `Procure por qualquer dado relacionado a "satisfação" ou "satisfaction_score".` | Busca métricas de satisfação; confirma ausência e oferece proxies de engajamento. | não |
 | P160 | `Verifique se há informação de "período" ou "season" para análise sazonal.` | Busca variáveis sazonais; encontra `month`, `quarter` potencial; sem criar. | não |
+| P161 | `Procure por campos relacionados a "endereço" ou "localização geografica" nas tabelas.` | Busca colunas de geolocalização além de `country`/`region`; relata disponibilidade. | não |
+| P162 | `Existe alguma coluna com "ID" ou identificador de cliente/transação em alguma fonte?` | Busca e lista identificadores chave em cada tabela sem criar. | não |
+| P163 | `Procure dados de "transporte" ou "logística" nas bases disponiveis.` | Busca tabelas ou colunas relacionadas; confirma disponibilidade. | não |
+| P164 | `Verifique se há campo de "moeda" ou "currency" em alguma fonte de vendas.` | Busca e relata presença ou ausência de informação de moeda. | não |
+| P165 | `Tem alguma coluna que indique "peso" ou "capacidade" de produtos?` | Busca variáveis físicas de produtos; relata sem criar. | não |
+| P166 | `Procure por dados de "desconto" ou "promotion" em vendas.` | Busca campos promocionais; relata estrutura sem criar gráfico. | não |
+| P167 | `Existe campo de "margem bruta" ou "gross_margin" em alguma tabela?` | Busca métricas pré-calculadas de margem ou oferece como calcular. | não |
+| P168 | `Verifique se há dados de "lote" ou "batch" em transações.` | Busca informação de agrupamento de vendas; relata sem criar. | não |
+| P169 | `Procure por colunas que representem "versão" ou "versioning" de dados.` | Busca campos de versionamento; relata estrutura. | não |
+| P170 | `Tem alguma fonte com dados de "conformidade" ou "compliance"?` | Busca dados regulatórios; confirma disponibilidade e uso. | não |
+| P171 | `Existe informação de "turno" ou "shift" em operações/vendas?` | Busca granularidade temporal além de data/hora; relata. | não |
+| P172 | `Procure por dados de "qualidade" ou "quality_score" em produtos.` | Busca métricas de qualidade; relata disponibilidade. | não |
+| P173 | `Verifique se há campo de "sku" ou "product_code" nas tabelas de produtos.` | Busca identificadores de produtos padrão; relata. | não |
+| P174 | `Tem alguma coluna com "duração" ou "duration" de eventos/transações?` | Busca campos temporais de duração; relata granularidade. | não |
+| P175 | `Procure por dados de "risco" ou "risk_level" em qualquer fonte.` | Busca campos de classificação de risco; relata. | não |
+| P176 | `Existe informação de "proprietário" ou "owner" de recursos/vendas?` | Busca campos de responsabilidade/atribuição; relata. | não |
+| P177 | `Verifique se há dados de "auditoria" ou "audit_trail" no sistema.` | Busca registros de rastreabilidade; confirma sem criar. | não |
+| P178 | `Procure por campos de "tipo de pagamento" ou "payment_method" em transações.` | Busca segmentação de pagamento; relata. | não |
+| P179 | `Tem alguma fonte com informações de "retorno" ou "return_rate"?` | Busca dados de devoluções; relata disponibilidade. | não |
+| P180 | `Existe campo de "percentil" ou "percentile_rank" em alguma tabela?` | Busca campos pré-calculados de ranking; relata. | não |
+| P181 | `Procure por dados de "benchmark" ou "baseline" em métricas.` | Busca referências de comparação; relata. | não |
+| P182 | `Verifique se há coluna de "flag" ou "indicator" booleano em alguma fonte.` | Busca sinalizadores; relata nomes e uso. | não |
+| P183 | `Tem alguma informação de "limite" ou "threshold" de vendas/operações?` | Busca campos de limites; relata. | não |
+| P184 | `Existe dado de "simulação" ou "forecast" em alguma tabela?` | Busca dados preditivos ou de scenario planning; relata. | não |
+| P185 | `Procure por colunas com "percentagem" ou dados já calculados em %.` | Busca campos pré-percentualizados; lista sem criar. | não |
+| P186 | `Verifique se há informação de "aprovação" ou "approval_status" em transações.` | Busca fluxo de aprovação; relata. | não |
+| P187 | `Tem alguma fonte com dados de "velocidade" ou "throughput"?` | Busca métricas de performance/velocidade; relata. | não |
+| P188 | `Existe coluna de "precedência" ou "priority" em alguma tabela?` | Busca campos de ordenação/prioridade; relata. | não |
+| P189 | `Procure por dados de "interpolação" ou "imputation" em séries temporais.` | Busca qualidade de dados temporais; relata. | não |
+| P190 | `Verifique se há "tags" ou "labels" customizáveis em registros.` | Busca campos de meta-informação; relata. | não |
+| P191 | `Tem alguma informação de "configuração" ou "settings" por usuário/conta?` | Busca campos de personalização; relata. | não |
+| P192 | `Existe dado de "performance_score" ou métrica similar em alguma tabela?` | Busca scores agregados; relata. | não |
+| P193 | `Procure por colunas que contenham "código" ou "code" de categorias.` | Busca campos de codificação; lista. | não |
+| P194 | `Verifique se há informação de "versionamento de schema" na database.` | Busca evolução estrutural de dados; relata. | não |
+| P195 | `Tem alguma fonte com dados de "sentimento" ou "sentiment_score"?` | Busca análise de sentimento; relata disponibilidade. | não |
+| P196 | `Existe campo de "normalização" ou "normalized_value" em métricas?` | Busca dados normalizados; relata. | não |
+| P197 | `Procure por dados de "clustering" ou "cluster_id" em segmentação.` | Busca pré-agrupamento; relata. | não |
+| P198 | `Verifique se há coluna de "índice" ou "index" de desempenho.` | Busca índices compósitos; relata. | não |
+| P199 | `Tem alguma informação de "validação" ou "is_valid" em dados.` | Busca flags de validação; relata. | não |
+| P200 | `Procure por dados de "proveniência" ou "data_source_id" em registros.` | Busca rastreamento de origem dos dados; relata estrutura. | não |
 
 ## P201-P350: Chart Types and Dashboard Integration Tests
 
@@ -332,6 +372,56 @@ os recursos resultantes.
 | P298 | `Crie um gráfico de labirinto AI_TEST_P298 (maze plot) com camado de dados segmentados e adicione ao CBMES.` | Após confirmação, propõe visualização alternativa; cria chart no CBMES. | sim |
 | P299 | `Crie um gráfico de prisma AI_TEST_P299 (prism) com reflexão de dados em perspectivas diferentes e adicione ao CBMES.` | Após confirmação, chart tipo multi-perspectiva no CBMES. | sim |
 | P300 | `Crie um gráfico final especial AI_TEST_P300 sintetizando todos os tipos testados em um dashboard unificado e adicione ao CBMES.` | Após confirmação, dashboard completo com múltiplas visualizações síntese é criado e publicado. | sim |
+| P301 | `Crie um gráfico de impacto AI_TEST_P301 mostrando influência de variáveis sobre vendas.` | Após confirmação, chart tipo scatter com análise de impacto no CBMES. | sim |
+| P302 | `Crie um gráfico de dependência AI_TEST_P302 mostrando correlações entre métricas.` | Após confirmação, chart tipo network/força com correlações no CBMES. | sim |
+| P303 | `Crie um gráfico de cenários AI_TEST_P303 comparando 3 diferentes cases de vendas.` | Após confirmação, chart tipo multi-série comparativa no CBMES. | sim |
+| P304 | `Crie um gráfico de margem AI_TEST_P304 mostrando distribuição de lucro por produto.` | Após confirmação, chart tipo área/empilhada com margens no CBMES. | sim |
+| P305 | `Crie um mapa de fluxo AI_TEST_P305 mostrando movimento de vendas entre regiões.` | Após confirmação, chart tipo sankey/alluvial com fluxo de vendas no CBMES. | sim |
+| P306 | `Crie um gráfico de quartis AI_TEST_P306 analisando distribuição de preços por categoria.` | Após confirmação, chart tipo box plot com quartis no CBMES. | sim |
+| P307 | `Crie um dashboard de KPIs AI_TEST_P307 com 8 métricas principais lado a lado.` | Após confirmação, dashboard com 8 cards KPI no CBMES. | sim |
+| P308 | `Crie um gráfico comparativo AI_TEST_P308 de performance YoY para análise interanual.` | Após confirmação, chart tipo coluna agrupada com comparação de anos no CBMES. | sim |
+| P309 | `Crie um gráfico de contribuição AI_TEST_P309 mostrando % de cada região no total.` | Após confirmação, chart tipo estrutura de árvore com contribuições no CBMES. | sim |
+| P310 | `Crie um gráfico de tendência AI_TEST_P310 com linha de regressão de vendas anual.` | Após confirmação, chart tipo linha com trend line no CBMES. | sim |
+| P311 | `Crie um gráfico de estratificação AI_TEST_P311 mostrando vendas por nível de cliente.` | Após confirmação, chart tipo coluna empilhada por segmento no CBMES. | sim |
+| P312 | `Crie um scorecard AI_TEST_P312 com 4 métricas de desempenho e seus targets.` | Após confirmação, dashboard com scorecards/progress bars no CBMES. | sim |
+| P313 | `Crie um gráfico de crescimento AI_TEST_P313 mostrando CAGR por produto.` | Após confirmação, chart tipo linha com evolução de CAGR no CBMES. | sim |
+| P314 | `Crie um gráfico de volatilidade AI_TEST_P314 mostrando variância de receita mensal.` | Após confirmação, chart tipo banda ou volatility chart no CBMES. | sim |
+| P315 | `Crie um gráfico de concentração AI_TEST_P315 analisando Índice de Herfindahl por região.` | Após confirmação, chart tipo coluna com índice de concentração no CBMES. | sim |
+| P316 | `Crie um dashboard de pilar AI_TEST_P316 com 5 dimensões de análise de negócio.` | Após confirmação, dashboard tipo pilar com 5 abas/seções no CBMES. | sim |
+| P317 | `Crie um gráfico de atribuição AI_TEST_P317 mostrando crédito de vendas por canal.` | Após confirmação, chart tipo waterfall com atribuição no CBMES. | sim |
+| P318 | `Crie um gráfico de benchmark AI_TEST_P318 comparando performance vs concorrentes.` | Após confirmação, chart tipo coluna ou radar com benchmarking no CBMES. | sim |
+| P319 | `Crie um gráfico de elasticidade AI_TEST_P319 mostrando relação preço-volume.` | Após confirmação, chart tipo scatter com curva de elasticidade no CBMES. | sim |
+| P320 | `Crie um painel de planejamento AI_TEST_P320 com realized vs planned.` | Após confirmação, dashboard tipo controle orçamentário no CBMES. | sim |
+| P321 | `Crie um gráfico de segmentação AI_TEST_P321 mostrando RFM (recência, frequência, monetário).` | Após confirmação, chart tipo scatter 3D ou 2D matrix no CBMES. | sim |
+| P322 | `Crie um gráfico de impacto temporal AI_TEST_P322 mostrando efeito de campanhas em vendas.` | Após confirmação, chart tipo linha dual-eixo com anotações no CBMES. | sim |
+| P323 | `Crie um dashboard executivo AI_TEST_P323 com resumo para C-level.` | Após confirmação, dashboard estilo executivo com poucos KPIs críticos no CBMES. | sim |
+| P324 | `Crie um gráfico de canal AI_TEST_P324 comparando desempenho de todos os canais.` | Após confirmação, chart tipo barra ou área por canal no CBMES. | sim |
+| P325 | `Crie um mapa de calor de performance AI_TEST_P325 por produto x região.` | Após confirmação, chart tipo heatmap 2D produto vs região no CBMES. | sim |
+| P326 | `Crie um gráfico de ciclo de vida AI_TEST_P326 mostrando evolução de clientes.` | Após confirmação, chart tipo sankey ou alluvial de transição no CBMES. | sim |
+| P327 | `Crie um painel de operações AI_TEST_P327 com métricas de eficiência.` | Após confirmação, dashboard operacional com throughput, latência, etc no CBMES. | sim |
+| P328 | `Crie um gráfico de risco AI_TEST_P328 mostrando cenários de pior/melhor caso.` | Após confirmação, chart tipo cone ou fanplot mostrando intervalos de confiança no CBMES. | sim |
+| P329 | `Crie um dashboard de conformidade AI_TEST_P329 com compliance status.` | Após confirmação, dashboard tipo checklist/scorecard no CBMES. | sim |
+| P330 | `Crie um gráfico de potencial AI_TEST_P330 mostrando oportunidades de growth.` | Após confirmação, chart tipo bolha ou scatter com potencial vs realizado no CBMES. | sim |
+| P331 | `Crie um painel de recursos humanos AI_TEST_P331 com métricas de RH.` | Após confirmação, dashboard RH com produtividade, retenção, etc no CBMES. | sim |
+| P332 | `Crie um gráfico de preferência AI_TEST_P332 mostrando produto/região preferida.` | Após confirmação, chart tipo barra top-N com preferências no CBMES. | sim |
+| P333 | `Crie um dashboard de suprimentos AI_TEST_P333 com métricas de cadeia.` | Após confirmação, dashboard Supply Chain com inventário, custos, etc no CBMES. | sim |
+| P334 | `Crie um gráfico de anomalia AI_TEST_P334 destacando valores atípicos de vendas.` | Após confirmação, chart tipo scatter com anomalias marcadas no CBMES. | sim |
+| P335 | `Crie um painel de inovação AI_TEST_P335 mostrando produtos novos vs maduros.` | Após confirmação, dashboard com ciclo de vida de inovação no CBMES. | sim |
+| P336 | `Crie um gráfico de lealdade AI_TEST_P336 analisando repeat purchase rate.` | Após confirmação, chart tipo linha ou área mostrando padrão de lealdade no CBMES. | sim |
+| P337 | `Crie um dashboard de riscos AI_TEST_P337 com heat maps de exposição.` | Após confirmação, dashboard tipo risk matrix com priorização no CBMES. | sim |
+| P338 | `Crie um gráfico de valor agora esperado AI_TEST_P338 com NPV por projeto/produto.` | Após confirmação, chart tipo coluna com ranking NPV no CBMES. | sim |
+| P339 | `Crie um painel de sustentabilidade AI_TEST_P339 com métricas ESG.` | Após confirmação, dashboard com indicadores de sustentabilidade no CBMES. | sim |
+| P340 | `Crie um gráfico de crosssell AI_TEST_P340 mostrando oportunidades de venda cruzada.` | Após confirmação, chart tipo rede ou correlated items no CBMES. | sim |
+| P341 | `Crie um dashboard de retenção AI_TEST_P341 com churn analysis.` | Após confirmação, dashboard com cohort analysis e retenção no CBMES. | sim |
+| P342 | `Crie um gráfico de score AI_TEST_P342 com ranking de clientes por value.` | Após confirmação, chart tipo tabela ranqueada com propriedades no CBMES. | sim |
+| P343 | `Crie um painel de inovação digital AI_TEST_P343 com métricas tech.` | Após confirmação, dashboard com adoção de tecnologia, digitalizaçãoetc no CBMES. | sim |
+| P344 | `Crie um gráfico de afinidade AI_TEST_P344 mostrando co-ocorrência de produtos.` | Após confirmação, chart tipo correção de afinidade ou association rules no CBMES. | sim |
+| P345 | `Crie um dashboard de diversidade AI_TEST_P345 com índices de mix de portfólio.` | Após confirmação, dashboard mostrando diversificação de receita no CBMES. | sim |
+| P346 | `Crie um gráfico de persistência AI_TEST_P346 mostrando durabilidade de receita.` | Após confirmação, chart tipo área ou coluna empilhada mostrando permanência no CBMES. | sim |
+| P347 | `Crie um painel de satisfação AI_TEST_P347 com NPS e CSAT por segmento.` | Após confirmação, dashboard com scores de satisfação no CBMES. | sim |
+| P348 | `Crie um gráfico de viabilidade AI_TEST_P348 comparando projetos por ROI vs risco.` | Após confirmação, chart tipo bolha com viabilidade de projetos no CBMES. | sim |
+| P349 | `Crie um dashboard integrado AI_TEST_P349 unificando perspectivas financeira e operacional.` | Após confirmação, dashboard full-stack com multidimensão financeira+ops no CBMES. | sim |
+| P350 | `Crie um gráfico de síntese AI_TEST_P350 resumindo indicador de performance geral (GPI).` | Após confirmação, chart tipo scorecard ou gauge mostrando GPI consolidado no CBMES. | sim |
 
 ## P351-P500: Direct Chat Queries (Read-Only, No Artifacts)
 
