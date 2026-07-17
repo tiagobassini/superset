@@ -158,6 +158,336 @@ os recursos resultantes.
 | P99 | `Neste gráfico, explique o que ele mostra e sugira uma melhoria de visualização.` | Contexto inicial: `explore:AI_TEST_P45_POP`. Usa o chart atual do contexto; descreve métrica/dimensão e sugere melhoria sem alterar nada. | não |
 | P100 | `No contexto atual, crie uma análise completa com dataset, gráfico não-barra e publicação no CBMES com prefixo AI_TEST_P100.` | Contexto inicial: `dataset:international_sales`. Usa o dataset do contexto, cria dataset derivado, chart não-barra e publica no CBMES após confirmação, com links para todos os artefatos. | sim |
 
+## P101-P130: Dashboard Creation Tests
+
+| ID | Prompt | Resultado esperado verificável | Após confirmação |
+|---|---|---|---|
+| P101 | `Crie um novo dashboard chamado AI_TEST_P101 para análise de vendas.` | Plano cria dashboard com título "AI_TEST_P101" e descrição; após confirmação dashboard existe no sistema. | sim |
+| P102 | `Crie um dashboard AI_TEST_P102 com layout de 2 colunas para análises comparativas.` | Plano específica estrutura do dashboard; após confirmação dashboard está pronto para receber charts. | sim |
+| P103 | `Faça um dashboard AI_TEST_P103 dedicado à análise de dados de população global.` | Plano descreve dados de `wb_health_population`; após confirmação dashboard é criado com contexto apropriado. | sim |
+| P104 | `Crie um painel AI_TEST_P104 de monitoramento de vendas por região.` | Plano refere-se ao dashboard com estrutura apropriada; após confirmação dashboard existe e está vazio. | sim |
+| P105 | `Monte um dashboard AI_TEST_P105 com indicadores-chave de desempenho (KPI) de videogames.` | Plano descreve KPIs da fonte `video_game_sales`; após confirmação dashboard está criado. | sim |
+| P106 | `Crie um dashboard AI_TEST_P106 para análise de dados de voos.` | Plano cria dashboard referenciando `flights`; após confirmação existe no sistema. | sim |
+| P107 | `Faça um dashboard AI_TEST_P107 compartilhável para stakeholders de vendas.` | Plano descreve dashboard preparado para compartilhamento; após confirmação dashboard existe. | sim |
+| P108 | `Crie um dashboard AI_TEST_P108 com guia de uso para novos usuários.` | Plano inclui descrição/instruções do dashboard; após confirmação dashboard é criado. | sim |
+| P109 | `Montue um dashboard AI_TEST_P109 que integre dados de múltiplas fontes de vendas.` | Plano descreve integração de `international_sales` e `cleaned_sales_data`; após confirmação dashboard existe. | sim |
+| P110 | `Crie um dashboard AI_TEST_P110 com tema escuro otimizado para apresentações.` | Plano refere-se à criar dashboard; após confirmação existe no sistema e está pronto para customização. | sim |
+| P111 | `Faça um dashboard AI_TEST_P111 para comparação de tendências anuais.` | Plano descreve análise temporal; após confirmação dashboard é criado. | sim |
+| P112 | `Crie um painel AI_TEST_P112 interativo de análise geográfica de vendas.` | Plano refere-se a dados geográficos; após confirmação dashboard sendo criado. | sim |
+| P113 | `Crie um dashboard AI_TEST_P113 com filtros globais para análise por período.` | Plano descreve filtros temporais; após confirmação dashboard existe com estrutura pronta. | sim |
+| P114 | `Faça um dashboard AI_TEST_P114 focado em rentabilidade e margem de lucro.` | Plano refere-se a métricas de lucro/profitabilidade; após confirmação dashboard é criado. | sim |
+| P115 | `Crie um dashboard AI_TEST_P115 com exportação de dados para relatórios.` | Plano descreve dashboard pronto para análises exportáveis; após confirmação dashboard existe. | sim |
+| P116 | `Monte um dashboard AI_TEST_P116 para monitoramento em tempo real de KPIs.` | Plano descreve dashboard com refresh automático; após confirmação dashboard é criado. | sim |
+| P117 | `Crie um painel AI_TEST_P117 separado por categorias de produtos.` | Plano refere-se a segmentação por `product_category`; após confirmação dashboard existe. | sim |
+| P118 | `Faça um dashboard AI_TEST_P118 para análise comparativa entre regiões.` | Plano descreve estrutura regional; após confirmação dashboard é criado. | sim |
+| P119 | `Crie um dashboard AI_TEST_P119 com análise de sazonalidade de vendas.` | Plano refere-se a padrões temporais; após confirmação dashboard existe. | sim |
+| P120 | `Crie um painel AI_TEST_P120 dedicado à análise de dados demográficos.` | Plano cria dashboard para dados de população; após confirmação dashboard é criado com contexto apropriado. | sim |
+| P121 | `Faça um dashboard AI_TEST_P121 com comparação de performance entre produtos.` | Plano refere-se a análise por produto; após confirmação dashboard é criado. | sim |
+| P122 | `Crie um dashboard AI_TEST_P122 com alertas visuais para anomalias de vendas.` | Plano descreve dashboard preparado para alertas; após confirmação dashboard existe. | sim |
+| P123 | `Monte um painel AI_TEST_P123 para análise de satisfação de clientes.` | Plano refere-se a dados de clientes; após confirmação dashboard é criado. | sim |
+| P124 | `Crie um dashboard AI_TEST_P124 com histórico de dados para auditoria.` | Plano descreve dashboard com rastreabilidade; após confirmação dashboard existe. | sim |
+| P125 | `Faça um dashboard AI_TEST_P125 para análise de custos versus receitas.` | Plano refere-se a análise de cost/revenue; após confirmação dashboard é criado. | sim |
+| P126 | `Crie um painel AI_TEST_P126 com drill-down para análises granulares.` | Plano descreve interatividade do dashboard; após confirmação dashboard existe. | sim |
+| P127 | `Crie um dashboard AI_TEST_P127 para gestão de dados de saúde populacional.` | Plano refere-se a `wb_health_population`; após confirmação dashboard é criado. | sim |
+| P128 | `Faça um dashboard AI_TEST_P128 com sincronização entre múltiplos gráficos.` | Plano descreve interatividade; após confirmação dashboard é criado. | sim |
+| P129 | `Crie um painel AI_TEST_P129 para análise de distribuição de vendas por país.` | Plano refere-se a dimensão geográfica; após confirmação dashboard é criado. | sim |
+| P130 | `Crie um dashboard AI_TEST_P130 com histórico de modificações e versioning.` | Plano descreve rastreabilidade de mudanças; após confirmação dashboard é criado. | sim |
+
+## P131-P200: Theme/Topic Search Tests
+
+| ID | Prompt | Resultado esperado verificável | Após confirmação |
+|---|---|---|---|
+| P131 | `Verifique se existe um campo de "marca" ou "brand" nas fontes de dados do examples.` | Busca por variações como brand, manufacturer, marca; se não encontrar, relata ausência com sugestões de colunas similares. | não |
+| P132 | `Procure dados relacionados a "renda" ou "income" em qualquer fonte de examples.` | Descobre ou nega interesse em `income` ou similares; sem criação de artefatos. | não |
+| P133 | `Existe alguma fonte que contenha informações de "clientes" ou "customers"?` | Busca em metadados por tabelas/colunas relacionadas; responde com nomes e schema ou confirma ausência. | não |
+| P134 | `Tem algum dataset com dados históricos de "temperaturas" ou "climáticos"?` | Busca tabulações climáticas; se não encontrar, confirma ausência sem propor criação. | não |
+| P135 | `Procure por fontes com informações de "timestamps" e construa uma timeline.` | Identifica colunas temporais (`ds`, `transaction_date`, `order_date`); descreve granularidade sem criar. | não |
+| P136 | `Existe na database um campo de "status" que eu possa usar para filtrar pedidos?` | Encontra `status` em `cleaned_sales_data`; descreve valores possíveis e uso analítico. | não |
+| P137 | `Verifique se há dados de "cancelamentos" em qualquer dataset.` | Encontra `CANCELLED` em `flights` ou nega, descrevendo alternativas de dados disponíveis. | não |
+| P138 | `Procure por qualquer coluna que represente "lucro" ou "profit" nas fontes.` | Identifica `profit` em `international_sales`; confirma com tipo de dado e agregação possível. | não |
+| P139 | `Tem alguma fonte com dados de "participação de mercado" ou "market share"?` | Busca conceituais relacionados; se não direto, sugere como calcular a partir de vendas. | não |
+| P140 | `Existe um field de "descrição de produto" ou "product_name" em alguma tabela?` | Encontra `product_name` e `product_category` em `international_sales` e `cleaned_sales_data`. | não |
+| P141 | `Procure dados relacionados a "demanda" ou campos de "quantidade" para análise.` | Identifica `quantity`, `quantity_ordered` para demanda; descreve em que tabelas estão. | não |
+| P142 | `Verifique se existe um metadado chamado "ano" ou "year" para análises temporais.` | Encontra `year` em várias tabelas; descreve granularidade temporal disponível. | não |
+| P143 | `Tem algum dataset com informações de "atraso" ou "delay" de operações?` | Encontra `DEPARTURE_DELAY` e `ARRIVAL_DELAY` em `flights`; confirma disponibilidade. | não |
+| P144 | `Procure por campos de "percentual", "ratio" ou "índice" nas fontes.` | Busca e relata colunas de índices ou valores percentuais; oferece alternativas para cálculo. | não |
+| P145 | `Existe informação de "gênero" ou "gender" em alguma fonte para análise demográfica?` | Encontra `gender` em `birth_names`; confirma e descreve segmentação possível. | não |
+| P146 | `Verifique se há campos numéricos que possam ser usados para análise estatística.` | Identifica todos os campos contínuos (revenue, sales, DISTANCE, num, etc); lista por tabela. | não |
+| P147 | `Procure por fontes que tenham dados de "popularidade" ou "rankings".` | Busca colunas indicadoras de rank/popularidade; relata colunas de ordenação encontradas. | não |
+| P148 | `Tem alguma fonte relacionada a "educação" ou "escolaridade"?` | Busca campos educacionais; se ausentes, confirma com alternativas demográficas. | não |
+| P149 | `Existe dado de "localização" ou "endereço" em alguma tabela?` | Busca por geography/location; encontra `country`, `region`, `state`, `territory` e descreve. | não |
+| P150 | `Procure por qualquer coluna que indique "crescimento" ou "trend" nas vendas.` | Identifica colunas temporais para calcular trend; oferece estrutura sem criar. | não |
+| P151 | `Verifique se há uma coluna de "custo unitário" ou "unit_cost" nas fontes.` | Busca variações de custo; confirma `cost` em `international_sales` e oferece alternativas. | não |
+| P152 | `Tem algum dataset com informações de "competidores" ou "competitors"?` | Busca dados competitivos; relata disponibilidade ou ausência com sugestões. | não |
+| P153 | `Procure por campos de "ID" ou identificadores únicos em cada tabela.` | Identifica campos chave primária/ID em todas as tabelas; descreve estrutura. | não |
+| P154 | `Existe informação de "fornecedor" ou "supplier" em alguma fonte?` | Busca dados de supply chain; se não encontrar, sugere aproximações análiticas. | não |
+| P155 | `Verifique se há dados de "performance de vendedor" ou "sales_person".` | Busca campos de performance individual/por categoria; confirma com dados disponíveis. | não |
+| P156 | `Procure por campos de "volume" ou "quantidade total" para benchmarking.` | Identifica colunas de volume en todas as tabelas; descreve granularidade. | não |
+| P157 | `Tem alguma fonte com informações de "horário" ou "time" para análise intra-dia?` | Busca granularidade de tempo; relata nível mais fino disponível (hora/dia/mês). | não |
+| P158 | `Existe um campo que represente "valor médio" ou "average_value" em alguma tabela?` | Busca campos pré-calculados; oferece como calculá-los se não encontrar. | não |
+| P159 | `Procure por qualquer dado relacionado a "satisfação" ou "satisfaction_score".` | Busca métricas de satisfação; confirma ausência e oferece proxies de engajamento. | não |
+| P160 | `Verifique se há informação de "período" ou "season" para análise sazonal.` | Busca variáveis sazonais; encontra `month`, `quarter` potencial; sem criar. | não |
+
+## P201-P350: Chart Types and Dashboard Integration Tests
+
+| ID | Prompt | Resultado esperado verificável | Após confirmação |
+|---|---|---|---|
+| P201 | `Crie um gráfico de linha AI_TEST_P201 de receita ao longo do tempo e adicione ao CBMES.` | Após confirmação, chart tipo linha com `transaction_date` e soma de `revenue` existe no CBMES. | sim |
+| P202 | `Crie um gráfico de área AI_TEST_P202 de lucro acumulado e adicione ao CBMES.` | Após confirmação, chart tipo área com soma de `profit` de `international_sales` está no CBMES. | sim |
+| P203 | `Crie um gráfico de coluna AI_TEST_P203 de vendas por território e adicione ao CBMES.` | Após confirmação, chart tipo coluna/barra com `territory` e soma de `sales` no CBMES. | sim |
+| P204 | `Crie um gráfico de pizza AI_TEST_P204 de participação de vendas por produto e adicione ao CBMES.` | Após confirmação, chart tipo pizza com `product_line` e soma de `sales` está no CBMES. | sim |
+| P205 | `Crie um gráfico de donut AI_TEST_P205 de distribuição de receita por região e adicione ao CBMES.` | Após confirmação, chart tipo donut com `region` e soma de `revenue` no CBMES. | sim |
+| P206 | `Crie um gráfico de dispersão AI_TEST_P206 comparando price vs volume e adicione ao CBMES.` | Após confirmação, chart tipo scatter com `revenue` e `quantity` no CBMES. | sim |
+| P207 | `Crie um heatmap AI_TEST_P207 de vendas por product_line e country e adicione ao CBMES.` | Após confirmação, chart tipo heatmap no CBMES com `product_line`, `country`, `sales`. | sim |
+| P208 | `Crie um box plot AI_TEST_P208 de distribuição de delays por companhia aérea e adicione ao CBMES.` | Após confirmação, chart tipo box plot em `flights` com `ARRIVAL_DELAY` por `AIRLINE` no CBMES. | sim |
+| P209 | `Crie um gráfico de barras horizontais AI_TEST_P209 com top 10 países por receita e adicione ao CBMES.` | Após confirmação, chart tipo bar horizontal no CBMES com `country` e `revenue`. | sim |
+| P210 | `Crie uma tabela AI_TEST_P210 com detalhes de vendas por mês e adicione ao CBMES.` | Após confirmação, chart tipo tabela com dados de `cleaned_sales_data` no CBMES. | sim |
+| P211 | `Crie um gráfico de radar AI_TEST_P211 comparando vendas por região (NA, EU, JP, Global) e adicione ao CBMES.` | Após confirmação, chart tipo radar com dados de `video_game_sales` ou propõe alternativa compatível no CBMES. | sim |
+| P212 | `Crie um gauge AI_TEST_P212 mostrando percentual de meta de vendas e adicione ao CBMES.` | Após confirmação, chart tipo gauge no CBMES ou propõe visualização similar de KPI. | sim |
+| P213 | `Crie um gráfico de treemap AI_TEST_P213 com hierarquia de vendas por categoria e país e adicione ao CBMES.` | Após confirmação, chart tipo treemap com hierarquia no CBMES ou propõe sunburst. | sim |
+| P214 | `Crie um gráfico de timeline AI_TEST_P214 de eventos/marcos de vendas ao longo dos anos e adicione ao CBMES.` | Após confirmação, chart tipo timeline ou visualização temporal especial no CBMES. | sim |
+| P215 | `Crie um waterfall AI_TEST_P215 mostrando contribuição de receita incremental por região e adicione ao CBMES.` | Após confirmação, chart tipo waterfall no CBMES ou propõe alternative de composição. | sim |
+| P216 | `Crie um gráfico de bolhas AI_TEST_P216 com três dimensões (país, receita, população) e adicione ao CBMES.` | Após confirmação, chart tipo bubble com `country`, `revenue` (tamanho), `SP_POP_TOTL` (cor) no CBMES. | sim |
+| P217 | `Crie um gráfico de caixa AI_TEST_P217 (box plot) de quantidade de pedidos por país e adicione ao CBMES.` | Após confirmação, chart tipo box plot em `cleaned_sales_data` no CBMES. | sim |
+| P218 | `Crie um gráfico de sankey AI_TEST_P218 mostrando fluxo de vendas entre regiões e adicione ao CBMES.` | Após confirmação, chart tipo sankey/flow no CBMES com dados de region/country ou propõe alternativa. | sim |
+| P219 | `Crie um histograma AI_TEST_P219 de distribuição de valores de receita e adicione ao CBMES.` | Após confirmação, chart tipo histogram em `international_sales` com `revenue` no CBMES. | sim |
+| P220 | `Crie um gráfico de combinação AI_TEST_P220 área+linha de receita vs lucro por período e adicione ao CBMES.` | Após confirmação, chart tipo combo/mixed em `international_sales` no CBMES. | sim |
+| P221 | `Crie um gráfico polar AI_TEST_P221 de vendas por mês ao longo de 3 anos e adicione ao CBMES.` | Após confirmação, chart tipo polar/radar temporal no CBMES ou propõe alternativa. | sim |
+| P222 | `Crie um scatter plot AI_TEST_P222 com regression line de cost vs profit e adicione ao CBMES.` | Após confirmação, chart tipo scatter com trend line no CBMES. | sim |
+| P223 | `Crie um gráfico de parede de píxeis AI_TEST_P223 (pixel heatmap) de vendas diárias e adicione ao CBMES.` | Após confirmação, chart tipo pixel heatmap ou alternativa visual similar no CBMES. | sim |
+| P224 | `Crie um mapa de calor AI_TEST_P224 temporal de receita por mês e dia da semana e adicione ao CBMES.` | Após confirmação, chart tipo heatmap com `transaction_date` granularidade no CBMES. | sim |
+| P225 | `Crie um gráfico de número AI_TEST_P225 (big number/KPI) mostrando receita total e adicione ao CBMES.` | Após confirmação, chart tipo big number/card com métrica agregada no CBMES. | sim |
+| P226 | `Crie um gráfico de progresso AI_TEST_P226 (progress bar) de realização de meta e adicione ao CBMES.` | Após confirmação, chart tipo progress bar/linear gauge no CBMES. | sim |
+| P227 | `Crie um gráfico de funil AI_TEST_P227 (funnel) mostrando etapas de vendas e adicione ao CBMES.` | Após confirmação, chart tipo funnel no CBMES com dados segmentados. | sim |
+| P228 | `Crie um Pareto AI_TEST_P228 mostrando 80/20 de vendas por produto e adicione ao CBMES.` | Após confirmação, chart tipo pareto ou combo com cumulative no CBMES. | sim |
+| P229 | `Crie um gráfico de velocidade AI_TEST_P229 (speedometer/gauge) de performance de vendas e adicione ao CBMES.` | Após confirmação, chart tipo speedometer/gauge no CBMES com métrica de KPI. | sim |
+| P230 | `Crie um gráfico de anéis AI_TEST_P230 (ring chart) de distribuição de vendas por categoria e adicione ao CBMES.` | Após confirmação, chart tipo ring/donut com `product_category` no CBMES. | sim |
+| P231 | `Crie um gráfico de barras empilhadas AI_TEST_P231 de receita por país e região e adicione ao CBMES.` | Após confirmação, chart tipo stacked bars no CBMES com dois níveis. | sim |
+| P232 | `Crie um gráfico de área empilhada AI_TEST_P232 de vendas ao longo do tempo por categoria e adicione ao CBMES.` | Após confirmação, chart tipo stacked area no CBMES temporal. | sim |
+| P233 | `Crie um gráfico de linha com preenchimento AI_TEST_P233 de tendência de lucro e adicione ao CBMES.` | Após confirmação, chart tipo area/line no CBMES. | sim |
+| P234 | `Crie um violin plot AI_TEST_P234 de distribuição de receita por categoria e adicione ao CBMES.` | Após confirmação, chart tipo violin plot no CBMES ou propõe box plot alternativo. | sim |
+| P235 | `Crie um gráfico de cobertura AI_TEST_P235 (coverage) de países atendidos sobre total e adicione ao CBMES.` | Após confirmação, chart tipo visão de cobertura/participação no CBMES. | sim |
+| P236 | `Crie um dense rank AI_TEST_P236 dos top 15 produtos por receita e adicione ao CBMES.` | Após confirmação, chart tipo tabela/barra ranqueada no CBMES. | sim |
+| P237 | `Crie um gráfico de calendário AI_TEST_P237 com atividades de venda por data e adicione ao CBMES.` | Após confirmação, chart tipo calendar heatmap no CBMES com vendas por data. | sim |
+| P238 | `Crie um mapa geográfico AI_TEST_P238 de vendas por país e adicione ao CBMES.` | Após confirmação, chart tipo choropleth/map regional no CBMES com `country`. | sim |
+| P239 | `Crie um gráfico de métricas múltiplas AI_TEST_P239 comparando 3 KPIs principais e adicione ao CBMES.` | Após confirmação, chart tipo multi-metric cards/dashboard no CBMES. | sim |
+| P240 | `Crie um sunburst AI_TEST_P240 de hierarquia de vendas (país > região > categoria) e adicione ao CBMES.` | Após confirmação, chart tipo sunburst no CBMES com 3 níveis hierárquicos. | sim |
+| P241 | `Crie um chord diagram AI_TEST_P241 mostrando relações entre regiões e categorias e adicione ao CBMES.` | Após confirmação, chart tipo chord diagram no CBMES ou propõe alternativa de rede. | sim |
+| P242 | `Crie um network graph AI_TEST_P242 de conexões entre fornecedores e produtos e adicione ao CBMES.` | Após confirmação, chart tipo network/graph no CBMES ou propõe alternativa visual. | sim |
+| P243 | `Crie um gráfico de fluxo AI_TEST_P243 (alluvial) de migração de clientes entre categorias e adicione ao CBMES.` | Após confirmação, chart tipo alluvial/flow no CBMES ou propõe sankey. | sim |
+| P244 | `Crie um contour plot AI_TEST_P244 de densidade de vendas bidimensional e adicione ao CBMES.` | Após confirmação, chart tipo contour/heatmap 2D no CBMES. | sim |
+| P245 | `Crie um gráfico de correlação AI_TEST_P245 (correlation matrix) entre variáveis de vendas e adicione ao CBMES.` | Após confirmação, chart tipo heatmap de correlação no CBMES. | sim |
+| P246 | `Crie um PCA plot AI_TEST_P246 reduzindo dados multidimensionais e adicione ao CBMES.` | Após confirmação, chart tipo scatter PCA no CBMES ou propõe clustering visual. | sim |
+| P247 | `Crie um gráfico de rosto de Chernoff AI_TEST_P247 representando múltiplas dimensões e adicione ao CBMES.` | Após confirmação, propõe visualização alternativa se não suportado; cria chart no CBMES. | sim |
+| P248 | `Crie uma forma customizada AI_TEST_P248 usando dados de receita em padrão visual especial e adicione ao CBMES.` | Após confirmação, chart com visualização criativa/customizada no CBMES. | sim |
+| P249 | `Crie um gráfico decorativo AI_TEST_P249 com dados de vendas em formato de arte visual e adicione ao CBMES.` | Após confirmação, chart tipo decorativo/artístico no CBMES mantendo integridade de dados. | sim |
+| P250 | `Crie uma banda AI_TEST_P250 (band chart) mostrando range de variação de vendas e adicione ao CBMES.` | Após confirmação, chart tipo band/ribbon no CBMES com min-max de vendas. | sim |
+| P251 | `Crie um gráfico de diferenças AI_TEST_P251 (slope chart) comparando vendas ano 1 vs ano 2 e adicione ao CBMES.` | Após confirmação, chart tipo slope/bump no CBMES. | sim |
+| P252 | `Crie um dot plot AI_TEST_P252 elegante de ranking de regiões e adicione ao CBMES.` | Após confirmação, chart tipo dot plot/strip plot no CBMES. | sim |
+| P253 | `Crie um swarm plot AI_TEST_P253 de distribuição de vendas por país e adicione ao CBMES.` | Após confirmação, chart tipo swarm/bee no CBMES ou propõe scatter. | sim |
+| P254 | `Crie um ridgeline AI_TEST_P254 mostrando distribuição de receita ao longo do tempo e adicione ao CBMES.` | Após confirmação, chart tipo ridge/joy plot no CBMES ou propõe área. | sim |
+| P255 | `Crie um gráfico de picos AI_TEST_P255 (peaks chart) de eventos de pico de vendas e adicione ao CBMES.` | Após confirmação, chart tipo linha com destaque de picos no CBMES. | sim |
+| P256 | `Crie um profile plot AI_TEST_P256 mostrando tendências de 3 métricas em paralelo e adicione ao CBMES.` | Após confirmação, chart tipo linha paralela/profile no CBMES. | sim |
+| P257 | `Crie um gráfico de célula AI_TEST_P257 (cell plot) de dados bimodais e adicione ao CBMES.` | Após confirmação, chart tipo grid/cell no CBMES com dados categóricos. | sim |
+| P258 | `Crie um beeswarm AI_TEST_P258 com segmentação por categoria e adicione ao CBMES.` | Após confirmação, chart tipo beeswarm/swarm no CBMES com cores. | sim |
+| P259 | `Crie um gráfico de folha AI_TEST_P259 (leaf chart) com dados de região e adicione ao CBMES.` | Após confirmação, propõe visualização alternativa; cria chart no CBMES. | sim |
+| P260 | `Crie um streamgraph AI_TEST_P260 de evolução de vendas por categoria ao longo do tempo e adicione ao CBMES.` | Após confirmação, chart tipo stream/flowing no CBMES temporal. | sim |
+| P261 | `Crie um gráfico de bolas de neve AI_TEST_P261 mostrando crescimento exponencial de um produto e adicione ao CBMES.` | Após confirmação, chart tipo bubble dinâmico ou linha exponencial no CBMES. | sim |
+| P262 | `Crie um arc diagram AI_TEST_P262 com conexões entre fornecedor e cliente e adicione ao CBMES.` | Após confirmação, chart tipo arc/conexão no CBMES ou propõe sankey. | sim |
+| P263 | `Crie um espaço em branco AI_TEST_P263 (whitespace chart) enfatizando alguns dados vs ruído e adicione ao CBMES.` | Após confirmação, chart com ênfase visual apropriada no CBMES. | sim |
+| P264 | `Crie um gráfico em espiral AI_TEST_P264 mostrando sequência temporal de dados e adicione ao CBMES.` | Após confirmação, chart tipo espiral/radial/polar temporal no CBMES. | sim |
+| P265 | `Crie um wave chart AI_TEST_P265 mostrando padrão ondulante de variação de vendas e adicione ao CBMES.` | Após confirmação, chart tipo onda/sinusoide no CBMES. | sim |
+| P266 | `Crie um gráfico de fita AI_TEST_P266 (ribbon) mostrando mudanças de ranking ao longo do tempo e adicione ao CBMES.` | Após confirmação, chart tipo ribbon/bump temporal no CBMES. | sim |
+| P267 | `Crie um lollipop chart AI_TEST_P267 elegante de regiões por receita e adicione ao CBMES.` | Após confirmação, chart tipo lollipop/dot-line no CBMES. | sim |
+| P268 | `Crie um gráfico em explosão radial AI_TEST_P268 com dados de produto em padrão circular e adicione ao CBMES.` | Após confirmação, chart tipo radial/circular no CBMES. | sim |
+| P269 | `Crie um stem plot AI_TEST_P269 mostrando série temporal com stems e adicione ao CBMES.` | Após confirmação, chart tipo stem/lollipop no CBMES com dados temporais. | sim |
+| P270 | `Crie um gráfico de trilha de tempo AI_TEST_P270 de marcos de crescimento de vendas e adicione ao CBMES.` | Após confirmação, chart tipo timeline/roadmap no CBMES. | sim |
+| P271 | `Crie um braço em espiral AI_TEST_P271 com dados categóricos segmentados e adicione ao CBMES.` | Após confirmação, chart tipo espiral customizada no CBMES. | sim |
+| P272 | `Crie um gráfico de reflexão AI_TEST_P272 (mirror) comparando duas métricas simetricamente e adicione ao CBMES.` | Após confirmação, chart tipo pyramid/mirror no CBMES. | sim |
+| P273 | `Crie um gráfico de embalagem de círculos AI_TEST_P273 (circle packing) com hierarquia de dados e adicione ao CBMES.` | Após confirmação, chart tipo circle packing/bubbles hierárquico no CBMES. | sim |
+| P274 | `Crie um padrão radial AI_TEST_P274 de dados cíclicos e adicione ao CBMES.` | Após confirmação, chart tipo radial/cíclico no CBMES. | sim |
+| P275 | `Crie um gráfico de gradação AI_TEST_P275 mostrando intensidade de vendas por localização e adicione ao CBMES.` | Após confirmação, chart com gradação de cores representativa no CBMES. | sim |
+| P276 | `Crie um gráfico de corda AI_TEST_P276 mostrando relação de força entre entidades e adicione ao CBMES.` | Após confirmação, chart tipo chord/force no CBMES ou propõe rede. | sim |
+| P277 | `Crie um gráfico polar de flores AI_TEST_P277 com dados categóricos em padrão simétrico e adicione ao CBMES.` | Após confirmação, chart tipo radar/polar floral no CBMES. | sim |
+| P278 | `Crie um gráfico em cruz AI_TEST_P278 (cross plot) comparando 4 métricas em eixos e adicione ao CBMES.` | Após confirmação, chart tipo multi-eixo ou faceted scatter no CBMES. | sim |
+| P279 | `Crie um gráfico ladeado AI_TEST_P279 (tilted) com ênfase em uma dimensão e adicione ao CBMES.` | Após confirmação, chart com perspectiva customizada no CBMES. | sim |
+| P280 | `Crie um gráfico de triângulos AI_TEST_P280 em padrão de densidade de vendas e adicione ao CBMES.` | Após confirmação, chart tipo triangular de hexagonal heatmap no CBMES. | sim |
+| P281 | `Crie um multi-gráfico AI_TEST_P281 com 4 visualizações diferentes de mesmos dados e adicione ao CBMES.` | Após confirmação, chart tipo dashboard/multi-viz com 4 perspectivas no CBMES. | sim |
+| P282 | `Crie um gráfico em camadas AI_TEST_P282 (layered) mostrando sobreposição de tendências e adicione ao CBMES.` | Após confirmação, chart tipo overlay/layered com múltiplas linhas no CBMES. | sim |
+| P283 | `Crie um gráfico de pequenos múltiplos AI_TEST_P283 (small multiples) de vendas por país e adicione ao CBMES.` | Após confirmação, chart tipo faceted/trellis plots no CBMES. | sim |
+| P284 | `Crie um gráfico de painel AI_TEST_P284 com 6 KPIs principais lado a lado e adicione ao CBMES.` | Após confirmação, chart tipo panel/grid de cards KPI no CBMES. | sim |
+| P285 | `Crie um gráfico de vento AI_TEST_P285 (wind rose) de direções de vendas por região e adicione ao CBMES.` | Após confirmação, chart tipo rose/wind rose radial no CBMES ou propõe polar. | sim |
+| P286 | `Crie um gráfico de engrenagens AI_TEST_P286 mostrando integração de processos de vendas e adicione ao CBMES.` | Após confirmação, propõe visualização de processo; cria chart no CBMES. | sim |
+| P287 | `Crie um gráfico de engrenajem AI_TEST_P287 (mesh) com conexões de relacionamento e adicione ao CBMES.` | Após confirmação, chart tipo network/force-directed no CBMES. | sim |
+| P288 | `Crie um gráfico de crista AI_TEST_P288 (ridge) em 3D visual com dados temporais e adicione ao CBMES.` | Após confirmação, chart tipo 3D ou pseudo-3D ridge plot no CBMES. | sim |
+| P289 | `Crie um gráfico de nós AI_TEST_P289 (node-link) mostrando hierarquia de dados e adicione ao CBMES.` | Após confirmação, chart tipo tree/dendrogram no CBMES. | sim |
+| P290 | `Crie um gráfico de caverna AI_TEST_P290 (cave plot) com dados em ambos os lados do eixo e adicione ao CBMES.` | Após confirmação, chart tipo pyramid/diverging bar no CBMES. | sim |
+| P291 | `Crie um gráfico de colméia AI_TEST_P291 (hexbin) de densidade de dados em 2D e adicione ao CBMES.` | Após confirmação, chart tipo hexbin heatmap no CBMES. | sim |
+| P292 | `Crie um gráfico de espinhos AI_TEST_P292 (spike map) mostrando picos de vendas por lugar e adicione ao CBMES.` | Após confirmação, chart tipo mapa com spikes na localização no CBMES. | sim |
+| P293 | `Crie um gráfico de aglomerado AI_TEST_P293 (cluster) de segmentação de clientes e adicione ao CBMES.` | Após confirmação, chart tipo scatter com clusters/cores no CBMES. | sim |
+| P294 | `Crie um parallelCoordinates AI_TEST_P294 mostrando 5+ dimensões simultaneamente e adicione ao CBMES.` | Após confirmação, chart tipo parallel coordinates no CBMES. | sim |
+| P295 | `Crie um gráfico de cones AI_TEST_P295 (cone chart) mostrando hierarquia invertida de vendasale adicione ao CBMES.` | Após confirmação, chart tipo cone/pyramid no CBMES. | sim |
+| P296 | `Crie um gráfico de câmara AI_TEST_P296 (chamber) compartimentalizando dados por categoria e adicione ao CBMES.` | Após confirmação, chart tipo treemap ou compartilhado no CBMES. | sim |
+| P297 | `Crie um gráfico de leque AI_TEST_P297 (fan) mostrando dispersão de um ponto central e adicione ao CBMES.` | Após confirmação, chart tipo radial/fan scatter no CBMES. | sim |
+| P298 | `Crie um gráfico de labirinto AI_TEST_P298 (maze plot) com camado de dados segmentados e adicione ao CBMES.` | Após confirmação, propõe visualização alternativa; cria chart no CBMES. | sim |
+| P299 | `Crie um gráfico de prisma AI_TEST_P299 (prism) com reflexão de dados em perspectivas diferentes e adicione ao CBMES.` | Após confirmação, chart tipo multi-perspectiva no CBMES. | sim |
+| P300 | `Crie um gráfico final especial AI_TEST_P300 sintetizando todos os tipos testados em um dashboard unificado e adicione ao CBMES.` | Após confirmação, dashboard completo com múltiplas visualizações síntese é criado e publicado. | sim |
+
+## P351-P500: Direct Chat Queries (Read-Only, No Artifacts)
+
+| ID | Prompt | Resultado esperado verificável | Após confirmação |
+|---|---|---|---|
+| P351 | `Qual é a receita total de international_sales em todo o período?` | Retorna valor agregado de soma de `revenue` sem criar chart ou dataset. | não |
+| P352 | `Quantos produtos diferentes existem em cleaned_sales_data?` | Calcula contagem distinta de `product_line` (ou similar) e responde numericamente. | não |
+| P353 | `Qual região gerou mais lucro em international_sales?` | Agrega `profit` por `region`, retorna top 1 com valor absoluto. | não |
+| P354 | `Qual foi o padrão de vendas ao longo dos meses em 2023?` | Descreve tendência mensal de `sales` ou `revenue` em 2023 sem visualização. | não |
+| P355 | `Explique as colunas disponíveis em video_game_sales e como usá-las.` | Descreve schema de `video_game_sales` com tipos de dados e possibilidades analíticas. | não |
+| P356 | `Qual country tem maior população segundo wb_health_population?` | Retorna país com maior `SP_POP_TOTL` e valor correspondente. | não |
+| P357 | `Qual é a média de atraso de chegada nas companhias aéreas?` | Calcula média de `ARRIVAL_DELAY` por `AIRLINE` ou geral e responde. | não |
+| P358 | `Compare as receitas de north america, europa e japan em video_game_sales.` | Soma `na_sales`, `eu_sales`, `jp_sales` e apresenta comparação com valores. | não |
+| P359 | `Qual produto teve pior performance em termos de profit?` | Identifica `product_category` ou `product_name` com menor `profit` agregado. | não |
+| P360 | `Calcule o ticket médio de vendas por país em international_sales.` | Divide soma de `revenue` por contagem de registros por país; retorna valores. | não |
+| P361 | `Quantos voos foram cancelados em flightos em 2016?` | Filtra por ano e soma `CANCELLED` ou contagem de registros cancelados. | não |
+| P362 | `Qual é o crescimento de vendas entre o primeiro e o último ano disponível?` | Calcula percentual de variação entre períodos iniciais e finais. | não |
+| P363 | `Determine o país com menores custos de operação em international_sales.` | Ordena por `cost` agregado e retorna país com menor valor. | não |
+| P364 | `Qual foi o ano com mais nascimentos registrados em birth_names?` | Agrega `num` por `year` e retorna o ano com maior soma. | não |
+| P365 | `Compare as expectativas de vida entre continentes ous regiões.` | Retorna `SP_DYN_LE00_IN` por `region` de `wb_health_population` ou agrupado. | não |
+| P366 | `Qual genre de videogame vendeu mais cópias globalmente?` | Retorna `genre` com maior soma de `global_sales`. | não |
+| P367 | `Qual é a taxa de cancelamento de voos em flights?` | Calcula percentual de voos cancelados sobre total. | não |
+| P368 | `Quais são os 3 territórios com maior participação em cleaned_sales_data?` | Retorna top 3 de `territory` por soma de `sales`. | não |
+| P369 | `Qual plataforma de videogames tem melhor média de vendas por título?` | Ordena `platform` por média de `global_sales` e retorna top 1. | não |
+| P370 | `Qual foi o mês com maior receita consolidada?` | Filtra melhor mês de soma de `revenue` ou `sales` agregado. | não |
+| P371 | `Explique a correlação entre revenue e quantity em international_sales.` | Descreve relação sem calcular; oferece interpretação lógica. | não |
+| P372 | `Qual é a margem média de lucro por região?` | Calcula `SUM(profit)/SUM(revenue)` por `region` e retorna percentuais. | não |
+| P373 | `Quantos registros únicos de países existem nas fontes de dados?` | Conta DISTINCT de columnas de país em diferentes tabelas. | não |
+| P374 | `Qual editora de jogos vendeu mais cópias totais em video_game_sales?` | Agrega `global_sales` por `publisher` e retorna top 1. | não |
+| P375 | `Qual foi a maior distância de voo registrada em flights?` | Retorna máximo valor de `DISTANCE`. | não |
+| P376 | `Qual é o desvio padrão de atrasos de partida em flights?` | Calcula dispersão estatística de `DEPARTURE_DELAY`. | não |
+| P377 | `Descreva a distribuição de vendas entre as linhas de produto.` | Retorna participação e contagem de cada `product_line`. | não |
+| P378 | `Qual série temporal melhor descreve o crescimento de lucro?` | Propõe análise de tendência; describe padrão sem visualizar. | não |
+| P379 | `Qual é a receita máxima em uma única transação de international_sales?` | Retorna MAX de `revenue`. | não |
+| P380 | `Quantos nomes de bebês diferentes foram registrados por gênero em birth_names?` | Conta DISTINCT de `name` por `gender`. | não |
+| P381 | `Qual estado tem mais nascimentos registrados em birth_names?` | Agrega `num` por `state` e retorna top 1. | não |
+| P382 | `Calcule a taxa de atrasos em voos por companhia aérea.` | Calcula percentual de voos com delay > 0 por `AIRLINE`. | não |
+| P383 | `Qual foi o performance média de lucro vs receita em cada região?` | Calcula margem média de lucro (`profit/revenue`) por `region` sem chart. | não |
+| P384 | `Quantas transações únicas foram registradas por país?` | Conta registros por `country` em `international_sales`. | não |
+| P385 | `Qual é a idade (em anos) dos dados de voos (flygtime range)?` | Retorna ano inicial e final de dados em `flights`. | não |
+| P386 | `Qual categoria de produto tem melhor margem de lucro?` | Calcula `profit/revenue` por `product_category` e retorna top 1. | não |
+| P387 | `Explicar o impacto de quantidade vendida sobre profit.` | Descreve relação entre `quantity` e `profit` interpretativamente. | não |
+| P388 | `Qual é a receita acumulada até o final de cada trimestre?` | Calcula soma acumulada de `revenue` por trimestre de `transaction_date`. | não |
+| P389 | `Qual companhia aérea tem o pior histórico de cancelamentos?` | Retorna `AIRLINE` com maior taxa de `CANCELLED`. | não |
+| P390 | `Quais são as top 5 combinações país + categoria por receita?` | Retorna top 5 de `country`, `product_category` por soma `revenue`. | não |
+| P391 | `Qual foi a media de quantidade vendida por pedido?` | Calcula média de `quantity_ordered` (ou similar) por transação. | não |
+| P392 | `Qual indicador de saúde (SP_DYN_MORT, SP_POP_TOTL, etc.) varia mais entre países?` | Analisa variância de indicadores de `wb_health_population` e descreve. | não |
+| P393 | `Qual é a taxa de crescimento mensal médio de vendas?` | Calcula MoM variação média de serie temporal de `sales` ou `revenue`. | não |
+| P394 | `Qual gênero de videogame tem melhor taxa de venda por plataforma?` | Calcula média de `global_sales` por combinação `genre` + `platform`. | não |
+| P395 | `Qual mês do ano historicamente tem melhor performance de vendas?` | Agrega `sales` ou `revenue` por mês (janeiro, fevereiro, etc) ano-a-ano. | não |
+| P396 | `Qual % de vendas são provenientes do top 10 produtos?` | Calcula participação de top 10 de `product_name`/categoria sobre total. | não |
+| P397 | `Qual é a receita média por transação e seu desvio padrão?` | Calcula `AVG(revenue)` e desvio padrão sem visualização. | não |
+| P398 | `Qual foi o melhor e o pior trimestre do ano em termos de lucro?` | Compara trimestres e retorna máximo e mínimo. | não |
+| P399 | `Qual país teve maior crescimento percentual de vendas YoY?` | Calcula variação ano-a-ano por país e retorna maior. | não |
+| P400 | `Quantos registros de voos correspondem a rotas nacionais vs internacionais?` | Segmenta `flights` por tipo de rota e retorna contagem. | não |
+| P401 | `Qual foi o percentual de devoluções/cancelamentos em cleaned_sales_data?` | Filtra `status` de cancelado/(rejeitado e calcula taxa. | não |
+| P402 | `Qual é a receita por capita de cada região usando dados de população?` | Junta `international_sales` e `wb_health_population`, calcula ratio. | não |
+| P403 | `Qual companhia aérea tem menor variação de atraso (mais consistente)?` | Calcula desvio padrão de `ARRIVAL_DELAY` e `DEPARTURE_DELAY` por `AIRLINE`. | não |
+| P404 | `Qual é o ranking de performance dos 10 países por receita?` | Lista 10 países em ordem descendente de `revenue` agregada. | não |
+| P405 | `Qual é o padrão sazonal de declínio ou crescimento de voos?` | Describe padrão de `YEAR`/`MONTH` sem gráfico de sazonalidade. | não |
+| P406 | `Qual gênero de bebê foi mais frequente em cada década?` | Agrega por decade de `ds` (ou year em grupos) por `gender`. | não |
+| P407 | `Qual é a receita média dos top 5 países versus a mediana geral?` | Compara média do top 5 com mediana de todos os dados. | não |
+| P408 | `Qual foi a quantidade total de itens movimentados em cleaned_sales_data?` | Soma `quantity_ordered` ou equivalente total. | não |
+| P409 | `Qual padrão de custo vs receita define as regiões mais lucrativas?` | Descreve relação sem visualizar; analisa estrutura de lucro. | não |
+| P410 | `Qual é o valor de transação típico (P25, P50, P75) por país?` | Calcula percentis de `revenue` por `country`. | não |
+| P411 | `Qual companhia aérea cresceu mais em volume de voos ao longo dei anos?` | Compara volume de `flights` por `AIRLINE` entre anos. | não |
+| P412 | `Qual categoria de produto tem maior seasonalidade?` | Descreve variação sazonal por `product_category` sem gráfico. | não |
+| P413 | `Qual é o top 3 de regiões por margem de lucro?` | Ranking de `region` por `SUM(profit)/SUM(revenue)` em descending. | não |
+| P414 | `Quanto representam as "vendas online" versus "física" se houver segmentação?` | Busca campo de channel/tipo; se não existir, informa ausência. | não |
+| P415 | `Qual foi o crescimento absoluto e percentual de receita YTD?` | Calcula variação desde início de ano até data mais recente. | não |
+| P416 | `Qual país tem maior população por `resident`?` | Retorna país com maior `SP_POP_TOTL` e valor numérico. | não |
+| P417 | `Qual benchmark internacional de vendas por capita você sugere usar?` | Oferece análise contextual sem criar artefatos analíticos. | não |
+| P418 | `Qual distribuição de dados de atrasos em flights é mais normal?` | Descreve forma de distribuição de `DEPARTURE_DELAY` vs `ARRIVAL_DELAY`. | não |
+| P419 | `Qual é o ROI potencial por região baseado em receita vs custo?` | Calcula índice de rentabilidade (`revenue/cost`) por `region`. | não |
+| P420 | `Qual fonte de dados seria opcional remover se houvesse limite de recursos?` | Oferece análise comparativa de tamanho/importância das bases. | não |
+| P421 | `Qual foi a volatilidade de preço/receita ao longo do período?` | Descreve variação de `revenue` per transaction sem gráfico. | não |
+| P422 | `Quantos usuários únicos ou compradores existem em cleaned_sales_data?` | Conta DISTINCT de identificador de cliente se disponível, ou registros únicos. | não |
+| P423 | `Qual é o intervalo de confiança 95% para a receita média?` | Calcula estatística de intervalo sem visualização. | não |
+| P424 | `Qual padrão de correlação existe entre `cost`, `profit` e `revenue`?` | Descreve relação multivariada sem matriz visual. | não |
+| P425 | `Qual foi o pior mês para cada companhia aérea em termos de atrasos?` | Identifica mês/airline com maior média de delay. | não |
+| P426 | `Qual segmento de cliente (por receita) é mais volátil em termos de comportamento?` | Propõe análise de segmentação; retorna interpretação sem artefato. | não |
+| P427 | `Qual é a expectativa de vida global média segundo dados de população?` | Cálcula média de `SP_DYN_LE00_IN` de `wb_health_population`. | não |
+| P428 | `Qual é a mediana de receita por transação em cada país?` | Calcula P50 de `revenue` por `country`. | não |
+| P429 | `Qual foi a participação de mercado por editora de games em 2023 (se houver)?` | Agrega `global_sales` por `publisher` para período (se dados permitrem). | não |
+| P430 | `Qual é o coeficiente de variação de lucro entre regiões?` | Calcula fórmula estatística de desvio/média sem chart. | não |
+| P431 | `Qual foi o impacto de cancelamentos de voos em volume total?` | Compara volume total vs volume de voos cancelados (em %). | não |
+| P432 | `Qual foi a maior variação de receita entre dois meses consecutivos?` | Identifica pico de mudança mensal histórica. | não |
+| P433 | `Qual é a quantidade de transações por hora do dia (se granulação permitir)?` | Descreve padrão intra-dia se dados de hora estão disponíveis. | não |
+| P434 | `Qual nome de bebê foi ranking #1 em cada década de 1960 a 2020?` | Retorna top name por década de `birth_names`. | não |
+| P435 | `Qual é a distância média de voo por companhia aérea?` | Calcula `AVG(DISTANCE)` por `AIRLINE`. | não |
+| P436 | `Qual país tem menores gastos de saúde per capita (SH_DYN_MORT) relativos?` | Retorna país com melhor correlação entre população e indicadores de saúde. | não |
+| P437 | `Qual foi a receita acumulada (running total) mês a mês?` | Retorna série acumulada de receita sem visualização. | não |
+| P438 | `Qual gênero de bebê foi mais popular segundo nomes únicos registrados?` | Conta DISTINCT de `name` por `gender` e retorna proporção. | não |
+| P439 | `Qual platform vendeu melhor em NA vs EU em video_game_sales?` | Compara `na_sales` vs `eu_sales` por `platform`. | não |
+| P440 | `Qual foi o padrão de lucro acumulado ao longo dos anos?` | Descreve série acumulada de `profit` sem visualizar. | não |
+| P441 | `Qual é a elasticidade preço-demanda se houver dados de preço?` | Oferece análise teórica; informa se dados permitem cálculo. | não |
+| P442 | `Qual é a taxa de retenção de categorias de produto (vendas repetidas)?` | Analisa se dados permittem; retorna taxa sem criar recurso. | não |
+| P443 | `Qual foi o maior ticket de venda e em qual país/contexto?` | Retorna MAX de `revenue` com contexto de país/categoria. | não |
+| P444 | `Qual companhia aérea é mais afetada por atrasos de chegada que de partida?` | Compara médias de `ARRIVAL_DELAY` vs `DEPARTURE_DELAY` por `AIRLINE`. | não |
+| P445 | `Qual foi o desempenho de lucro acumulado do 1T vs 2T vs 3T vs 4T?` | Retorna somas trimestrais sem visualização. | não |
+| P446 | `Qual percentual da receita total vem dos 30% de transações de maior valor?` | Calcula Pareto (80/20) sem gráfico. | não |
+| P447 | `Qual é a tendência de crescimento de população no último século em wb_health_population?` | Descreve trajetória de `SP_POP_TOTL` sem gráfico. | não |
+| P448 | `Qual foi o custo total de operação em international_sales?` | Soma total de `cost`. | não |
+| P449 | `Qual padrão semanal existe em dados de voos (dia da semana)?` | Descreve padrão se field de dia da semana está disponível. | não |
+| P450 | `Qual é a concentração de vendas (HHI - Herfindahl Index) por região?` | Calcula índice de concentração de mercado sem visualização. | não |
+| P451 | `Qual foi o desempenho de nomes de bebês por década no século XX?` | Descreve padrão de popularidade por período sem chart. | não |
+| P452 | `Qual foi a mortalidade infantil média por região segundo dados de população?` | Calcula média de `SH_DYN_MORT` por `region`. | não |
+| P453 | `Qual é o impacto de distância de voo em atrasos (correlação)?` | Describe relação entre `DISTANCE` e `ARRIVAL_DELAY` interpretatively. | não |
+| P454 | `Qual foram as 5 maiores transações por valor em international_sales?` | Retorna top 5 de MAX `revenue` sem criar chart. | não |
+| P455 | `Qual foi o mês em que video_game_sales foi maior globalmente?` | Identifica melhor período se dados permittem granularidade. | não |
+| P456 | `Qual é a média de lucro por pedido em cleaned_sales_data?` | Retorna `AVG(profit)` aggregating if needed. | não |
+| P457 | `Qual foi a taxa de crescimento de vendas CAGR (Compound Annual Growth Rate)?` | Calcula CAGR entre primeiro e último período disponível. | não |
+| P458 | `Qual country tem melhor expectativa de vida segundo dados?` | Retorna país com MAX de `SP_DYN_LE00_IN`. | não |
+| P459 | `Qual foi a receita média semanal se houver granularidade de data?` | Calcula `AVG(revenue)` por semana sem visual. | não |
+| P460 | `Qual é a performance de cada categoria em termos de ROI?` | Calcula `profit/cost` por `product_category`. | não |
+| P461 | `Qual mês tem histórico de mais atrasos em flights?` | Agrega `MONTH`/`ds` por média de delay. | não |
+| P462 | `Qual foi o nome de bebê que cresceu mais em popularidade entre décadas?` | Identifica maior variação de `num` por `name` entre períodos. | não |
+| P463 | `Qual é a população global total segundo wb_health_population?` | Soma `SP_POP_TOTL` de todos os países por year. | não |
+| P464 | `Qual foi a maior margem de lucro unitária em uma transação de vendas?` | Retorna MAX de `(revenue - cost) / quantity`. | não |
+| P465 | `Qual foi o volume de vendas total por status (concluído, cancelado, etc)?` | Agrega `sales` ou `quantity` por `status`. | não |
+| P466 | `Qual é a distribuição de atrasos (percentis: 10, 25, 50, 75, 90) em flights?` | Retorna distribuição estatística sem gráfico. | não |
+| P467 | `Qual foi o crescimento de receita em % no melhor ano em relação ao anterior?` | Identifica ano com maior YoY % variação. | não |
+| P468 | `Qual estado tem menor população segundo dados de nascimentos?` | Retorna estado com menor agregação de `num` em `birth_names`. | não |
+| P469 | `Qual foi o custo médio por unidade vendida em cada região?` | Calcula `SUM(cost)/SUM(quantity)` por `region`. | não |
+| P470 | `Qual foi o percentual de voos com atraso acima de 30 minutos?` | Calcula proporção onde `ARRIVAL_DELAY` > 30 min. | não |
+| P471 | `Qual é o índice de diversidade de produtos em cada país?` | Calcula número único de produtos/categorias por país. | não |
+| P472 | `Qual foi a receita do melhor dia registrada em international_sales?` | Retorna MAX de `revenue` agregada por `transaction_date`. | não |
+| P473 | `Qual companhia aérea cancelou menos voos em proporção?` | Calcula `CANCELLED/TOTAL` por `AIRLINE`; retorna MIN. | não |
+| P474 | `Qual foi a diminuição na expectativa de vida entre 2000 e 2020 (se comparável)?` | Calcula diferença se dados permittem evolução temporal. | não |
+| P475 | `Qual foi o desempenho de receita per capita por país e ano?` | Junta dados e calcula ratio sem visualizar. | não |
+| P476 | `Qual foi a quantidade média de produtos por pedido?` | Calcula `AVG(quantity_ordered)`. | não |
+| P477 | `Qual foi o percentual de crescimento de atrasos ao longo dos anos em flights?` | Descreve evolução temporal de `ARRIVAL_DELAY` sem visual. | não |
+| P478 | `Qual foi a contribuição de cada região para o lucro total?` | Calcula participação `profit/total_profit` por `region`. | não |
+| P479 | `Qual país tem a menor taxa de mortalidade infantil?` | Retorna país com MIN de `SH_DYN_MORT`. | não |
+| P480 | `Qual foi a lacuna máxima entre receita esperada (média) e realizada?` | Calcula desvio máximo sem criar artefato. | não |
+| P481 | `Qual foi a receita média trimestral e sua variação?` | Calcula `AVG(revenue)` por trimestre com desvio. | não |
+| P482 | `Qual serie temporal de vendas (por mês) melhor se ajusta a trend exponencial ou linear?` | Oferece análise descritiva sem regressão visual. | não |
+| P483 | `Qual foi a quantidade de transações únicas por ano?` | Conta registros por `YEAR` ou anual. | não |
+| P484 | `Qual gênero de videogame representa maior % do total de vendas?` | Calcula participação de cada `genre` sobre `global_sales` total. | não |
+| P485 | `Qual é o nível de "concentração de clientes" em cleaned_sales_data (top 20% gera quantos %)?` | Calcula participação de top quintil sem gráfico. | não |
+| P486 | `Qual foi a receita de vendas "ao vivo" em tempo real (última data disponível) por região?` | Retorna receita mais recente por `region`. | não |
+| P487 | `Qual foi a escala de lucro em comparação a receita (profit/revenue) geral?` | Calcula ratio global de margem. | não |
+| P488 | `Qual país experimentou maior mudança em expectativa de vida entre 1990 e 2020?` | Calcula delta se períodos disponíveis; retorna país com maior variação. | não |
+| P489 | `Qual foi a receita média máxima diária do melhor mês?` | Filtra melhor mês e retorna MAX diária naquele período. | não |
+| P490 | `Qual é o percentual de transações de alto valor (acima do P90) em cada região?` | Calcula proporção de transações > P90 por `region`. | não |
+| P491 | `Qual performance de atrasos para rotas de longa distância vs curta distância?` | Segmenta `flights` por `DISTANCE` e compara `ARRIVAL_DELAY`. | não |
+| P492 | `Qual foi o crescimento absoluto de população global no último período?` | Calcula diferença de `SP_POP_TOTL` entre períodos recentes. | não |
+| P493 | `Qual foi a receita média por categoria em relação à receita global média?` | Compara `AVG(revenue)` por `product_category` vs global média. | não |
+| P494 | `Qual mês historicamente tem menor receita (sazonalidade baixa)?` | Identifica mês com menor agregação de `revenue`/`sales` histórica. | não |
+| P495 | `Qual foi o volume de voos cancelados vs não-cancelados em proporção?` | Retorna percentuais de ambas as categorias. | não |
+| P496 | `Qual foi a população juvenil (índice de natalidade) por estado segundo birth_names?` | Agrega `num` por `state` por `gender` para mensurar. | não |
+| P497 | `Qual país perdeu população entre a medição inicial e final?` | Identifica países com DELETE de `SP_POP_TOTL` negativa ao longo do tempo. | não |
+| P498 | `Qual foi a volatilidade (desvio padrão) de `revenue` por `country` agregado?` | Calcula desvio por país sem visualização. | não |
+| P499 | `Qual foi o valor de transação atípico (outlier) mais extremo em international_sales?` | Identifica máximo ou mínimo estatístico extremo. | não |
+| P500 | `Resuma os 5 principais insights des análise exploratória das bases de dados de examples.` | Oferece resumo executivo descritivo de padrões principais identificados. | não |
+
 ## Cenários de falha e repetição
 
 Os casos a seguir são propriedades que o executor deve verificar enquanto roda

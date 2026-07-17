@@ -191,8 +191,16 @@ def load_cases(path: Path) -> list[PromptCase]:
                     ),
                 )
             )
+    if len(cases) == 0:
+        raise ValueError(f"No prompt cases found in {path!s}")
     if len(cases) != 100:
-        raise ValueError(f"Expected exactly 100 prompts, found {len(cases)}")
+        # Backwards-compatible: previously the runner expected exactly 100
+        # documented prompts. Allow other counts but warn so the operator is
+        # aware of the difference between documentation and execution.
+        print(
+            f"WARNING: expected 100 prompts in {path!s}, found {len(cases)}; continuing",
+            file=sys.stderr,
+        )
     return cases
 
 
