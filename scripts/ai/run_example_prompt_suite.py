@@ -36,10 +36,11 @@ from pathlib import Path
 from typing import Any
 
 CASE_PATTERN = re.compile(
-    r"^\| (?P<id>P\d{2}) \| `(?P<prompt>.+)` \| (?P<expected>.+) \| "
+    r"^\| (?P<id>P\d{2,3}) \| `(?P<prompt>.+)` \| (?P<expected>.+) \| "
     r"(?P<confirm>sim|não) \|$"
 )
 AI_RESOURCE_PATTERN = re.compile(r"\bAI_TEST_[A-Z0-9_]+\b", re.IGNORECASE)
+CONTEXT_PATTERN = re.compile(r"Contexto inicial: `(?P<context>[^`]+)`", re.I)
 KNOWN_SOURCES = (
     "international_sales",
     "cleaned_sales_data",
@@ -190,8 +191,8 @@ def load_cases(path: Path) -> list[PromptCase]:
                     ),
                 )
             )
-    if len(cases) != 50:
-        raise ValueError(f"Expected exactly 50 prompts, found {len(cases)}")
+    if len(cases) != 100:
+        raise ValueError(f"Expected exactly 100 prompts, found {len(cases)}")
     return cases
 
 
@@ -219,7 +220,12 @@ def build_oracle(
             ]
         )
     )
-    expects_rejection = case_id == "P48" or "não cria" in expected.casefold()
+    normalized_expected = expected.casefold()
+    expects_rejection = case_id == "P48" or (
+        "não cria" in normalized_expected
+        and "não cria gráfico de barras" not in normalized_expected
+        and "não cria grafico de barras" not in normalized_expected
+    )
     max_alternatives = 3 if "alternativas" in expected.casefold() else None
     return PromptOracle(
         expected_sources=expected_sources,
@@ -372,7 +378,7 @@ def execute_case(case: PromptCase, user_id: int, agent_id: str) -> PromptResult:
                 {
                     "message": case.prompt,
                     "history": [],
-                    "context": {"page": "other"},
+                    "context": _context_for_case(case),
                 },
             )
         ).get()
@@ -503,6 +509,47 @@ def _execution_plan_action(snapshot: dict[str, Any]) -> dict[str, Any] | None:
         ),
         None,
     )
+
+
+def _context_for_case(case: PromptCase) -> dict[str, Any]:
+    """Return the documented page context for a prompt case."""
+
+    match = CONTEXT_PATTERN.search(case.expected)
+    if match is None:
+        return {"page": "other"}
+    raw_context = match.group("context")
+    page, _, resource_name = raw_context.partition(":")
+    page = page.casefold()
+    if page == "dashboard":
+        return {
+            "page": "dashboard",
+            "resource_name": resource_name,
+            "metadata": {"dashboard_title": resource_name},
+        }
+    if page == "explore":
+        metadata = {"chart_name": resource_name}
+        if re.search(r"\bCBMES\b", case.expected, re.I):
+            metadata["dashboard_title"] = "CBMES"
+        return {
+            "page": "explore",
+            "resource_name": resource_name,
+            "metadata": metadata,
+        }
+    if page == "dataset":
+        return {
+            "page": "datasets",
+            "resource_name": resource_name,
+            "metadata": {"dataset_name": resource_name},
+        }
+    if page == "sqllab":
+        return {
+            "page": "sqllab",
+            "resource_name": resource_name,
+            "metadata": {"saved_query_label": resource_name},
+        }
+    if page in {"charts", "datasets"}:
+        return {"page": page}
+    return {"page": "other", "resource_name": resource_name or None}
 
 
 def _result_payload(result: PromptResult) -> dict[str, Any]:

@@ -23,15 +23,37 @@ from scripts.ai.run_example_prompt_suite import (
     evaluate_result,
     load_cases,
     PromptCase,
+    _context_for_case,
 )
 
 
 def test_load_cases_reads_all_documented_prompts() -> None:
     cases = load_cases(Path("docs/ai-integration/example-database-ai-prompts.md"))
 
-    assert len(cases) == 50
+    assert len(cases) == 100
     assert cases[0].id == "P01"
-    assert cases[-1].id == "P50"
+    assert cases[-1].id == "P100"
+
+
+def test_context_marker_builds_documented_page_context() -> None:
+    case = PromptCase(
+        id="P51",
+        prompt="Neste dashboard, crie um gráfico AI_TEST_P51.",
+        expected="Contexto inicial: `dashboard:CBMES`. Usa o dashboard do contexto.",
+        confirm=True,
+        oracle=build_oracle(
+            "P51",
+            "Neste dashboard, crie um gráfico AI_TEST_P51.",
+            "Contexto inicial: `dashboard:CBMES`. Usa o dashboard do contexto.",
+            True,
+        ),
+    )
+
+    assert _context_for_case(case) == {
+        "page": "dashboard",
+        "resource_name": "CBMES",
+        "metadata": {"dashboard_title": "CBMES"},
+    }
 
 
 def test_oracle_extracts_sources_columns_resources_and_confirmation() -> None:
@@ -69,6 +91,7 @@ def test_evaluate_result_validates_structured_facts_without_exact_text() -> None
         "response": "Plano concluído",
         "pending_actions": [],
         "execution_plan": {
+            "source": {"name": "international_sales"},
             "actions": [
                 {
                     "tool_name": "create_chart",

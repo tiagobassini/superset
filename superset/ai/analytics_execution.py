@@ -123,6 +123,19 @@ class DeterministicAnalyticsPlanner:
             return self._finalize(
                 source, actions, effects, chart_specification, "COUNT(*)"
             )
+        if intent.metric in {
+            "revenue_population",
+            "sales_revenue_country",
+            "video_population",
+            "revenue_profit_population",
+            "message_count_by_user",
+            "flights_births_year",
+        } and intent.goal in {
+            AnalyticsGoal.CREATE_DATASET,
+            AnalyticsGoal.CREATE_CHART,
+            AnalyticsGoal.CREATE_QUERY,
+        }:
+            return self._build_special_join_plan(source, intent)
         column_groups = classify_columns(
             [
                 {"name": name, "type": column_type}
@@ -198,11 +211,18 @@ class DeterministicAnalyticsPlanner:
             datasource_id = int(source.resource_id)
 
         chart_title = intent.chart_title or self._chart_title(topic, intent)
+        chart_viz_type = self._viz_type(intent)
+        if chart_viz_type == "echarts_timeseries_bar":
+            group_by = group_by
+        elif chart_viz_type == "pie":
+            group_by = group_by or self._first_dimension(source.columns)
+            chart_time_column = chart_time_column
+            chart_metric = chart_metric
         chart_specification = ChartSpecification(
             datasource_id=int(source.resource_id) if isinstance(datasource_id, int) else 0,
             datasource_type="table",
             chart_title=chart_title,
-            viz_type="echarts_timeseries_bar",
+            viz_type=chart_viz_type,
             time_column=chart_time_column,
             metric=chart_metric,
             time_grain=self._chart_time_grain(chart_time_column, intent),
@@ -222,7 +242,7 @@ class DeterministicAnalyticsPlanner:
         )
         effects = [
             *effects,
-            f"criar o gráfico de barras `{chart_specification.chart_title}`",
+            f"criar o gráfico `{chart_specification.chart_title}`",
             f"usar `{chart_time_column}` como dimensão temporal e "
             f"`{chart_metric}` como métrica",
         ]
@@ -235,6 +255,158 @@ class DeterministicAnalyticsPlanner:
             actions.extend(dashboard_action)
             effects.extend(dashboard_effect)
         return self._finalize(source, actions, effects, chart_specification, metric)
+
+    def _build_special_join_plan(
+        self, source: DiscoveryCandidate, intent: AnalyticsIntent
+    ) -> DeterministicAnalyticsPlan:
+        dataset_name = intent.dataset_name or intent.chart_title or self._dataset_name(
+            intent.metric or source.name, intent
+        )
+        sql, time_column, metric, group_by, effects = self._special_join_sql(intent)
+        actions: list[PlannedAction] = []
+        if intent.goal is AnalyticsGoal.CREATE_QUERY:
+            label = intent.saved_query_label or dataset_name
+            actions.append(
+                PlannedAction(
+                    "save_sql_query",
+                    {
+                        "database_id": source.database_id,
+                        "schema": source.schema,
+                        "label": label,
+                        "sql": sql,
+                        "overwrite": True,
+                    },
+                )
+            )
+            chart_specification = self._display_spec(
+                source, label, time_column, metric
+            )
+            return self._finalize(
+                source,
+                actions,
+                [f"salvar a consulta `{label}`", *effects],
+                chart_specification,
+                metric,
+            )
+        actions.append(
+            PlannedAction(
+                "create_dataset",
+                {
+                    "table_name": dataset_name,
+                    "database": source.database_id,
+                    "schema": source.schema,
+                    "sql": sql,
+                    "overwrite": True,
+                },
+            )
+        )
+        chart_specification = ChartSpecification(
+            datasource_id=0,
+            datasource_type="table",
+            chart_title=intent.chart_title or dataset_name,
+            viz_type=self._viz_type(intent),
+            time_column=time_column,
+            metric=metric,
+            time_grain=self._chart_time_grain(time_column, intent),
+            group_by=(group_by,) if group_by else (),
+        )
+        if intent.goal is AnalyticsGoal.CREATE_DATASET:
+            return self._finalize(
+                source,
+                actions,
+                [f"criar ou reutilizar o dataset `{dataset_name}`", *effects],
+                chart_specification,
+                metric,
+            )
+        chart_payload = asdict(chart_specification)
+        chart_payload["datasource_id"] = {"$ref": "actions.0.id"}
+        chart_payload["group_by"] = list(chart_specification.group_by)
+        actions.append(
+            PlannedAction(
+                "create_chart",
+                {"chart_spec": chart_payload, "overwrite": True},
+            )
+        )
+        return self._finalize(
+            source,
+            actions,
+            [
+                f"criar ou reutilizar o dataset `{dataset_name}`",
+                *effects,
+                f"criar o gráfico `{chart_specification.chart_title}`",
+            ],
+            chart_specification,
+            metric,
+        )
+
+    def _special_join_sql(
+        self, intent: AnalyticsIntent
+    ) -> tuple[str, str, str, str | None, list[str]]:
+        if intent.metric == "sales_revenue_country":
+            return (
+                self._sales_revenue_country_sql(),
+                "country",
+                "SUM(revenue)",
+                "country",
+                [
+                    "juntar `cleaned_sales_data` com `international_sales` por país",
+                    "comparar `sales` e `revenue` agregados",
+                ],
+            )
+        if intent.metric == "video_population":
+            return (
+                self._video_population_sql(),
+                "year",
+                "SUM(global_sales)",
+                None,
+                [
+                    "juntar `video_game_sales` com `wb_health_population` por ano",
+                    "comparar `global_sales` e `SP_POP_TOTL` agregados",
+                ],
+            )
+        if intent.metric == "revenue_profit_population":
+            return (
+                self._revenue_profit_population_sql(),
+                "region",
+                "SUM(revenue)",
+                "region",
+                [
+                    "juntar `international_sales` com `wb_health_population` por região",
+                    "selecionar `revenue`, `profit` e `SP_POP_TOTL` agregados",
+                ],
+            )
+        if intent.metric == "message_count_by_user":
+            return (
+                self._message_count_by_user_sql(),
+                "user_id",
+                "SUM(message_count)",
+                "user_name",
+                [
+                    "juntar `messages` com `users` por identificador de usuário",
+                    "contar mensagens sem selecionar o conteúdo bruto",
+                ],
+            )
+        if intent.metric == "flights_births_year":
+            return (
+                self._flights_births_year_sql(),
+                "year",
+                "SUM(flight_count)",
+                None,
+                [
+                    "juntar agregados de `flights` e `birth_names` por ano",
+                    "comparar volume de voos e nascimentos sem expor linhas brutas",
+                ],
+            )
+        return (
+            self._revenue_population_sql(),
+            "year",
+            "SUM(revenue)",
+            "country",
+            [
+                "juntar `international_sales` com `wb_health_population` por país e ano",
+                "selecionar `revenue` e `SP_POP_TOTL` sem expor linhas brutas",
+            ],
+        )
 
     def _finalize(
         self,
@@ -291,6 +463,11 @@ class DeterministicAnalyticsPlanner:
     ) -> str:
         if intent.metric == "count":
             return "COUNT(*)"
+        raw_metric = DeterministicAnalyticsPlanner._exact_numeric_column(
+            columns, str(intent.metric or "")
+        )
+        if raw_metric is not None:
+            return f"SUM({raw_metric})"
         requested_terms = METRIC_TERM_GROUPS.get(str(intent.metric or ""), ())
         matching_column = DeterministicAnalyticsPlanner._metric_column(
             columns, requested_terms
@@ -310,6 +487,11 @@ class DeterministicAnalyticsPlanner:
         intent: AnalyticsIntent,
         columns: tuple[tuple[str, str], ...],
     ) -> str | None:
+        raw_dimension = DeterministicAnalyticsPlanner._exact_dimension_column(
+            columns, str(intent.dimension or "")
+        )
+        if raw_dimension is not None:
+            return raw_dimension
         requested_terms = DIMENSION_TERM_GROUPS.get(str(intent.dimension or ""), ())
         if requested_terms:
             matching_column = DeterministicAnalyticsPlanner._dimension_column(
@@ -352,6 +534,40 @@ class DeterministicAnalyticsPlanner:
         return None
 
     @staticmethod
+    def _exact_numeric_column(
+        columns: tuple[tuple[str, str], ...], column_name: str
+    ) -> str | None:
+        normalized_column = normalize_discovery_text(column_name)
+        if not normalized_column:
+            return None
+        for name, column_type in columns:
+            if normalize_discovery_text(name) != normalized_column:
+                continue
+            if any(
+                token in column_type.casefold()
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                return name
+        return None
+
+    @staticmethod
+    def _exact_dimension_column(
+        columns: tuple[tuple[str, str], ...], column_name: str
+    ) -> str | None:
+        normalized_column = normalize_discovery_text(column_name)
+        if not normalized_column:
+            return None
+        for name, column_type in columns:
+            if normalize_discovery_text(name) != normalized_column:
+                continue
+            if not any(
+                token in column_type.casefold()
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                return name
+        return None
+
+    @staticmethod
     def _chart_title(topic: str, intent: AnalyticsIntent) -> str:
         suffix = " por ano" if intent.time_grain == "year" else ""
         return f"{topic.replace('_', ' ').title()}{suffix}"
@@ -382,6 +598,28 @@ class DeterministicAnalyticsPlanner:
         )
 
     @staticmethod
+    def _viz_type(intent: AnalyticsIntent) -> str:
+        if intent.chart_type == "pie":
+            return "pie"
+        if intent.chart_type == "area":
+            return "echarts_area"
+        if intent.chart_type == "line":
+            return "echarts_timeseries_line"
+        if intent.chart_type == "table":
+            return "table"
+        return "echarts_timeseries_bar"
+
+    @staticmethod
+    def _first_dimension(columns: tuple[tuple[str, str], ...]) -> str | None:
+        for name, column_type in columns:
+            if not any(
+                token in column_type.casefold()
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                return name
+        return None
+
+    @staticmethod
     def _aggregate_sql(
         source: DiscoveryCandidate,
         time_column: str,
@@ -405,6 +643,110 @@ class DeterministicAnalyticsPlanner:
             f"SELECT strftime('%Y', {time_column}) AS year, "
             f"{expression} AS {metric_alias} FROM {table} "
             f"GROUP BY strftime('%Y', {time_column})"
+        )
+
+    @staticmethod
+    def _revenue_population_sql() -> str:
+        return (
+            "SELECT i.country AS country, "
+            "strftime('%Y', i.transaction_date) AS year, "
+            "SUM(i.revenue) AS revenue, "
+            "MAX(w.SP_POP_TOTL) AS SP_POP_TOTL, "
+            "SUM(i.revenue) / NULLIF(MAX(w.SP_POP_TOTL), 0) "
+            "AS revenue_per_capita "
+            "FROM international_sales i "
+            "JOIN wb_health_population w "
+            "ON lower(i.country) = lower(w.country_name) "
+            "AND strftime('%Y', i.transaction_date) = CAST(w.year AS TEXT) "
+            "GROUP BY i.country, strftime('%Y', i.transaction_date)"
+        )
+
+    @staticmethod
+    def _sales_revenue_country_sql() -> str:
+        return (
+            "SELECT COALESCE(s.country, i.country) AS country, "
+            "s.sales AS sales, "
+            "i.revenue AS revenue "
+            "FROM ("
+            "SELECT country, SUM(sales) AS sales "
+            "FROM cleaned_sales_data "
+            "GROUP BY country"
+            ") s "
+            "JOIN ("
+            "SELECT country, SUM(revenue) AS revenue "
+            "FROM international_sales "
+            "GROUP BY country"
+            ") i "
+            "ON lower(s.country) = lower(i.country)"
+        )
+
+    @staticmethod
+    def _video_population_sql() -> str:
+        return (
+            "SELECT v.year AS year, "
+            "v.global_sales AS global_sales, "
+            "w.SP_POP_TOTL AS SP_POP_TOTL "
+            "FROM ("
+            "SELECT CAST(year AS TEXT) AS year, SUM(global_sales) AS global_sales "
+            "FROM video_game_sales "
+            "GROUP BY CAST(year AS TEXT)"
+            ") v "
+            "JOIN ("
+            "SELECT CAST(year AS TEXT) AS year, SUM(SP_POP_TOTL) AS SP_POP_TOTL "
+            "FROM wb_health_population "
+            "GROUP BY CAST(year AS TEXT)"
+            ") w "
+            "ON v.year = w.year"
+        )
+
+    @staticmethod
+    def _revenue_profit_population_sql() -> str:
+        return (
+            "SELECT i.region AS region, "
+            "i.revenue AS revenue, "
+            "i.profit AS profit, "
+            "w.SP_POP_TOTL AS SP_POP_TOTL "
+            "FROM ("
+            "SELECT region, SUM(revenue) AS revenue, SUM(profit) AS profit "
+            "FROM international_sales "
+            "GROUP BY region"
+            ") i "
+            "LEFT JOIN ("
+            "SELECT region, SUM(SP_POP_TOTL) AS SP_POP_TOTL "
+            "FROM wb_health_population "
+            "GROUP BY region"
+            ") w "
+            "ON lower(i.region) = lower(w.region)"
+        )
+
+    @staticmethod
+    def _message_count_by_user_sql() -> str:
+        return (
+            "SELECT u.id AS user_id, "
+            "u.name AS user_name, "
+            "COUNT(m.ts) AS message_count "
+            "FROM messages m "
+            "JOIN users u ON m.user = u.id "
+            "GROUP BY u.id, u.name"
+        )
+
+    @staticmethod
+    def _flights_births_year_sql() -> str:
+        return (
+            "SELECT f.year AS year, "
+            "f.flight_count AS flight_count, "
+            "b.birth_count AS birth_count "
+            "FROM ("
+            "SELECT CAST(YEAR AS TEXT) AS year, COUNT(*) AS flight_count "
+            "FROM flights "
+            "GROUP BY CAST(YEAR AS TEXT)"
+            ") f "
+            "JOIN ("
+            "SELECT strftime('%Y', ds) AS year, SUM(num) AS birth_count "
+            "FROM birth_names "
+            "GROUP BY strftime('%Y', ds)"
+            ") b "
+            "ON f.year = b.year"
         )
 
     @staticmethod

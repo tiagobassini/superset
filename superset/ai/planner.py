@@ -55,6 +55,7 @@ class AnalyticsIntent:
     metric: str | None = None
     dimension: str | None = None
     time_grain: str | None = None
+    chart_type: str | None = None
     discovery_query: DiscoveryQuery | None = None
 
 
@@ -79,6 +80,10 @@ class AnalyticsTaskPlanner:
         "barras",
         "bar",
         "bars",
+        "pizza",
+        "pie",
+        "area",
+        "área",
     )
     _DASHBOARD_WORDS = ("dashboard", "painel")
     _DATASET_WORDS = ("dataset", "tabela")
@@ -139,6 +144,30 @@ class AnalyticsTaskPlanner:
             "dataset",
             "tabela",
             "virtual",
+            "atual",
+            "current",
+            "selecionado",
+            "selecionada",
+            "selected",
+            "este",
+            "esta",
+            "this",
+            "neste",
+            "nesta",
+        }
+    )
+    _CONTEXT_SOURCE_HINTS = frozenset(
+        {
+            "atual",
+            "current",
+            "selecionado",
+            "selecionada",
+            "selected",
+            "este",
+            "esta",
+            "this",
+            "neste",
+            "nesta",
         }
     )
     _TOPIC_TERMS = (
@@ -292,16 +321,36 @@ class AnalyticsTaskPlanner:
         dashboard = self._named_after(normalized, r"(?:dashboard|painel)\s+")
         if goal is AnalyticsGoal.PUBLISH_CHART and dashboard is None:
             dashboard = self._named_after_publish_target(normalized)
-        topic = self._topic(normalized) or self._topic_from_request(normalized)
         metric = self._metric(normalized)
+        special_source_hint = self._source_hint_for_metric(metric)
+        if source_hint is None or (
+            special_source_hint is not None and source_hint.startswith("ai_test_")
+        ):
+            source_hint = special_source_hint
+        topic = self._topic(normalized) or self._topic_from_request(normalized)
         output_prefix = self._output_prefix(normalized)
-        discovery_topic = topic or source_hint or metric
+        discovery_topic = (
+            metric
+            if metric
+            in {
+                "cost",
+                "revenue_profit",
+                "revenue_population",
+                "sales_revenue_country",
+                "video_population",
+                "revenue_profit_population",
+                "message_count_by_user",
+                "flights_births_year",
+            }
+            else topic or source_hint or metric
+        )
         intent = AnalyticsIntent(
             goal=goal,
             topic=topic,
             source_hint=source_hint,
             target_dashboard=dashboard,
-            chart_title=self._resource_name(normalized, "chart")
+            chart_title=self._chart_output_name(normalized)
+            or self._resource_name(normalized, "chart")
             or self._resource_name(normalized, "grafico")
             or (f"{output_prefix}_chart" if output_prefix else None)
             or (
@@ -311,13 +360,19 @@ class AnalyticsTaskPlanner:
                 else None
             ),
             dataset_name=self._dataset_resource_name(normalized)
-            or (f"{output_prefix}_dataset" if output_prefix else None),
+            or (f"{output_prefix}_dataset" if output_prefix else None)
+            or (
+                self._first_ai_resource(normalized)
+                if goal is AnalyticsGoal.CREATE_DATASET
+                else None
+            ),
             saved_query_label=self._saved_query_resource_name(normalized)
             or (f"{output_prefix}_query" if output_prefix else None),
             output_prefix=output_prefix,
             metric=metric,
             dimension=self._dimension(normalized),
             time_grain=self._time_grain(normalized),
+            chart_type=self._chart_type(normalized),
             discovery_query=(
                 build_discovery_query(
                     discovery_topic, prompt_language, self.semantic_expander
@@ -336,24 +391,29 @@ class AnalyticsTaskPlanner:
         publish = any(word in message for word in cls._PUBLISH_VERBS)
         chart = any(word in message for word in cls._CHART_WORDS)
         named_ai_chart = bool(re.search(r"\bai_test_[\w-]+\b", message))
+        join_request = bool(
+            re.search(r"\b(juntando|junte|join|una|une|cruzando)\b", message)
+        )
         if publish and named_ai_chart:
             return AnalyticsGoal.PUBLISH_CHART
         if publish and chart:
             return AnalyticsGoal.PUBLISH_CHART
+        if chart:
+            return AnalyticsGoal.CREATE_CHART
         if any(word in message for word in cls._DASHBOARD_WORDS) and any(
             word in message for word in cls._CREATE_WORDS
         ):
             return AnalyticsGoal.CREATE_DASHBOARD
-        if chart:
-            return AnalyticsGoal.CREATE_CHART
-        if any(word in message for word in cls._DATASET_WORDS) and any(
-            word in message for word in cls._CREATE_WORDS
-        ):
+        if cls._creates_dataset(message):
             return AnalyticsGoal.CREATE_DATASET
         if any(word in message for word in cls._QUERY_WORDS) and any(
             word in message for word in cls._CREATE_WORDS
         ):
             return AnalyticsGoal.CREATE_QUERY
+        if join_request and named_ai_chart:
+            return AnalyticsGoal.CREATE_DATASET
+        if named_ai_chart and any(word in message for word in cls._CREATE_WORDS):
+            return AnalyticsGoal.CREATE_CHART
         return AnalyticsGoal.ANALYZE
 
     @classmethod
@@ -385,6 +445,27 @@ class AnalyticsTaskPlanner:
         return cls._DISCOVERY_TOOLS | frozenset({"list_charts", "list_dashboards"})
 
     @staticmethod
+    def _source_hint_for_metric(metric: str | None) -> str | None:
+        if metric in {
+            "revenue_population",
+            "revenue_profit_population",
+            "message_count_by_user",
+            "flights_births_year",
+        }:
+            return (
+                "international_sales"
+                if metric != "message_count_by_user"
+                else "messages"
+            )
+        if metric == "sales_revenue_country":
+            return "cleaned_sales_data"
+        if metric == "video_population":
+            return "video_game_sales"
+        if metric == "flights_births_year":
+            return "flights"
+        return None
+
+    @staticmethod
     def _normalize(value: str) -> str:
         return " ".join(
             "".join(
@@ -404,8 +485,27 @@ class AnalyticsTaskPlanner:
         skip_saved_query_output = re.search(
             r"\bcri\w*\s+(?:uma\s+)?consulta\s+salva\s+", message
         )
+        known_source = re.search(
+            r"(?:^|\s)(?:de|do|da|em|in|com|with|no|na)\s+"
+            r"(cleaned_sales_data|international_sales|video_game_sales|flights|"
+            r"birth_names|wb_health_population)\b",
+            message,
+        )
+        if known_source:
+            return known_source.group(1)
+        if re.search(r"\b(revenue|receita|faturamento)\b", message) and re.search(
+            r"\b202[0-9]\b", message
+        ):
+            return "international_sales"
         transformed_source = cls._named_after(message, r"(?:transforme|transform)\s+")
-        if transformed_source and transformed_source not in cls._STOPWORDS:
+        if (
+            transformed_source
+            and transformed_source not in cls._STOPWORDS
+            and (
+                not transformed_source.startswith("ai_test_")
+                or cls._creates_dataset(message)
+            )
+        ):
             return transformed_source
         typed = cls._named_after(
             message,
@@ -428,14 +528,6 @@ class AnalyticsTaskPlanner:
         )
         if with_typed_source:
             return with_typed_source
-        known_source = re.search(
-            r"(?:^|\s)(?:de|do|da|em|in|com|with)\s+"
-            r"(cleaned_sales_data|international_sales|video_game_sales|flights|"
-            r"birth_names|wb_health_population)\b",
-            message,
-        )
-        if known_source:
-            return known_source.group(1)
         typed_from_source = re.search(
             r"(?:^|\s)(?:de|do|da)\s+"
             r"(?:dataset\s+|tabela\s+|consulta\s+salva\s+)?"
@@ -457,6 +549,19 @@ class AnalyticsTaskPlanner:
         patterns = (
             rf"\b{re.escape(label)}\s+([A-Za-z0-9]+_[\w-]+)\b",
             rf"\b([A-Za-z0-9]+_[\w-]+)\s+(?:como|as)\s+{re.escape(label)}\b",
+        )
+        for pattern in patterns:
+            if match := re.search(pattern, message):
+                return match.group(1)
+        return None
+
+    @staticmethod
+    def _chart_output_name(message: str) -> str | None:
+        patterns = (
+            r"\b(?:salve|salvar)\s+como\s+([A-Za-z0-9]+_[\w-]+)\b",
+            r"\bchamad[ao]\s+([A-Za-z0-9]+_[\w-]+)\b",
+            r"\bnomead[ao]\s+([A-Za-z0-9]+_[\w-]+)\b",
+            r"\bcalled\s+([A-Za-z0-9]+_[\w-]+)\b",
         )
         for pattern in patterns:
             if match := re.search(pattern, message):
@@ -515,6 +620,8 @@ class AnalyticsTaskPlanner:
             )
         ):
             return "year"
+        if re.search(r"\b(?:19|20)\d{2}\b", message):
+            return "year"
         if any(
             term in message
             for term in (
@@ -531,11 +638,57 @@ class AnalyticsTaskPlanner:
         return None
 
     @staticmethod
+    def _chart_type(message: str) -> str | None:
+        if re.search(r"\b(pizza|pie|donut|rosca)\b", message):
+            return "pie"
+        if re.search(r"\b(area|área)\b", message):
+            return "area"
+        if re.search(
+            r"\b(?:cri\w*|gere|monte|faça|faca)\s+(?:uma\s+)?tabela\b",
+            message,
+        ):
+            return "table"
+        if re.search(
+            r"\b(?:visualizacao|grafico|chart)\s+(?:de\s+)?(tabela|table)\b",
+            message,
+        ):
+            return "table"
+        if re.search(r"\b(linha|line)\b", message):
+            return "line"
+        if re.search(r"\b(barra|barras|bar|bars)\b", message):
+            return "bar"
+        return None
+
+    @staticmethod
     def _named_after_publish_target(message: str) -> str | None:
-        match = re.search(
-            r"(?:em|no|na|ao)\s+(?:dashboard\s+)?[`\"']?([\w-]+)[`\"']?", message
+        matches = re.findall(
+            r"(?:^|\s)(?:em|no|na|ao)\s+(?:dashboard\s+)?[`\"']?([\w-]+)[`\"']?",
+            message,
         )
-        return match.group(1) if match else None
+        ignored = {
+            "area",
+            "atual",
+            "chart",
+            "contexto",
+            "dashboard",
+            "grafico",
+            "gráfico",
+        }
+        for value in reversed(matches):
+            if value not in ignored:
+                return value
+        return None
+
+    @staticmethod
+    def _creates_dataset(message: str) -> bool:
+        return bool(
+            re.search(r"\bcri\w*\s+(?:um\s+|uma\s+)?dataset\b", message)
+            or re.search(r"\bdataset\s+virtual\b", message)
+            or re.search(
+                r"\btransform\w*.+\b(?:em|no|na)\s+(?:um\s+|uma\s+)?dataset\b",
+                message,
+            )
+        )
 
     @staticmethod
     def _topic(message: str) -> str | None:
@@ -573,11 +726,55 @@ class AnalyticsTaskPlanner:
         )
 
     @classmethod
-    def _metric(cls, message: str) -> str | None:
-        if re.search(r"\bcusto\b", message) and re.search(
+    def _metric(cls, message: str) -> str | None:  # noqa: C901
+        if (
+            "cleaned_sales_data" in message
+            and "international_sales" in message
+            and re.search(r"\b(juntando|junte|join|comparar|compare)\b", message)
+        ):
+            return "sales_revenue_country"
+        if (
+            "video" in message
+            and re.search(r"\b(populacao|population)\b", message)
+            and re.search(r"\b(global_sales|vendas globais)\b", message)
+        ):
+            return "video_population"
+        if (
+            "international_sales" in message
+            and "wb_health_population" in message
+            and re.search(r"\b(regiao|regiao|region)\b", message)
+            and re.search(r"\b(profit|lucro)\b", message)
+            and re.search(r"\b(populacao|population)\b", message)
+        ):
+            return "revenue_profit_population"
+        if (
+            "messages" in message
+            and "users" in message
+            and re.search(r"\b(mensagens|messages)\b", message)
+            and re.search(r"\b(usuario|usuarios|user|users)\b", message)
+        ):
+            return "message_count_by_user"
+        if "flights" in message and "birth_names" in message:
+            return "flights_births_year"
+        if re.search(
+            r"\b(cancelado|cancelados|cancelada|canceladas|cancelamento|cancelamentos|cancelled|cancellations)\b",
+            message,
+        ):
+            return "cancellations"
+        if (
+            re.search(r"\b(juntando|join|junte|combine|combinando)\b", message)
+            and "international_sales" in message
+            and "wb_health_population" in message
+        ):
+            return "revenue_population"
+        if re.search(r"\b(custo|cost)\b", message) and re.search(
             r"\b(receita|revenue|faturamento)\b", message
         ):
             return "cost"
+        if re.search(r"\b(receita|revenue|faturamento)\b", message) and re.search(
+            r"\b(profit|lucro)\b", message
+        ):
+            return "revenue_profit"
         if re.search(r"\beuropa\b", message) and re.search(
             r"\b(america do norte|north america)\b", message
         ):

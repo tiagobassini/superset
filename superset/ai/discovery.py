@@ -106,6 +106,7 @@ MULTILINGUAL_TERM_GROUPS: tuple[frozenset[str], ...] = (
 METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "revenue": ("revenue", "receita", "faturamento"),
     "profit": ("profit", "lucro", "beneficio", "margin"),
+    "revenue_profit": ("revenue", "receita", "faturamento", "profit", "lucro"),
     "count": ("id", "number", "numero", "flight number", "flight_number"),
     "quantity_ordered": ("quantity ordered", "quantity_ordered"),
     "quantity": ("quantity", "quantidade", "quantity ordered", "quantity_ordered"),
@@ -116,7 +117,14 @@ METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "na_sales": ("na sales", "na_sales", "north america"),
     "eu_sales": ("eu sales", "eu_sales", "europe"),
     "delay": ("delay", "delays", "atraso", "atrasos"),
-    "cancellations": ("cancelled", "cancellations", "cancelamentos"),
+    "cancellations": (
+        "cancelled",
+        "cancellations",
+        "cancelamento",
+        "cancelamentos",
+        "cancelado",
+        "cancelados",
+    ),
     "distance": ("distance", "distancia"),
     "births": ("births", "nascimentos", "num"),
     "population": ("population", "populacao", "sp pop totl", "sp_pop_totl"),
@@ -803,7 +811,7 @@ class AnalyticsDiscoveryService:
             )
         return candidates
 
-    def _score_candidate(
+    def _score_candidate(  # noqa: C901
         self,
         candidate: DiscoveryCandidate,
         query: DiscoveryQuery,
@@ -853,6 +861,9 @@ class AnalyticsDiscoveryService:
             if self._has_exact_column(candidate, metric_matches[0]):
                 score += 8
                 reasons.append(f"medida exata: {metric_matches[0]}")
+        elif requested_metric == "revenue_profit":
+            score -= 20
+            reasons.append("sem todas as medidas solicitadas: revenue e profit")
         requested_dimension = str(getattr(intent, "dimension", "") or "")
         dimension_matches = self._matching_dimension_columns(
             candidate, requested_dimension
@@ -900,6 +911,14 @@ class AnalyticsDiscoveryService:
             normalized = normalize_discovery_text(name)
             if any(normalize_discovery_text(term) in normalized for term in terms):
                 matches.append(name)
+        if requested_metric == "revenue_profit":
+            normalized_matches = {
+                normalize_discovery_text(match) for match in matches
+            }
+            has_revenue = any("revenue" in match for match in normalized_matches)
+            has_profit = any("profit" in match for match in normalized_matches)
+            if not has_revenue or not has_profit:
+                return ()
         return tuple(matches)
 
     @staticmethod

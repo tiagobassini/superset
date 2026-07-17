@@ -172,6 +172,42 @@ def test_orchestrator_proposes_concrete_sources_when_discovery_is_ambiguous(
     assert cache.get(orchestrator._discovery_selection_key()) is not None
 
 
+def test_orchestrator_limits_source_selection_help_to_three_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidates = (
+        _discovery_candidate("international_sales", 50, 11),
+        _discovery_candidate("cleaned_sales_data", 45, 12),
+        _discovery_candidate("sales_history", 42, 13),
+        _discovery_candidate("sales_archive", 39, 14),
+    )
+    _patch_discovery(monkeypatch, candidates)
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    cache = StubCache()
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+    orchestrator = AIOrchestrator(
+        agent, _planning_registry(), SimpleNamespace(id=42), cache
+    )
+
+    result = orchestrator.chat(
+        "Quero analisar vendas, mas não sei qual dataset usar.",
+        [],
+        {"page": "home"},
+    )
+
+    assert "1. Dataset `international_sales`" in result.response
+    assert "2. Dataset `cleaned_sales_data`" in result.response
+    assert "3. Dataset `sales_history`" in result.response
+    assert "4. Dataset" not in result.response
+    assert provider.messages == []
+    assert cache.get(orchestrator._discovery_selection_key()) is not None
+
+
 def test_orchestrator_resumes_ambiguous_discovery_by_index_without_researching(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
