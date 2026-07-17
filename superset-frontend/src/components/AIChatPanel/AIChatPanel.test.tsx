@@ -36,7 +36,7 @@ jest.mock('./hooks/useAIChat', () => ({
     confirmAction: jest.fn(),
     cancelAction: jest.fn(),
     clearChatHistory: mockClearChatHistory,
-    context: { page: 'dashboard', resourceName: 'CBMES' },
+    context: { page: 'dashboard', resource_name: 'CBMES' },
   }),
 }));
 

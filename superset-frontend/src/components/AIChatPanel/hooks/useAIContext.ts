@@ -71,8 +71,8 @@ export const getAIPageContext = (
     const title = data.dashboard?.dashboard_title ?? data.dashboard?.title;
     return {
       page: 'dashboard',
-      resourceId: data.dashboard?.id,
-      resourceName: title,
+      resource_id: data.dashboard?.id,
+      resource_name: title,
       metadata: {
         dashboard_id: data.dashboard?.id,
         dashboard_title: title,
@@ -85,7 +85,7 @@ export const getAIPageContext = (
       data.explore?.chartId ?? getNumericQueryParam(parameters, 'slice_id');
     return {
       page: 'explore',
-      resourceId: chartId,
+      resource_id: chartId,
       metadata: {
         chart_id: chartId,
         datasource_id: data.explore?.datasourceId,

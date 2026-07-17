@@ -45,7 +45,7 @@ test('manages the chat state and pending actions', () => {
   state = reducer(state, addMessage(message));
   state = reducer(
     state,
-    setCurrentContext({ page: 'dashboard', resourceId: 42 }),
+    setCurrentContext({ page: 'dashboard', resource_id: 42 }),
   );
   state = reducer(
     state,
@@ -53,6 +53,6 @@ test('manages the chat state and pending actions', () => {
   );
 
   expect(state.isOpen).toBe(true);
-  expect(state.currentContext).toEqual({ page: 'dashboard', resourceId: 42 });
+  expect(state.currentContext).toEqual({ page: 'dashboard', resource_id: 42 });
   expect(state.messages[0].pendingActions?.[0].status).toBe('cancelled');
 });

@@ -30,8 +30,8 @@ test('creates dashboard context from Redux data', () => {
     ),
   ).toMatchObject({
     page: 'dashboard',
-    resourceId: 10,
-    resourceName: 'Sales',
+    resource_id: 10,
+    resource_name: 'Sales',
     metadata: { dashboard_id: 10, dashboard_title: 'Sales' },
   });
 });
@@ -48,7 +48,7 @@ test('creates Explore and SQL Lab contexts', () => {
     ),
   ).toMatchObject({
     page: 'explore',
-    resourceId: 5,
+    resource_id: 5,
     metadata: { chart_id: 5, datasource_id: 3, viz_type: 'bar' },
   });
   expect(

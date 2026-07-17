@@ -78,8 +78,8 @@ export interface AIAgent {
 
 export interface PageContext {
   page: 'dashboard' | 'explore' | 'sqllab' | 'datasets' | 'charts' | 'other';
-  resourceId?: number | string;
-  resourceName?: string;
+  resource_id?: number | string;
+  resource_name?: string;
   metadata?: Record<string, unknown>;
 }
 
