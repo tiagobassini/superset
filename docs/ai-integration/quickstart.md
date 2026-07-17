@@ -11,3 +11,10 @@ saving. Users need `can_use_ai_chat`; administrators need
 Read tools run immediately. Each write operation requires explicit confirmation.
 Superset records executed AI writes and denied AI permissions in its audit logger.
 Never put provider API keys in browser configuration.
+
+
+docker compose --profile ai up -d ollama ollama-pull
+
+
+
+docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/cleanup_ai_test_artifacts.py --execute'
