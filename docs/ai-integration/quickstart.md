@@ -98,13 +98,7 @@ with open('./ai_prompt_suite_resume.jsonl', 'r') as f:
 "
 ```
 
-## Cleanup
 
-Remove all AI test artifacts (dashboards, charts, datasets with prefix `AI_TEST_*`):
-
-```bash
-docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/cleanup_ai_test_artifacts.py'
-```
 
 ## Development Utilities
 
@@ -138,3 +132,17 @@ docker cp ./ai_prompt_suite.jsonl superset-superset-1:/tmp/ai_prompt_suite.jsonl
 docker cp superset-superset-1:/tmp/ai_prompt_suite_resume.jsonl /tmp/ai_prompt_suite_resume.jsonl && wc -l /tmp/ai_prompt_suite_resume.jsonl && ls -lh /tmp/ai_prompt_suite_resume.jsonl
 
 python3 -c "import json; data = json.load(open('/tmp/ai_prompt_suite_resume.jsonl')); print(json.dumps({'summary': data['summary'], 'failure_breakdown': data['failure_breakdown'], 'root_causes': data['failure_root_causes']}, indent=2))"
+
+
+## executando os testes de forma encadeada
+
+docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/run_example_prompt_suite.py --output /tmp/ai_prompt_suite_500.jsonl' && docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/summarize_prompt_results.py --input /tmp/ai_prompt_suite_500.jsonl --output /tmp/results_500_resume.jsonl' && docker cp superset-superset-1:/tmp/results_500_resume.jsonl ./results_500_resume.jsonl
+
+
+## Cleanup
+
+Remove all AI test artifacts (dashboards, charts, datasets with prefix `AI_TEST_*`):
+
+```bash
+docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/cleanup_ai_test_artifacts.py'
+```
