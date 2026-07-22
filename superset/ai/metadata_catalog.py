@@ -171,6 +171,7 @@ class MetadataCatalogService:
                 for name, column_type in candidate.columns
             ],
             "related_names": list(candidate.related_names),
+            "is_virtual": candidate.is_virtual,
             "normalized_terms": normalized_terms,
             "detected_languages": sorted(
                 {
@@ -206,6 +207,7 @@ class MetadataCatalogService:
             source_key=entry.source_key,
             description=entry.description or "",
             related_names=tuple(entry.related_names or []),
+            is_virtual=bool(getattr(entry, "is_virtual", False)),
         )
 
 

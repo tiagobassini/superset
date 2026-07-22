@@ -26,6 +26,8 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app, has_app_context
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -151,6 +153,19 @@ DIMENSION_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
         "categoria",
     ),
     "product_line": ("product line", "product_line"),
+    "product": (
+        "product",
+        "products",
+        "produto",
+        "produtos",
+        "product name",
+        "product_name",
+        "product category",
+        "product_category",
+        "product line",
+        "product_line",
+        "sku",
+    ),
     "genre": ("genre", "genero", "gênero"),
     "platform": ("platform", "plataforma"),
     "publisher": ("publisher", "publicadora"),
@@ -164,6 +179,7 @@ DIMENSION_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "name": ("name", "nome", "nomes"),
     "state": ("state", "estado"),
     "gender": ("gender", "sexo"),
+    "status": ("status",),
 }
 
 INTENT_PROFILE_TERMS: Mapping[str, tuple[str, ...]] = {
@@ -284,6 +300,7 @@ class DiscoveryCandidate:
     source_key: str
     description: str = ""
     related_names: tuple[str, ...] = ()
+    is_virtual: bool = False
     score: int = 0
     reasons: tuple[str, ...] = ()
 
@@ -301,6 +318,7 @@ class DiscoveryCandidate:
                 {"name": name, "type": column_type}
                 for name, column_type in self.columns
             ],
+            "is_virtual": self.is_virtual,
             "score": self.score,
             "reasons": list(self.reasons),
         }
@@ -326,6 +344,7 @@ class DiscoveryCandidate:
                 f"{value.get('id')}:{value.get('name')}"
             ),
             related_names=tuple(str(name) for name in value.get("related_sources", [])),
+            is_virtual=bool(value.get("is_virtual", False)),
             score=int(value.get("score", 0)),
             reasons=tuple(str(reason) for reason in value.get("reasons", [])),
         )
@@ -531,13 +550,23 @@ def infer_metadata_topics(values: Iterable[str]) -> tuple[str, ...]:
 class AnalyticsDiscoveryService:
     """Discover and rank only data sources available to the active user."""
 
-    def __init__(self, user: Any, catalog: Any | None = None) -> None:
+    def __init__(
+        self,
+        user: Any,
+        catalog: Any | None = None,
+        semantic_catalog: Any | None = None,
+    ) -> None:
         self.user = user
         if catalog is None:
             from superset.ai.metadata_catalog import MetadataCatalogService
 
             catalog = MetadataCatalogService()
+        if semantic_catalog is None:
+            from superset.ai.semantic_catalog import SemanticAssociationCatalog
+
+            semantic_catalog = SemanticAssociationCatalog()
         self.catalog = catalog
+        self.semantic_catalog = semantic_catalog
         self._catalog_stats = {
             "hits": 0,
             "misses": 0,
@@ -636,6 +665,7 @@ class AnalyticsDiscoveryService:
                     schema=dataset.schema,
                     columns=self._columns_from_dataset(dataset),
                     description=str(getattr(dataset, "description", "") or ""),
+                    is_virtual=bool(getattr(dataset, "sql", None)),
                 )
             if candidate.resource_type == "saved_query":
                 from superset.extensions import db, security_manager
@@ -738,6 +768,7 @@ class AnalyticsDiscoveryService:
                         dataset.table_name,
                     ),
                     description=str(getattr(dataset, "description", "") or ""),
+                    is_virtual=bool(getattr(dataset, "sql", None)),
                 )
             )
         return candidates
@@ -882,6 +913,9 @@ class AnalyticsDiscoveryService:
             if self._has_exact_column(candidate, dimension_matches[0]):
                 score += 6
                 reasons.append(f"dimensão exata: {dimension_matches[0]}")
+        elif requested_dimension:
+            score -= 12
+            reasons.append(f"sem dimensão solicitada: {requested_dimension}")
         if getattr(intent, "time_grain", None) == "year" and groups["temporal"]:
             score += 12
             reasons.append(f"coluna temporal: {groups['temporal'][0]}")
@@ -894,11 +928,25 @@ class AnalyticsDiscoveryService:
         elif groups["measures"]:
             score += 6
             reasons.append(f"medida disponível: {groups['measures'][0]}")
+        if self._is_generated_source(candidate) and not self._is_explicitly_requested(
+            candidate, query, intent
+        ):
+            score -= 40
+            reasons.append("artefato gerado ignorado em busca genérica")
+        if candidate.is_virtual and not self._is_explicitly_requested(
+            candidate, query, intent
+        ):
+            score -= 18
+            reasons.append("dataset virtual tem menor prioridade em busca genérica")
         profile_score, profile_reasons = self._intent_profile_score(
             candidate, query, intent
         )
         score += profile_score
         reasons.extend(profile_reasons)
+        semantic_boost = self.semantic_catalog.boost(candidate, query, intent)
+        if semantic_boost.score:
+            score += semantic_boost.score
+            reasons.extend(semantic_boost.reasons)
         resource_name = str(context.get("resource_name") or "")
         if resource_name and normalize_discovery_text(
             resource_name
@@ -917,7 +965,7 @@ class AnalyticsDiscoveryService:
         matches: list[str] = []
         for name, _ in candidate.columns:
             normalized = normalize_discovery_text(name)
-            if any(normalize_discovery_text(term) in normalized for term in terms):
+            if any(_term_matches_column(term, normalized) for term in terms):
                 matches.append(name)
         if requested_metric == "revenue_profit":
             normalized_matches = {
@@ -944,7 +992,7 @@ class AnalyticsDiscoveryService:
             ):
                 continue
             normalized = normalize_discovery_text(name)
-            if any(normalize_discovery_text(term) in normalized for term in terms):
+            if any(_term_matches_column(term, normalized) for term in terms):
                 matches.append(name)
         return tuple(matches)
 
@@ -954,6 +1002,36 @@ class AnalyticsDiscoveryService:
         return any(
             normalize_discovery_text(name) == normalized_column
             for name, _ in candidate.columns
+        )
+
+    @staticmethod
+    def _is_generated_source(candidate: DiscoveryCandidate) -> bool:
+        prefixes = ("ai_test_",)
+        if has_app_context():
+            prefixes = tuple(
+                str(prefix).casefold()
+                for prefix in current_app.config.get(
+                    "AI_DISCOVERY_GENERATED_SOURCE_PREFIXES", prefixes
+                )
+            )
+        normalized_name = normalize_discovery_text(candidate.name).replace(" ", "_")
+        return any(normalized_name.startswith(prefix) for prefix in prefixes)
+
+    @staticmethod
+    def _is_explicitly_requested(
+        candidate: DiscoveryCandidate,
+        query: DiscoveryQuery,
+        intent: "AnalyticsIntent | None",
+    ) -> bool:
+        normalized_name = normalize_discovery_text(candidate.name)
+        normalized_hint = normalize_discovery_text(
+            str(getattr(intent, "source_hint", "") or "")
+        )
+        return normalized_name in {
+            query.normalized_topic,
+            normalized_hint,
+        } or normalized_name.replace(" ", "_") in query.normalized_topic.replace(
+            " ", "_"
         )
 
     @classmethod
@@ -999,7 +1077,7 @@ class AnalyticsDiscoveryService:
     ) -> str | None:
         terms = set(query.expanded_terms)
         metric = str(getattr(intent, "metric", "") or "")
-        if metric in {"global_sales", "na_sales", "eu_sales"}:
+        if metric in {"global_sales", "regional_sales", "na_sales", "eu_sales"}:
             return "games"
         if terms.intersection({"jogo", "jogos", "game", "games", "videogame"}):
             return "games"
@@ -1041,7 +1119,18 @@ class AnalyticsDiscoveryService:
             }
         ):
             return "messages"
-        if terms.intersection({"venda", "vendas", "sale", "sales"}):
+        if terms.intersection(
+            {
+                "venda",
+                "vendas",
+                "sale",
+                "sales",
+                "pedido",
+                "pedidos",
+                "order",
+                "orders",
+            }
+        ):
             return "sales_transactional"
         return None
 
@@ -1178,6 +1267,13 @@ def _score(name: str, terms: tuple[str, ...]) -> int:
     if not terms:
         return 0
     return sum(4 if term == name else 2 if term in name else 0 for term in terms)
+
+
+def _term_matches_column(term: str, normalized_column: str) -> bool:
+    normalized_term = normalize_discovery_text(term)
+    if len(normalized_term) <= 3:
+        return normalized_term in normalized_column.split()
+    return normalized_term in normalized_column
 
 
 def _terms(value: str) -> tuple[str, ...]:

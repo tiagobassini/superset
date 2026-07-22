@@ -91,7 +91,7 @@ def test_planner_prefers_revenue_metric_for_big_number_revenue_prompt() -> None:
     assert plan.intent.metric == "revenue"
 
 
-def test_planner_maps_product_prompt_to_product_line_dimension() -> None:
+def test_planner_maps_product_prompt_to_generic_product_dimension() -> None:
     plan = AnalyticsTaskPlanner().plan(
         "Crie um gráfico de pizza AI_TEST_P204 de participação de vendas por "
         "produto e adicione ao CBMES."
@@ -99,7 +99,7 @@ def test_planner_maps_product_prompt_to_product_line_dimension() -> None:
 
     assert plan.intent.chart_type == "pie"
     assert plan.intent.metric == "sales"
-    assert plan.intent.dimension == "product_line"
+    assert plan.intent.dimension == "product"
 
 
 def test_planner_treats_chart_in_current_dashboard_as_chart_request() -> None:
@@ -183,13 +183,13 @@ def test_planner_prioritizes_cost_for_cost_versus_revenue_prompt() -> None:
         "Crie um gráfico AI_TEST_P14 de custo versus receita por região."
     )
 
-    assert plan.intent.source_hint == "international_sales"
+    assert plan.intent.source_hint is None
     assert plan.intent.metric == "cost"
     assert plan.intent.dimension == "region"
     assert plan.intent.chart_title == "ai_test_p14"
 
 
-def test_planner_uses_international_sales_for_implicit_revenue_and_profit() -> None:
+def test_planner_keeps_implicit_revenue_and_profit_source_agnostic() -> None:
     revenue = AnalyticsTaskPlanner().plan(
         "Crie um gráfico de linha AI_TEST_P201 de receita ao longo do tempo."
     )
@@ -197,9 +197,9 @@ def test_planner_uses_international_sales_for_implicit_revenue_and_profit() -> N
         "Crie um gráfico de área AI_TEST_P202 de lucro acumulado."
     )
 
-    assert revenue.intent.source_hint == "international_sales"
+    assert revenue.intent.source_hint is None
     assert revenue.intent.metric == "revenue"
-    assert profit.intent.source_hint == "international_sales"
+    assert profit.intent.source_hint is None
     assert profit.intent.metric == "profit"
 
 

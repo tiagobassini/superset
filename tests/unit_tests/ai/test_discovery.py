@@ -35,6 +35,10 @@ from superset.ai.discovery import (
     rank_resources,
 )
 from superset.ai.metadata_catalog import MetadataCatalogService
+from superset.ai.semantic_catalog import (
+    SemanticAssociation,
+    SemanticAssociationCatalog,
+)
 
 
 def _candidate(name: str, score: int, resource_id: int = 1) -> DiscoveryCandidate:
@@ -425,6 +429,195 @@ def test_discovery_ranking_prefers_transactional_sales_without_game_context(
     assert "sinais de jogos reduzem prioridade para vendas comerciais" in (
         result.candidates[1].reasons
     )
+
+
+def test_discovery_applies_admin_semantic_association_as_validated_boost(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = SimpleNamespace(id=1, database_name="Corporate")
+    preferred = SimpleNamespace(
+        id=10,
+        table_name="orders_curated",
+        database_id=1,
+        database=database,
+        schema="mart",
+        catalog=None,
+        description="",
+        columns=[
+            SimpleNamespace(column_name="order_date", type="DATE"),
+            SimpleNamespace(column_name="product_name", type="VARCHAR"),
+            SimpleNamespace(column_name="gross_amount", type="NUMERIC"),
+        ],
+    )
+    generic = SimpleNamespace(
+        id=11,
+        table_name="sales_archive",
+        database_id=1,
+        database=database,
+        schema="mart",
+        catalog=None,
+        description="",
+        columns=[
+            SimpleNamespace(column_name="order_date", type="DATE"),
+            SimpleNamespace(column_name="product_name", type="VARCHAR"),
+            SimpleNamespace(column_name="revenue", type="NUMERIC"),
+        ],
+    )
+
+    class Query:
+        def __init__(self, values: list[object]) -> None:
+            self.values = values
+
+        def order_by(self, *_: object) -> "Query":
+            return self
+
+        def all(self) -> list[object]:
+            return self.values
+
+    monkeypatch.setattr(
+        "superset.extensions.db.session",
+        SimpleNamespace(
+            query=lambda model: Query(
+                [database]
+                if model.__name__ == "Database"
+                else [preferred, generic]
+                if model.__name__ == "SqlaTable"
+                else []
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_database", lambda _: True
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_datasource", lambda _: True
+    )
+    monkeypatch.setattr(AnalyticsDiscoveryService, "_table_candidates", lambda *_: [])
+    semantic_catalog = SemanticAssociationCatalog(
+        [
+            SemanticAssociation(
+                name="Receita Comercial",
+                terms=("receita", "faturamento"),
+                source_name="orders_curated",
+                database_name="Corporate",
+                schema="mart",
+                metric_name="gross_amount",
+                dimension_mappings={"product": "product_name"},
+                priority="high",
+            )
+        ]
+    )
+
+    result = AnalyticsDiscoveryService(
+        SimpleNamespace(id=7), semantic_catalog=semantic_catalog
+    ).discover(
+        build_discovery_query("receita por produto"),
+        intent=SimpleNamespace(
+            time_grain=None,
+            metric="revenue",
+            dimension="product",
+        ),
+    )
+
+    assert result.candidates[0].name == "orders_curated"
+    assert "associação semântica aprovada: Receita Comercial" in (
+        result.candidates[0].reasons
+    )
+    assert "medida associada disponível: gross_amount" in result.candidates[0].reasons
+    assert "dimensão associada disponível: product_name" in (
+        result.candidates[0].reasons
+    )
+
+
+def test_semantic_association_does_not_boost_when_configured_column_is_missing() -> (
+    None
+):
+    candidate = DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=10,
+        name="orders_curated",
+        database_id=1,
+        database_name="Corporate",
+        schema="mart",
+        columns=(("order_date", "DATE"), ("product_name", "VARCHAR")),
+        source_key="source:1::mart:orders_curated",
+    )
+    semantic_catalog = SemanticAssociationCatalog(
+        [
+            SemanticAssociation(
+                name="Receita Comercial",
+                terms=("receita",),
+                source_name="orders_curated",
+                metric_name="gross_amount",
+                priority="high",
+            )
+        ]
+    )
+
+    boost = semantic_catalog.boost(
+        candidate,
+        build_discovery_query("receita por produto"),
+        SimpleNamespace(metric="revenue", dimension="product"),
+    )
+
+    assert boost.score == 0
+    assert boost.reasons == ()
+
+
+def test_generated_test_artifacts_do_not_win_generic_discovery() -> None:
+    generated = DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=10,
+        name="ai_test_p216",
+        database_id=1,
+        database_name="Examples",
+        schema="main",
+        columns=(
+            ("country", "VARCHAR"),
+            ("year", "INTEGER"),
+            ("revenue", "NUMERIC"),
+        ),
+        source_key="source:1::main:ai_test_p216",
+    )
+    curated = DiscoveryCandidate(
+        resource_type="dataset",
+        resource_id=11,
+        name="international_sales",
+        database_id=1,
+        database_name="Examples",
+        schema="main",
+        columns=(
+            ("country", "VARCHAR"),
+            ("transaction_date", "DATE"),
+            ("revenue", "NUMERIC"),
+        ),
+        source_key="source:1::main:international_sales",
+    )
+    service = AnalyticsDiscoveryService(SimpleNamespace(id=7))
+    query = build_discovery_query("receita por pais")
+
+    generated_score = service._score_candidate(
+        generated,
+        query,
+        SimpleNamespace(metric="revenue", dimension="country", source_hint=None),
+        {},
+    )
+    curated_score = service._score_candidate(
+        curated,
+        query,
+        SimpleNamespace(metric="revenue", dimension="country", source_hint=None),
+        {},
+    )
+    explicit_score = service._score_candidate(
+        generated,
+        build_discovery_query("ai_test_p216"),
+        SimpleNamespace(metric="revenue", dimension="country", source_hint="ai_test_p216"),
+        {},
+    )
+
+    assert curated_score.score > generated_score.score
+    assert "artefato gerado ignorado em busca genérica" in generated_score.reasons
+    assert "artefato gerado ignorado em busca genérica" not in explicit_score.reasons
 
 
 def test_discovery_structural_profiles_select_domain_sources(

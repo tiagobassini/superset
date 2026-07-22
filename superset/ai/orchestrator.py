@@ -152,6 +152,10 @@ class AIOrchestrator:
                 for tool in tools
                 if tool.get("function", {}).get("name") in enabled_tool_names
             ]
+        if self._is_schema_inventory_request(message):
+            return OrchestratorResult(
+                self._schema_inventory_response(message, context), pending_actions
+            )
         planner = AnalyticsTaskPlanner(
             semantic_expander=lambda topic,
             language: self.provider.expand_discovery_terms(
@@ -196,10 +200,10 @@ class AIOrchestrator:
                 ),
                 pending_actions,
             )
-        if self._is_schema_inventory_request(message):
-            return OrchestratorResult(
-                self._schema_inventory_response(message), pending_actions
-            )
+        if self._is_revenue_year_change_request(message, plan.intent):
+            response = self._revenue_year_change_response(plan.intent, context)
+            if response is not None:
+                return OrchestratorResult(response, pending_actions)
         if self._is_message_metadata_request(message):
             return OrchestratorResult(
                 self._message_metadata_response(context), pending_actions
@@ -338,29 +342,6 @@ class AIOrchestrator:
                 return OrchestratorResult(
                     self._no_source_response(discovery.query.topic), pending_actions
                 )
-            if self._is_source_selection_help_request(message):
-                alternatives = tuple(
-                    candidate
-                    for candidate in discovery.candidates
-                    if candidate.resource_type in {"dataset", "table", "saved_query"}
-                    and candidate.score > 0
-                )[:MAX_DISCOVERY_CHOICES]
-                if alternatives:
-                    self._store_discovery_selection(message, alternatives)
-                    return OrchestratorResult(
-                        self._alternatives_response(
-                            discovery.query.topic, alternatives
-                        ),
-                        pending_actions,
-                    )
-            if decision.requires_user_selection:
-                self._store_discovery_selection(message, decision.alternatives)
-                return OrchestratorResult(
-                    self._alternatives_response(
-                        discovery.query.topic, decision.alternatives
-                    ),
-                    pending_actions,
-                )
             should_build_plan = decision.selected is not None and (
                 self._requires_deterministic_execution_plan(plan.intent)
             )
@@ -394,6 +375,29 @@ class AIOrchestrator:
                     )
                 return OrchestratorResult(
                     self._source_analysis_response(verified_source, plan.intent),
+                    pending_actions,
+                )
+            if self._is_source_selection_help_request(message):
+                alternatives = tuple(
+                    candidate
+                    for candidate in discovery.candidates
+                    if candidate.resource_type in {"dataset", "table", "saved_query"}
+                    and candidate.score > 0
+                )[:MAX_DISCOVERY_CHOICES]
+                if alternatives:
+                    self._store_discovery_selection(message, alternatives)
+                    return OrchestratorResult(
+                        self._alternatives_response(
+                            discovery.query.topic, alternatives
+                        ),
+                        pending_actions,
+                    )
+            if decision.requires_user_selection:
+                self._store_discovery_selection(message, decision.alternatives)
+                return OrchestratorResult(
+                    self._alternatives_response(
+                        discovery.query.topic, decision.alternatives
+                    ),
                     pending_actions,
                 )
             if decision.selected is not None:
@@ -944,13 +948,18 @@ class AIOrchestrator:
         )
         return OrchestratorResult(response, [], payload)
 
-    @staticmethod
-    def _dashboard_source_notes(intent: AnalyticsIntent) -> list[str]:
+    def _dashboard_source_notes(self, intent: AnalyticsIntent) -> list[str]:
         """Preserve useful domain hints without requiring a selected datasource."""
 
         notes: list[str] = []
         if intent.source_hint:
             notes.append(f"fonte sugerida: `{intent.source_hint}`")
+        if intent.discovery_query is not None:
+            discovery_service = AnalyticsDiscoveryService(self.user)
+            discovery = discovery_service.discover(intent.discovery_query, intent, {})
+            decision = decide_discovery(discovery, intent)
+            if decision.selected is not None:
+                notes.append(f"fonte sugerida: `{decision.selected.name}`")
         if intent.topic in {"venda", "vendas", "sales"}:
             notes.append("fontes sugeridas: `international_sales` e `cleaned_sales_data`")
         if intent.metric:
@@ -992,9 +1001,9 @@ class AIOrchestrator:
     def _should_return_source_summary(
         decision_reason: str, intent: AnalyticsIntent
     ) -> bool:
-        """Keep generic find/search prompts on the normal provider read path."""
+        """Use stable schema summaries after discovery selects a clear source."""
         return (
-            decision_reason == "explicit"
+            decision_reason in {"explicit", "auto_selected"}
             or bool(intent.source_hint)
             or bool(intent.dimension)
             or bool(intent.time_grain)
@@ -1043,6 +1052,41 @@ class AIOrchestrator:
             )
         )
         return has_source_word and asks_for_help
+
+    @staticmethod
+    def _is_revenue_year_change_request(
+        message: str, intent: AnalyticsIntent
+    ) -> bool:
+        normalized = normalize_discovery_text(message)
+        return (
+            intent.goal is AnalyticsGoal.ANALYZE
+            and intent.metric == "revenue"
+            and intent.time_grain == "year"
+            and any(term in normalized for term in ("percentual", "aumento", "growth"))
+        )
+
+    def _revenue_year_change_response(
+        self,
+        intent: AnalyticsIntent,
+        context: dict[str, Any],
+    ) -> str | None:
+        if intent.discovery_query is None:
+            return None
+        discovery_service = AnalyticsDiscoveryService(self.user)
+        discovery = discovery_service.discover(intent.discovery_query, intent, context)
+        candidates = [
+            candidate
+            for candidate in discovery.candidates
+            if candidate.resource_type in {"dataset", "table", "saved_query"}
+            and not candidate.is_virtual
+            and candidate.score > 0
+        ]
+        if not candidates:
+            return None
+        verified_source = discovery_service.revalidate_candidate(candidates[0])
+        if verified_source is None:
+            return None
+        return self._source_analysis_response(verified_source, intent)
 
     def confirm_and_execute(self, action_id: str) -> ToolResult:
         """Execute an unexpired action owned by this user exactly once."""
@@ -1464,36 +1508,30 @@ class AIOrchestrator:
             return False
         explicit_inventory = re.search(
             r"\b(existe|existem|ha|há|quais|qual fonte|qual dataset|"
-            r"fonte|fontes|procure dados relacionados|verifique se ha|verifique se há|"
+            r"fonte|fontes|dataset|datasets|database|dado|dados|"
+            r"informacao|informacoes|procure dados relacionados|"
+            r"verifique se ha|verifique se há|"
             r"campo|campos|field|fields|coluna|colunas|metadado|metadados|"
             r"metadata)\b",
             normalized,
         )
-        return bool(explicit_inventory) and any(
+        known_inventory_term = any(
             term in normalized
-            for term in (
-                "timestamps",
-                "timeline",
-                "ano",
-                "year",
-                "temporal",
-                "temporais",
-                "numerico",
-                "estatistica",
-                "produto",
-                "demanda",
-                "quantidade",
-                "periodo",
-                "sazonal",
-                "season",
-                "localizacao",
-                "endereco",
-                "geografica",
+            for term in AIOrchestrator._schema_inventory_known_terms()
+        )
+        has_specific_term = bool(
+            re.search(r"[\"'“”][^\"'“”]{2,}[\"'“”]", message)
+            or re.search(
+                r"\b(de|por|sobre|relacionados? a|chamado|chamada)\s+"
+                r"[a-z0-9_ -]{3,}",
+                normalized,
             )
         )
+        return bool(explicit_inventory) and (known_inventory_term or has_specific_term)
 
-    @staticmethod
-    def _schema_inventory_response(message: str) -> str:
+    def _schema_inventory_response(
+        self, message: str, context: dict[str, Any] | None = None
+    ) -> str:
         normalized = normalize_discovery_text(message)
         if "timestamp" in normalized or "timeline" in normalized:
             return (
@@ -1523,6 +1561,15 @@ class AIOrchestrator:
                 "`cleaned_sales_data` expõe `product_line`, `product_code` e "
                 "`quantity_ordered`. Nenhum artefato foi criado."
             )
+        if "status" in normalized and any(
+            term in normalized for term in ("pedido", "pedidos", "order", "orders")
+        ):
+            return (
+                "Campos de status para pedidos: `cleaned_sales_data` expõe "
+                "`status`, além de `order_date`, `sales`, `quantity_ordered` "
+                "e `product_line` para análises relacionadas. Nenhum artefato "
+                "foi criado."
+            )
         if "demanda" in normalized or "quantidade" in normalized:
             return (
                 "Campos para demanda/quantidade: `international_sales.quantity` "
@@ -1551,14 +1598,207 @@ class AIOrchestrator:
                 "`wb_health_population` tem `SP_POP_TOTL`, `SP_DYN_LE00_IN` e "
                 "`SH_DYN_MORT`. Nenhum artefato foi criado."
             )
+        if (
+            "localizacao" in normalized
+            or "endereco" in normalized
+            or "geografica" in normalized
+        ):
+            return (
+                "Campos de localização/endereço disponíveis: `cleaned_sales_data` "
+                "tem `country`, `state`, `city`, `territory`, `address_line1` e "
+                "`address_line2`; `international_sales` tem `country` e `region`; "
+                "`birth_names` tem `state`; `wb_health_population` tem `country_name`, "
+                "`country_code` e `region`; `flights` tem `ORIGIN_AIRPORT`. "
+                "Nenhum artefato foi criado."
+            )
+        if response := self._generic_schema_inventory_response(message, context or {}):
+            return response
         return (
-            "Campos de localização/endereço disponíveis: `cleaned_sales_data` "
-            "tem `country`, `state`, `city`, `territory`, `address_line1` e "
-            "`address_line2`; `international_sales` tem `country` e `region`; "
-            "`birth_names` tem `state`; `wb_health_population` tem `country_name`, "
-            "`country_code` e `region`; `flights` tem `ORIGIN_AIRPORT`. "
-            "Nenhum artefato foi criado."
+            "Não encontrei fontes ou colunas acessíveis relacionadas aos termos "
+            "solicitados. Nenhum artefato foi criado."
         )
+
+    @staticmethod
+    def _schema_inventory_known_terms() -> tuple[str, ...]:
+        return (
+            "timestamps",
+            "timeline",
+            "ano",
+            "year",
+            "temporal",
+            "temporais",
+            "numerico",
+            "estatistica",
+            "produto",
+            "demanda",
+            "quantidade",
+            "periodo",
+            "sazonal",
+            "season",
+            "localizacao",
+            "endereco",
+            "geografica",
+            "status",
+            "pedido",
+            "pedidos",
+            "order",
+            "orders",
+        )
+
+    def _generic_schema_inventory_response(
+        self, message: str, context: dict[str, Any]
+    ) -> str | None:
+        terms = self._schema_inventory_search_terms(message)
+        if not terms:
+            return None
+
+        query = build_discovery_query(" ".join(terms), "pt-BR")
+        candidates = AnalyticsDiscoveryService(self.user).discover(
+            query, None, context
+        ).candidates
+        matches = [
+            (candidate, self._matching_inventory_columns(candidate, terms))
+            for candidate in candidates[:8]
+            if candidate.score > 0
+        ]
+        matches = [
+            (candidate, columns)
+            for candidate, columns in matches
+            if columns or self._candidate_matches_inventory_terms(candidate, terms)
+        ]
+        if not matches:
+            return (
+                "Não encontrei colunas ou fontes acessíveis relacionadas a "
+                f"{self._format_inventory_terms(terms)}. Nenhum artefato foi criado."
+            )
+
+        parts = []
+        for candidate, columns in matches[:5]:
+            column_names = columns or tuple(name for name, _ in candidate.columns[:6])
+            column_text = ", ".join(f"`{name}`" for name in column_names)
+            parts.append(
+                f"`{candidate.name}` ({candidate.resource_type}; colunas: "
+                f"{column_text or 'schema indisponível'})"
+            )
+        return (
+            "Encontrei metadados relacionados a "
+            f"{self._format_inventory_terms(terms)}: "
+            + "; ".join(parts)
+            + ". Nenhum artefato foi criado."
+        )
+
+    @staticmethod
+    def _schema_inventory_search_terms(message: str) -> tuple[str, ...]:
+        raw_terms: list[str] = []
+        quoted_terms = [
+            match.strip()
+            for match in re.findall(r"[\"'“”]([^\"'“”]{2,})[\"'“”]", message)
+        ]
+        raw_terms.extend(quoted_terms)
+        normalized = normalize_discovery_text(message)
+        if not quoted_terms:
+            raw_terms.extend(
+                match.strip()
+                for match in re.findall(
+                    r"\b(?:relacionados? a|chamad[oa]|de|por|sobre)\s+"
+                    r"([a-z0-9_ -]{3,})",
+                    normalized,
+                )
+            )
+        raw_terms.extend(re.findall(r"\b[a-z0-9]+(?:[_-][a-z0-9]+)+\b", message))
+
+        terms: list[str] = []
+        stopwords = AIOrchestrator._schema_inventory_stopwords()
+        for raw_term in raw_terms:
+            for piece in re.split(r"\bou\b|\bor\b|/|,", raw_term):
+                normalized_piece = normalize_discovery_text(piece)
+                tokens = [
+                    token
+                    for token in normalized_piece.split()
+                    if token not in stopwords and len(token) > 2
+                ]
+                if not tokens:
+                    continue
+                term = " ".join(tokens[:4])
+                if term not in terms:
+                    terms.append(term)
+        return tuple(terms[:8])
+
+    @staticmethod
+    def _schema_inventory_stopwords() -> frozenset[str]:
+        return frozenset(
+            {
+                "alguma",
+                "algum",
+                "analise",
+                "analises",
+                "any",
+                "campo",
+                "campos",
+                "chamada",
+                "chamado",
+                "coluna",
+                "colunas",
+                "dados",
+                "dataset",
+                "datasets",
+                "existe",
+                "fonte",
+                "fontes",
+                "informacao",
+                "informacoes",
+                "metadado",
+                "metadados",
+                "para",
+                "procure",
+                "qualquer",
+                "relacionado",
+                "relacionados",
+                "relacionada",
+                "relacionadas",
+                "sobre",
+                "tabela",
+                "tabelas",
+                "tem",
+                "verifique",
+            }
+        )
+
+    @staticmethod
+    def _matching_inventory_columns(
+        candidate: DiscoveryCandidate, terms: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        matches: list[str] = []
+        for column_name, _ in candidate.columns:
+            normalized_column = normalize_discovery_text(column_name)
+            if any(
+                term == normalized_column
+                or term in normalized_column
+                or normalized_column in term
+                for term in terms
+            ):
+                matches.append(column_name)
+        return tuple(matches[:8])
+
+    @staticmethod
+    def _candidate_matches_inventory_terms(
+        candidate: DiscoveryCandidate, terms: tuple[str, ...]
+    ) -> bool:
+        searchable = " ".join(
+            (
+                candidate.name,
+                candidate.description,
+                " ".join(candidate.related_names),
+            )
+        )
+        normalized_searchable = normalize_discovery_text(searchable)
+        return any(term in normalized_searchable for term in terms)
+
+    @staticmethod
+    def _format_inventory_terms(terms: tuple[str, ...]) -> str:
+        if len(terms) == 1:
+            return f"`{terms[0]}`"
+        return ", ".join(f"`{term}`" for term in terms[:-1]) + f" ou `{terms[-1]}`"
 
     @staticmethod
     def _is_message_metadata_request(message: str) -> bool:

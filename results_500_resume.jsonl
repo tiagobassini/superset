@@ -1,52 +1,399 @@
 {
   "summary": {
     "total_cases": 501,
-    "passed_count": 499,
-    "failed_count": 2,
-    "pass_rate_percent": 99.6,
-    "average_latency_ms": 3927.3
+    "passed_count": 461,
+    "failed_count": 40,
+    "pass_rate_percent": 92.0,
+    "average_latency_ms": 8141.1
   },
   "failure_breakdown": {
-    "awaiting_confirmation": 0,
-    "awaiting_user_input": 1,
-    "completed_but_failed": 1,
+    "awaiting_confirmation": 2,
+    "awaiting_user_input": 5,
+    "completed_but_failed": 33,
     "other_status": 0
   },
   "failure_root_causes": {
-    "other_failure": 1,
-    "missing_column": 1
+    "missing_column": 31,
+    "other_failure": 6,
+    "planning_failure": 10,
+    "resource_not_created": 5,
+    "missing_source": 9
   },
   "failures_detail": [
+    
+    
+    // mal elaborado esse p57
     {
-      "case_id": "P07",
-      "prompt": "Quero analisar vendas, mas não sei qual dataset usar.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "too many alternatives: 18 > 3"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 29361,
-      "response_preview": "Aqui estão os datasets disponíveis para você analisar:\n\n1. bart_lines\n2. birth_france_by_region\n3. cleaned_sales_data\n4. international_sales\n5. flight…"
-    },
-    {
-      "case_id": "P142",
-      "prompt": "Verifique se existe um metadado chamado \"ano\" ou \"year\" para análises temporais.",
+      "case_id": "P57",
+      "prompt": "Na lista de datasets, use o dataset selecionado para sugerir uma análise anual.",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected column year"
+        "missing expected source option international_sales",
+        "missing expected column transaction_date",
+        "missing expected column revenue",
+        "missing expected column profit"
+      ],
+      "failure_categories": [
+        "missing_column",
+        "missing_source"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 171,
+      "response_preview": "Não encontrei colunas ou fontes acessíveis relacionadas a `use selecionado sugerir uma`. Nenhum artefato foi criado."
+    },
+    
+    //analisar, pos mesmo passando o dataset, não identifica o dataset e nem faz a analise anual
+    {
+      "case_id": "P98",
+      "prompt": "Neste dataset, qual métrica principal você recomenda acompanhar e por quê?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected source option wb_health_population",
+        "missing expected column SP_POP_TOTL",
+        "missing expected column SP_DYN_LE00_IN",
+        "missing expected column SH_DYN_MORT"
+      ],
+      "failure_categories": [
+        "missing_column",
+        "missing_source"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 240,
+      "response_preview": "Não encontrei colunas ou fontes acessíveis relacionadas a `que`. Nenhum artefato foi criado."
+    },
+
+   
+    
+    
+    
+    
+    {
+      "case_id": "P388",
+      "prompt": "Qual é a receita acumulada até o final de cada trimestre?",
+      "status": "awaiting_user_input",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column transaction_date"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 40631,
+      "response_preview": "O dataset \"international_sales\" está disponível. Vamos prosseguir com a análise para obter a receita acumulada até o final de cada trimestre.\n\nPara is…"
+    },
+    
+    {
+      "case_id": "P390",
+      "prompt": "Quais são as top 5 combinações país + categoria por receita?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column country",
+        "missing expected column product_category",
+        "missing expected column revenue"
       ],
       "failure_categories": [
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 25751,
-      "response_preview": null
+      "latency_ms": 196,
+      "response_preview": "Não encontrei colunas ou fontes acessíveis relacionadas a `receita`. Nenhum artefato foi criado."
+    },
+    {
+      "case_id": "P391",
+      "prompt": "Qual foi a media de quantidade vendida por pedido?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column quantity_ordered",
+        "missing expected column quantity"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 81765,
+      "response_preview": "Para calcular a média de quantidade vendida por pedido no dataset \"cleaned_sales_data\", precisamos primeiro criar um novo dataset com essa fórmula. Vo…"
+    },
+    {
+      "case_id": "P394",
+      "prompt": "Qual gênero de videogame tem melhor taxa de venda por plataforma?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column platform"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 47338,
+      "response_preview": "Para responder a essa pergunta, precisamos primeiro filtrar os dados para incluir apenas as vendas globais (global_sales) e depois agrupá-los por gêne…"
+    },
+    {
+      "case_id": "P397",
+      "prompt": "Qual é a receita média por transação e seu desvio padrão?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 136437,
+      "response_preview": "Para calcular a receita média e o desvio padrão por transação, precisamos primeiro criar um novo conjunto de dados com essas medidas. Vou começar cria…"
+    },
+    {
+      "case_id": "P404",
+      "prompt": "Qual é o ranking de performance dos 10 países por receita?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 118385,
+      "response_preview": "Pedido original: Qual é o ranking de performance dos 10 países por receita?\nEscolha do usuário: 1\n\nNão foi possível encontrar a base de dados '7'. Por…"
+    },
+    {
+      "case_id": "P410",
+      "prompt": "Qual é o valor de transação típico (P25, P50, P75) por país?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column country",
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 35869,
+      "response_preview": "O dataset de voos está disponível. Vamos usar este para analisar os valores típicos por país."
+    },
+    {
+      "case_id": "P418",
+      "prompt": "Qual distribuição de dados de atrasos em flights é mais normal?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column ARRIVAL_DELAY",
+        "missing expected column DEPARTURE_DELAY"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 216,
+      "response_preview": "Encontrei metadados relacionados a `atrasos flights mais normal`: `messages` (dataset; colunas: `ts`). Nenhum artefato foi criado."
+    },
+    {
+      "case_id": "P421",
+      "prompt": "Qual foi a volatilidade de preço/receita ao longo do período?",
+      "status": "awaiting_user_input",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 194518,
+      "response_preview": "Não foi possível encontrar a tabela internacional_sales no banco de dados examples. Verifique se o nome da tabela está correto e tente novamente.\nPode…"
+    },
+    {
+      "case_id": "P423",
+      "prompt": "Qual é o intervalo de confiança 95% para a receita média?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 63537,
+      "response_preview": "O dataset internacional de vendas está disponível. Vamos verificar se podemos calcular o intervalo de confiança 95% para a receita média neste conjunt…"
+    },
+    {
+      "case_id": "P424",
+      "prompt": "Qual padrão de correlação existe entre `cost`, `profit` e `revenue`?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 227,
+      "response_preview": "Encontrei metadados relacionados a `correlacao entre cost profit`: `international_sales` (dataset; colunas: `cost`, `profit`). Nenhum artefato foi cri…"
+    },
+    {
+      "case_id": "P428",
+      "prompt": "Qual é a mediana de receita por transação em cada país?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column country"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 50574,
+      "response_preview": "Para calcular a mediana da receita (revenue) por transação em cada país, precisamos primeiro filtrar os dados para incluir apenas as linhas onde o val…"
+    },
+    {
+      "case_id": "P432",
+      "prompt": "Qual foi a maior variação de receita entre dois meses consecutivos?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 19758,
+      "response_preview": "Para responder à sua pergunta, precisamos primeiro criar um novo dataset baseado no modelo internacional_vendas. Vou começar criando este novo dataset…"
+    },
+    {
+      "case_id": "P433",
+      "prompt": "Qual é a quantidade de transações por hora do dia (se granulação permitir)?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column quantity"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 128787,
+      "response_preview": "Para calcular a quantidade de transações por hora do dia (se possível), precisamos criar um novo dataset baseado no conjunto de dados \"cleaned_sales_d…"
+    },
+    {
+      "case_id": "P437",
+      "prompt": "Qual foi a receita acumulada (running total) mês a mês?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 61056,
+      "response_preview": "Para calcular a receita acumulada (running total) mês a mês no dataset internacional_vendas, precisamos primeiro criar um novo conjunto de dados que c…"
+    },
+    {
+      "case_id": "P446",
+      "prompt": "Qual percentual da receita total vem dos 30% de transações de maior valor?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 73009,
+      "response_preview": "Para calcular o percentual da receita total que vem dos 30% das transações de maior valor, precisamos primeiro filtrar as transações com base no valor…"
+    },
+    {
+      "case_id": "P458",
+      "prompt": "Qual country tem melhor expectativa de vida segundo dados?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column country",
+        "missing expected column SP_DYN_LE00_IN"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 200,
+      "response_preview": "Encontrei metadados relacionados a `vida segundo`: `international_sales` (dataset; colunas: `id`); `long_lat` (dataset; colunas: `ID`). Nenhum artefat…"
+    },
+    {
+      "case_id": "P468",
+      "prompt": "Qual estado tem menor população segundo dados de nascimentos?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected source option birth_names",
+        "missing expected column num"
+      ],
+      "failure_categories": [
+        "missing_column",
+        "missing_source"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 199,
+      "response_preview": "Não encontrei colunas ou fontes acessíveis relacionadas a `nascimentos`. Nenhum artefato foi criado."
+    },
+    {
+      "case_id": "P475",
+      "prompt": "Qual foi o desempenho de receita per capita por país e ano?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 28929,
+      "response_preview": "Para responder a essa pergunta, precisamos criar um novo dataset baseado no modelo internacional_sales. Vou começar criando esse novo dataset."
+    },
+    {
+      "case_id": "P483",
+      "prompt": "Qual foi a quantidade de transações únicas por ano?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column year",
+        "missing expected column quantity"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 39275,
+      "response_preview": "Para responder à sua pergunta, precisamos primeiro verificar se o dataset 'cleaned_sales_data' contém uma coluna que possa ser usada para contar as tr…"
+    },
+    {
+      "case_id": "P494",
+      "prompt": "Qual mês historicamente tem menor receita (sazonalidade baixa)?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 32447,
+      "response_preview": "Para responder a essa pergunta, precisamos primeiro entender qual é o período histórico de dados disponíveis no dataset \"international_sales\". Vou lis…"
     }
   ],
-  "generated_at": "2026-07-22T17:59:00.507127+00:00"
+  "generated_at": "2026-07-22T22:55:50.512664+00:00"
 }

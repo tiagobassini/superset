@@ -447,6 +447,86 @@ def test_orchestrator_answers_year_metadata_inventory_without_provider(
     assert provider.messages == []
 
 
+def test_orchestrator_answers_generic_inventory_prompt_from_discovery(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    discovery_calls = _patch_discovery(
+        monkeypatch,
+        (
+            DiscoveryCandidate(
+                resource_type="dataset",
+                resource_id=7,
+                name="customer_feedback",
+                database_id=1,
+                database_name="Examples",
+                schema="public",
+                columns=(
+                    ("sentiment_score", "NUMERIC"),
+                    ("customer_id", "INTEGER"),
+                ),
+                source_key="source:7",
+                score=42,
+            ),
+        ),
+    )
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    user = SimpleNamespace(id=42)
+
+    result = AIOrchestrator(
+        SimpleNamespace(
+            id="agent-1", provider="openai", model="test", api_key_encrypted=None
+        ),
+        ToolRegistry(),
+        user,
+        StubCache(),
+    ).chat(
+        'Tem alguma fonte com dados de "sentiment_score"?',
+        [],
+        {"page": "home"},
+    )
+
+    assert discovery_calls == [user]
+    assert "customer_feedback" in result.response
+    assert "sentiment_score" in result.response
+    assert "Nenhum artefato foi criado" in result.response
+    assert result.pending_actions == []
+    assert result.execution_plan is None
+    assert provider.messages == []
+
+
+def test_orchestrator_explains_generic_inventory_miss_without_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_discovery(monkeypatch, ())
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+
+    result = AIOrchestrator(
+        SimpleNamespace(
+            id="agent-1", provider="openai", model="test", api_key_encrypted=None
+        ),
+        ToolRegistry(),
+        SimpleNamespace(id=42),
+        StubCache(),
+    ).chat(
+        'Procure dados relacionados a "renda" ou "income" em qualquer fonte.',
+        [],
+        {"page": "home"},
+    )
+
+    assert "Não encontrei colunas ou fontes acessíveis" in result.response
+    assert "renda" in result.response
+    assert "income" in result.response
+    assert result.pending_actions == []
+    assert result.execution_plan is None
+    assert provider.messages == []
+
+
 def test_orchestrator_explains_when_discovery_finds_no_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

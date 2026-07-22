@@ -315,14 +315,29 @@ class AnalyticsTaskPlanner:
         ("delay", ("atraso", "atrasos", "delay", "delays")),
         ("cancellations", ("cancelamentos", "cancelled", "cancellations")),
         ("distance", ("distancia", "distance")),
-        ("births", ("nascimentos", "births", "nome de bebe", "nome de bebê")),
+        (
+            "births",
+            (
+                "nascimento",
+                "nascimentos",
+                "birth",
+                "births",
+                "nome de bebe",
+                "nome de bebê",
+                "nomes de bebes",
+                "nomes de bebês",
+            ),
+        ),
         ("population", ("populacao", "population")),
         ("life_expectancy", ("expectativa de vida", "life expectancy")),
         ("mortality", ("mortalidade", "mortality")),
     )
     _DIMENSION_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("country", ("pais", "país", "country", "countries")),
-        ("region", ("regiao", "região", "region", "regions", "continente")),
+        (
+            "region",
+            ("regiao", "região", "regioes", "region", "regions", "continente"),
+        ),
         ("territory", ("territory", "territorio", "território")),
         ("product_category", ("categoria", "category", "categorias", "categories")),
         (
@@ -391,26 +406,9 @@ class AnalyticsTaskPlanner:
             dashboard = self._named_after_publish_target(normalized)
         metric = self._metric(normalized)
         dimension = self._dimension(normalized)
+        if metric == "regional_sales":
+            dimension = None
         chart_type = self._chart_type(normalized)
-        special_source_hint = self._source_hint_for_metric(metric)
-        if source_hint is None or (
-            special_source_hint is not None and source_hint.startswith("ai_test_")
-        ):
-            source_hint = special_source_hint
-        if source_hint is None and chart_type in {"scatter", "sankey", "big_number"}:
-            source_hint = "international_sales"
-        if (
-            source_hint is None
-            and chart_type == "pie"
-            and dimension == "product_category"
-        ):
-            source_hint = "international_sales"
-        if dimension in {"territory", "product_line"}:
-            source_hint = "cleaned_sales_data"
-        if source_hint is None and chart_type == "pie":
-            source_hint = "cleaned_sales_data"
-        if source_hint is None and goal is AnalyticsGoal.PUBLISH_CHART:
-            source_hint = "international_sales"
         topic = self._topic(normalized) or self._topic_from_request(normalized)
         output_prefix = self._output_prefix(normalized)
         exact_source_hint = source_hint in {
@@ -437,6 +435,10 @@ class AnalyticsTaskPlanner:
                     "revenue_profit_population",
                     "message_count_by_user",
                     "flights_births_year",
+                    "regional_sales",
+                    "global_sales",
+                    "na_sales",
+                    "eu_sales",
                 }
                 else topic or source_hint or metric
             )
@@ -630,39 +632,6 @@ class AnalyticsTaskPlanner:
             message,
         ):
             return "birth_names"
-        if re.search(
-            r"\b(platform|plataforma|publisher|publicadora|videogame|videogames|game|jogo)\w*\b",
-            message,
-        ):
-            return "video_game_sales"
-        if re.search(
-            r"\b(voo|voos|flight|flights|aereo|aerea|aéreo|aérea|companhia aerea)\w*\b",
-            message,
-        ):
-            return "flights"
-        if re.search(r"\b(transacao|transacoes|transação|transações)\w*\b", message):
-            return "international_sales"
-        if re.search(
-            r"\b(populacao|population|saude|health|mortalidade|expectativa|vida)\b",
-            message,
-        ):
-            return "wb_health_population"
-        if re.search(
-            r"\b(receita|revenue|faturamento|ticket|ranking|performance)\b",
-            message,
-        ) and re.search(r"\b(venda|vendas|pais|país|country|cliente)\w*\b", message):
-            return "international_sales"
-        if re.search(
-            r"\b(nome|nomes|bebe|bebes|baby|ranking|decada|decadas)\w*\b",
-            message,
-        ):
-            return "birth_names"
-        if re.search(r"\b(status|pedido|pedidos|cancelado|cancelados)\b", message):
-            return "cleaned_sales_data"
-        if re.search(r"\b(revenue|receita|faturamento)\b", message) and re.search(
-            r"\b202[0-9]\b", message
-        ):
-            return "international_sales"
         transformed_source = cls._named_after(message, r"(?:transforme|transform)\s+")
         if (
             transformed_source
@@ -985,14 +954,19 @@ class AnalyticsTaskPlanner:
             r"\b(receita|receitas|revenue|faturamento)\b", message
         ):
             return "cost"
-        if re.search(r"\b(receita|receitas|revenue|faturamento)\b", message):
-            return "revenue"
-        if re.search(r"\b(populacao|population)\b", message):
-            return "population"
         if re.search(r"\b(receita|revenue|faturamento)\b", message) and re.search(
             r"\b(profit|lucro)\b", message
         ):
             return "revenue_profit"
+        if re.search(r"\b(receita|receitas|revenue|faturamento)\b", message):
+            return "revenue"
+        if re.search(r"\b(populacao|population)\b", message):
+            return "population"
+        if re.search(
+            r"\b(nascimento|nascimentos|birth|births|bebe|bebes|bebê|bebês)\b",
+            message,
+        ) and re.search(r"\b(nome|nomes|name|names)\b", message):
+            return "births"
         if re.search(r"\beuropa\b", message) and re.search(
             r"\b(america do norte|north america)\b", message
         ):
@@ -1018,15 +992,17 @@ class AnalyticsTaskPlanner:
 
     @classmethod
     def _dimension(cls, message: str) -> str | None:
-        if re.search(r"\b(produto|produtos|product|products)\b", message):
-            return "product_line"
         if re.search(r"\b(product line|product_line|linha de produto)\b", message):
             return "product_line"
         if re.search(r"\b(territory|territorio|território)\b", message):
             return "territory"
+        if re.search(r"\b(status|state|estado)\b", message):
+            return "status"
         for dimension, aliases in cls._DIMENSION_ALIASES:
             if any(
                 re.search(rf"\b{re.escape(alias)}\b", message) for alias in aliases
             ):
                 return dimension
+        if re.search(r"\b(produto|produtos|product|products|sku)\b", message):
+            return "product"
         return None

@@ -153,6 +153,7 @@ class AIDataSourceCatalogEntry(Model):
     description = Column(Text, nullable=False, default="")
     columns = Column(sa.JSON, nullable=False, default=list)
     related_names = Column(sa.JSON, nullable=False, default=list)
+    is_virtual = Column(Boolean, nullable=False, default=False)
     normalized_terms = Column(sa.JSON, nullable=False, default=list)
     detected_languages = Column(sa.JSON, nullable=False, default=list)
     inferred_topics = Column(sa.JSON, nullable=False, default=list)
@@ -160,6 +161,24 @@ class AIDataSourceCatalogEntry(Model):
     indexed_at = Column(DateTime(timezone=True), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     invalidated_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class AISemanticAssociation(Model):
+    """Administrator-approved business vocabulary for source discovery."""
+
+    __tablename__ = "ai_semantic_association"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(256), nullable=False)
+    terms = Column(sa.JSON, nullable=False, default=list)
+    source_name = Column(String(512), nullable=False)
+    database_name = Column(String(256), nullable=True)
+    schema = Column(String(256), nullable=True)
+    metric_name = Column(String(256), nullable=True)
+    dimension_mappings = Column(sa.JSON, nullable=False, default=dict)
+    priority = Column(String(32), nullable=False, default="normal")
+    is_active = Column(Boolean, nullable=False, default=True)
+    extra = Column(sa.JSON, nullable=False, default=dict)
 
 
 AI_GLOBAL_SETTINGS_DEFAULTS = {
