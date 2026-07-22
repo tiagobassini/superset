@@ -13,7 +13,7 @@ sys.modules['cx_Oracle'] = oracledb
 FEATURE_FLAGS = {
     "ENABLE_AI_INTEGRATION": os.getenv(
         "ENABLE_AI_INTEGRATION",
-        "false",
+        "true",
     ).lower()
     in {"1", "true", "yes", "on"},
 }

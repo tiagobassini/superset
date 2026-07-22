@@ -60,9 +60,12 @@ jest.mock('./hooks/useGlobalAISettings', () => ({
   }),
 }));
 jest.mock('./components/AgentsList', () => ({
-  AgentsList: ({ agents, onToggleActive }: AgentsListProps) => (
+  AgentsList: ({ agents, onSetDefault, onToggleActive }: AgentsListProps) => (
     <>
       <span>{agents[0].name}</span>
+      <button type="button" onClick={() => onSetDefault(agents[0])}>
+        Set default
+      </button>
       <button type="button" onClick={() => onToggleActive(agents[0])}>
         Toggle agent
       </button>
@@ -86,6 +89,21 @@ test('lists configured agents and updates their active state', async () => {
   await waitFor(() =>
     expect(mockUpdateAgent).toHaveBeenCalledWith('agent-1', {
       is_active: false,
+    }),
+  );
+});
+
+test('sets an agent as default', async () => {
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue({ json: { result: [] } } as never);
+  render(<AIAgentsSettings />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Set default' }));
+
+  await waitFor(() =>
+    expect(mockUpdateAgent).toHaveBeenCalledWith('agent-1', {
+      is_default: true,
     }),
   );
 });

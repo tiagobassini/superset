@@ -243,11 +243,15 @@ export const AgentModal = ({
         >
           <Input />
         </Form.Item>
-        <Form.Item name="is_default" valuePropName="checked">
-          <Switch /> {t('Default agent')}
+        <Form.Item
+          name="is_default"
+          label={t('Default agent')}
+          valuePropName="checked"
+        >
+          <Switch aria-label={t('Default agent')} />
         </Form.Item>
-        <Form.Item name="is_active" valuePropName="checked">
-          <Switch /> {t('Active')}
+        <Form.Item name="is_active" label={t('Active')} valuePropName="checked">
+          <Switch aria-label={t('Active')} />
         </Form.Item>
         <Form.Item
           name="role_ids"

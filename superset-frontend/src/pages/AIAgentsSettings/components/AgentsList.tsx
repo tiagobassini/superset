@@ -34,6 +34,7 @@ export interface AgentsListProps {
   onAdd: () => void;
   onDelete: (agent: AIAgentConfiguration) => void;
   onEdit: (agent: AIAgentConfiguration) => void;
+  onSetDefault: (agent: AIAgentConfiguration) => void;
   onToggleActive: (agent: AIAgentConfiguration) => void;
 }
 
@@ -44,6 +45,7 @@ export const AgentsList = ({
   onAdd,
   onDelete,
   onEdit,
+  onSetDefault,
   onToggleActive,
 }: AgentsListProps) => {
   const columns = useMemo<ColumnsType<AIAgentConfiguration>>(
@@ -51,6 +53,18 @@ export const AgentsList = ({
       { dataIndex: 'name', key: 'name', title: t('Name') },
       { dataIndex: 'provider', key: 'provider', title: t('Provider') },
       { dataIndex: 'model', key: 'model', title: t('Model') },
+      {
+        key: 'default',
+        render: (_value, agent) => (
+          <Switch
+            aria-label={t('Set %s as default agent', agent.name)}
+            checked={agent.is_default}
+            disabled={agent.is_default}
+            onChange={() => onSetDefault(agent)}
+          />
+        ),
+        title: t('Default'),
+      },
       {
         key: 'status',
         render: (_value, agent) => (
@@ -85,7 +99,7 @@ export const AgentsList = ({
         title: t('Actions'),
       },
     ],
-    [onDelete, onEdit, onToggleActive],
+    [onDelete, onEdit, onSetDefault, onToggleActive],
   );
 
   return (

@@ -92,6 +92,9 @@ const AIAgentsSettings = () => {
           setEditingAgent(agent);
           setIsModalOpen(true);
         }}
+        onSetDefault={agent => {
+          void updateAgent(agent.id, { is_default: true });
+        }}
         onToggleActive={agent => {
           void updateAgent(agent.id, { is_active: !agent.is_active });
         }}
