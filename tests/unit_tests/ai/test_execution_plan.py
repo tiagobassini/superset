@@ -173,6 +173,121 @@ def test_deterministic_planner_uses_requested_grouping_dimension() -> None:
     assert "dimensão compatível: `product_category`" in plan.findings
 
 
+def test_deterministic_planner_builds_sankey_with_source_and_target() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.CREATE_CHART,
+        topic="fluxo",
+        metric="quantity",
+        chart_type="sankey",
+    )
+
+    plan = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    ).build(
+        _dataset_source(
+            (
+                ("transaction_date", "DATE"),
+                ("region", "VARCHAR"),
+                ("country", "VARCHAR"),
+                ("product_category", "VARCHAR"),
+                ("quantity", "INTEGER"),
+            )
+        ),
+        intent,
+    )
+
+    form_data = json.loads(
+        ChartSpecification.from_dict(
+            plan.execution_plan.actions[0].params["chart_spec"]
+        ).to_chart_payload()["params"]
+    )
+
+    assert plan.chart_specification.viz_type == "sankey_v2"
+    assert plan.chart_specification.group_by == ("region", "country")
+    assert form_data["source"] == "region"
+    assert form_data["target"] == "country"
+    assert form_data["metric"]["label"] == "SUM(quantity)"
+
+
+def test_deterministic_planner_builds_pie_without_temporal_grouping() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.CREATE_CHART,
+        topic="vendas",
+        metric="sales",
+        dimension="product_line",
+        chart_type="pie",
+    )
+
+    plan = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    ).build(
+        DiscoveryCandidate(
+            resource_type="dataset",
+            resource_id=3,
+            name="cleaned_sales_data",
+            database_id=1,
+            database_name="Examples",
+            schema="public",
+            columns=(
+                ("order_date", "TIMESTAMP"),
+                ("product_line", "TEXT"),
+                ("sales", "DOUBLE PRECISION"),
+            ),
+            source_key="source:1:public:cleaned_sales_data",
+        ),
+        intent,
+    )
+
+    form_data = json.loads(
+        ChartSpecification.from_dict(
+            plan.execution_plan.actions[0].params["chart_spec"]
+        ).to_chart_payload()["params"]
+    )
+
+    assert plan.chart_specification.group_by == ("product_line",)
+    assert form_data["groupby"] == ["product_line"]
+    assert form_data["metric"]["label"] == "SUM(sales)"
+
+
+def test_deterministic_planner_builds_big_number_with_metric_field() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.CREATE_CHART,
+        topic="receita",
+        metric="revenue",
+        chart_type="big_number",
+    )
+
+    plan = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    ).build(
+        _dataset_source(
+            (
+                ("transaction_date", "DATE"),
+                ("region", "VARCHAR"),
+                ("revenue", "NUMERIC"),
+            )
+        ),
+        intent,
+    )
+
+    form_data = json.loads(
+        ChartSpecification.from_dict(
+            plan.execution_plan.actions[0].params["chart_spec"]
+        ).to_chart_payload()["params"]
+    )
+
+    assert plan.chart_specification.viz_type == "big_number_total"
+    assert plan.chart_specification.group_by == ()
+    assert form_data["metric"]["label"] == "SUM(revenue)"
+    assert form_data["metrics"][0]["label"] == "SUM(revenue)"
+
+
 def test_deterministic_planner_rejects_annual_chart_without_verified_time() -> None:
     registry = ToolRegistry()
     registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))

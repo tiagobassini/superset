@@ -163,6 +163,11 @@ class AnalyticsTaskPlanner:
             "this",
             "neste",
             "nesta",
+            "usar",
+            "use",
+            "using",
+            "escolher",
+            "escolha",
         }
     )
     _CONTEXT_SOURCE_HINTS = frozenset(
@@ -400,6 +405,8 @@ class AnalyticsTaskPlanner:
             and dimension == "product_category"
         ):
             source_hint = "international_sales"
+        if dimension in {"territory", "product_line"}:
+            source_hint = "cleaned_sales_data"
         if source_hint is None and chart_type == "pie":
             source_hint = "cleaned_sales_data"
         if source_hint is None and goal is AnalyticsGoal.PUBLISH_CHART:
@@ -409,6 +416,7 @@ class AnalyticsTaskPlanner:
         exact_source_hint = source_hint in {
             "birth_names",
             "cleaned_sales_data",
+            "data_hora_atual",
             "flights",
             "international_sales",
             "video_game_sales",
@@ -492,14 +500,14 @@ class AnalyticsTaskPlanner:
             return AnalyticsGoal.PUBLISH_CHART
         if chart and dashboard and publish_target:
             return AnalyticsGoal.PUBLISH_CHART
-        if dashboard and cls._dashboard_context_publication(message):
-            return AnalyticsGoal.PUBLISH_CHART
         if dashboard and create and named_ai_chart and re.search(
             r"\b(multiplos graficos|multiplos gráficos|múltiplos gráficos|"
-            r"sincronizacao|sincronização)\b",
+            r"sincronizacao|sincronização|monitoramento|tempo real)\b",
             message,
         ):
             return AnalyticsGoal.CREATE_DASHBOARD
+        if dashboard and cls._dashboard_context_publication(message):
+            return AnalyticsGoal.PUBLISH_CHART
         if dashboard and create and not chart:
             return AnalyticsGoal.CREATE_DASHBOARD
         if chart:
@@ -563,6 +571,8 @@ class AnalyticsTaskPlanner:
             return "cleaned_sales_data"
         if metric == "video_population":
             return "video_game_sales"
+        if metric == "regional_sales":
+            return "video_game_sales"
         if metric == "flights_births_year":
             return "flights"
         return None
@@ -602,6 +612,8 @@ class AnalyticsTaskPlanner:
         )
         if known_source:
             return known_source.group(1)
+        if "data_hora_atual" in message:
+            return "data_hora_atual"
         direct_source = re.search(
             r"\b(cleaned_sales_data|international_sales|video_game_sales|flights|"
             r"birth_names|wb_health_population)\b",
@@ -609,13 +621,17 @@ class AnalyticsTaskPlanner:
         )
         if direct_source:
             return direct_source.group(1)
+        if re.search(r"\bnasciment\w*\b", message) and re.search(
+            r"\bestad\w*\b", message
+        ):
+            return "birth_names"
         if re.search(r"\b(genero|gender|demograf)\w*\b", message) and re.search(
             r"\b(bebe|bebes|baby|babies|nome|nomes|name|names|demograf)\w*\b",
             message,
         ):
             return "birth_names"
         if re.search(
-            r"\b(platform|plataforma|publisher|publicadora|videogame|game|jogo)\w*\b",
+            r"\b(platform|plataforma|publisher|publicadora|videogame|videogames|game|jogo)\w*\b",
             message,
         ):
             return "video_game_sales"
@@ -627,10 +643,15 @@ class AnalyticsTaskPlanner:
         if re.search(r"\b(transacao|transacoes|transação|transações)\w*\b", message):
             return "international_sales"
         if re.search(
-            r"\b(populacao|population|saude|health|mortalidade|expectativa de vida)\b",
+            r"\b(populacao|population|saude|health|mortalidade|expectativa|vida)\b",
             message,
         ):
             return "wb_health_population"
+        if re.search(
+            r"\b(receita|revenue|faturamento|ticket|ranking|performance)\b",
+            message,
+        ) and re.search(r"\b(venda|vendas|pais|país|country|cliente)\w*\b", message):
+            return "international_sales"
         if re.search(
             r"\b(nome|nomes|bebe|bebes|baby|ranking|decada|decadas)\w*\b",
             message,
@@ -844,6 +865,12 @@ class AnalyticsTaskPlanner:
             "dashboard",
             "grafico",
             "gráfico",
+            "kpi",
+            "kpis",
+            "monitoramento",
+            "painel",
+            "real",
+            "tempo",
         }
         for value in reversed(matches):
             if value not in ignored:
@@ -958,6 +985,8 @@ class AnalyticsTaskPlanner:
             r"\b(receita|receitas|revenue|faturamento)\b", message
         ):
             return "cost"
+        if re.search(r"\b(receita|receitas|revenue|faturamento)\b", message):
+            return "revenue"
         if re.search(r"\b(populacao|population)\b", message):
             return "population"
         if re.search(r"\b(receita|revenue|faturamento)\b", message) and re.search(
@@ -966,6 +995,10 @@ class AnalyticsTaskPlanner:
             return "revenue_profit"
         if re.search(r"\beuropa\b", message) and re.search(
             r"\b(america do norte|north america)\b", message
+        ):
+            return "regional_sales"
+        if re.search(r"\b(na|eu|jp|global)\b", message) and re.search(
+            r"\b(rad(ar)?|regia(?:o|oes)|region|sales|vendas)\b", message,
         ):
             return "regional_sales"
         if re.search(r"\bnomes?\b", message) and re.search(
@@ -985,6 +1018,12 @@ class AnalyticsTaskPlanner:
 
     @classmethod
     def _dimension(cls, message: str) -> str | None:
+        if re.search(r"\b(produto|produtos|product|products)\b", message):
+            return "product_line"
+        if re.search(r"\b(product line|product_line|linha de produto)\b", message):
+            return "product_line"
+        if re.search(r"\b(territory|territorio|território)\b", message):
+            return "territory"
         for dimension, aliases in cls._DIMENSION_ALIASES:
             if any(
                 re.search(rf"\b{re.escape(alias)}\b", message) for alias in aliases

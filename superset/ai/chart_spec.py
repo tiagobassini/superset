@@ -86,9 +86,52 @@ class ChartSpecification:
         form_data = {
             "granularity_sqla": self.time_column,
             "time_grain_sqla": self.time_grain,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE",
+                    "operator": "TEMPORAL_RANGE",
+                    "subject": self.time_column,
+                }
+            ],
+            "annotation_layers": [],
+            "extra_form_data": {},
             "metrics": [metric],
             "groupby": list(self.group_by),
+            "metric": metric,
+            "row_limit": 10000,
+            "viz_type": self.viz_type,
         }
+        if self.viz_type == "pie":
+            form_data.update(
+                {
+                    "label_type": "key",
+                    "show_labels": True,
+                    "donut": False,
+                    "sort_by_metric": True,
+                }
+            )
+        elif self.viz_type == "sankey_v2":
+            if len(self.group_by) < 2:
+                raise ValueError("Sankey charts require source and target dimensions")
+            form_data.update(
+                {
+                    "source": self.group_by[0],
+                    "target": self.group_by[1],
+                    "groupby": list(self.group_by[:2]),
+                    "sort_by_metric": True,
+                }
+            )
+        elif self.viz_type == "big_number_total":
+            form_data.update(
+                {
+                    "header_font_size": 0.4,
+                    "subheader_font_size": 0.15,
+                    "time_format": "smart_date",
+                    "y_axis_format": "SMART_NUMBER",
+                }
+            )
         return {
             "datasource_id": self.datasource_id,
             "datasource_type": self.datasource_type,

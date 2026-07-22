@@ -510,6 +510,8 @@ def main() -> int:
             raise ValueError("One or more requested case IDs were not found")
         results: list[PromptResult] = []
         output = args.output.open("w", encoding="utf-8") if args.output else None
+        suite_started = datetime.now(timezone.utc)
+        suite_started_monotonic = time.monotonic()
         try:
             for case in cases:
                 result = execute_case(case, user_id, agent_id)
@@ -524,8 +526,18 @@ def main() -> int:
         finally:
             if output:
                 output.close()
-        summary = _summary(results)
-        print(json.dumps(summary, default=str), file=sys.stderr)
+        suite_ended = datetime.now(timezone.utc)
+        summary = _summary(
+            results,
+            started_at=suite_started,
+            ended_at=suite_ended,
+            duration_ms=int((time.monotonic() - suite_started_monotonic) * 1000),
+        )
+        summary_line = json.dumps(summary, default=str)
+        if args.output:
+            with args.output.open("a", encoding="utf-8") as summary_output:
+                summary_output.write(summary_line + "\n")
+        print(summary_line, file=sys.stderr)
         return 0 if summary["failed"] == 0 and summary["total"] == len(cases) else 1
 
 
@@ -554,6 +566,8 @@ def _requires_suite_source_selection(snapshot: dict[str, Any]) -> bool:
 def _suite_source_selection(snapshot: dict[str, Any], case: PromptCase) -> str | None:
     """Choose the suggested source that best matches the case oracle."""
 
+    if case.oracle.max_alternatives is not None:
+        return None
     if not _requires_suite_source_selection(snapshot):
         return None
     response = snapshot.get("response") or ""
@@ -647,13 +661,28 @@ def _result_payload(result: PromptResult) -> dict[str, Any]:
     }
 
 
-def _summary(results: list[PromptResult]) -> dict[str, Any]:
+def _summary(
+    results: list[PromptResult],
+    *,
+    started_at: datetime | None = None,
+    ended_at: datetime | None = None,
+    duration_ms: int | None = None,
+) -> dict[str, Any]:
     passed = sum(result.passed for result in results)
     latencies = [result.metrics.latency_ms for result in results]
+    started_at = started_at or datetime.now(timezone.utc)
+    ended_at = ended_at or started_at
+    if duration_ms is None:
+        duration_ms = int((ended_at - started_at).total_seconds() * 1000)
     return {
+        "record_type": "summary",
         "total": len(results),
         "passed": passed,
         "failed": len(results) - passed,
+        "duration_ms": duration_ms,
+        "duration_seconds": round(duration_ms / 1000, 3),
+        "started_at": started_at.isoformat(),
+        "ended_at": ended_at.isoformat(),
         "latency_ms": {
             "min": min(latencies, default=0),
             "max": max(latencies, default=0),

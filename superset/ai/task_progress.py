@@ -128,13 +128,30 @@ def _resource_summary(resources: list[dict[str, Any]]) -> str:
             or resource.get("id")
         )
         url = resource.get("url") or _dashboard_url(resource)
+        details = _resource_details(resource)
         if url and name:
-            lines.append(f"- [{_escape_markdown_link_text(name)}]({url})")
+            lines.append(f"- [{_escape_markdown_link_text(name)}]({url}){details}")
         elif name:
-            lines.append(f"- {name}")
+            lines.append(f"- {name}{details}")
         else:
             lines.append(f"- {resource}")
     return "\n".join(lines)
+
+
+def _resource_details(resource: dict[str, Any]) -> str:
+    """Return compact execution metadata for generated analytics resources."""
+
+    parts = []
+    group_by = resource.get("groupby")
+    if isinstance(group_by, list) and group_by:
+        parts.append(
+            "groupby: " + ", ".join(f"`{column}`" for column in group_by)
+        )
+    if metric := resource.get("metric"):
+        parts.append(f"metric: `{metric}`")
+    if time_column := resource.get("time_column"):
+        parts.append(f"time: `{time_column}`")
+    return f" ({'; '.join(parts)})" if parts else ""
 
 
 def _dashboard_url(resource: dict[str, Any]) -> str | None:

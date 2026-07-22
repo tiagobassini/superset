@@ -154,4 +154,16 @@ Remove all AI test artifacts (dashboards, charts, datasets with prefix `AI_TEST_
 
 ```bash
 docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/cleanup_ai_test_artifacts.py --execute'
+
+
+
+docker exec superset-superset-1 python scripts/ai/cleanup_ai_test_artifacts.py \
+  --include-dashboards \
+  --execute
+
+  docker exec superset-superset-1 python scripts/ai/cleanup_ai_test_artifacts.py \
+  --include-dashboards \
+  --owner-username sisadmin \
+  --execute
+
 ```

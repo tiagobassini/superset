@@ -388,6 +388,65 @@ def test_orchestrator_answers_read_only_prompt_with_explicit_source(
     assert provider.messages == []
 
 
+def test_orchestrator_answers_temporal_inventory_prompt_without_chart_creation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+
+    result = AIOrchestrator(
+        SimpleNamespace(
+            id="agent-1", provider="openai", model="test", api_key_encrypted=None
+        ),
+        ToolRegistry(),
+        SimpleNamespace(id=42),
+        StubCache(),
+    ).chat(
+        'Procure por fontes com informações de "timestamps" e construa uma timeline.',
+        [],
+        {"page": "home"},
+    )
+
+    assert "birth_names" in result.response
+    assert "ds" in result.response
+    assert "transaction_date" in result.response
+    assert "order_date" in result.response
+    assert result.pending_actions == []
+    assert result.execution_plan is None
+    assert provider.messages == []
+
+
+def test_orchestrator_answers_year_metadata_inventory_without_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+
+    result = AIOrchestrator(
+        SimpleNamespace(
+            id="agent-1", provider="openai", model="test", api_key_encrypted=None
+        ),
+        ToolRegistry(),
+        SimpleNamespace(id=42),
+        StubCache(),
+    ).chat(
+        'Verifique se existe um metadado chamado "ano" ou "year" para análises temporais.',
+        [],
+        {"page": "home"},
+    )
+
+    assert "year" in result.response
+    assert "video_game_sales" in result.response
+    assert "wb_health_population" in result.response
+    assert result.pending_actions == []
+    assert result.execution_plan is None
+    assert provider.messages == []
+
+
 def test_orchestrator_explains_when_discovery_finds_no_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

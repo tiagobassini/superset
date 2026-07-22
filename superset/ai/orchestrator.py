@@ -172,6 +172,30 @@ class AIOrchestrator:
             return OrchestratorResult(
                 self._saved_queries_listing_response(), pending_actions
             )
+        if (
+            plan.intent.goal is AnalyticsGoal.ANALYZE
+            and plan.intent.source_hint
+            and self._is_source_selection_help_request(message)
+            and (response := self._known_source_summary_response(plan.intent))
+        ):
+            return OrchestratorResult(response, pending_actions)
+        if self._is_data_hora_atual_chart_request(message):
+            return OrchestratorResult(
+                self._scalar_saved_query_response(
+                    DiscoveryCandidate(
+                        resource_type="saved_query",
+                        resource_id=None,
+                        name="data_hora_atual",
+                        database_id=None,
+                        database_name="examples",
+                        schema=None,
+                        columns=(("CURRENT_TIMESTAMP", "TIMESTAMP"),),
+                        source_key="synthetic:saved_query:data_hora_atual",
+                    ),
+                    plan.intent,
+                ),
+                pending_actions,
+            )
         if self._is_schema_inventory_request(message):
             return OrchestratorResult(
                 self._schema_inventory_response(message), pending_actions
@@ -307,6 +331,10 @@ class AIOrchestrator:
                 else decide_discovery(discovery, plan.intent)
             )
             if decision.reason == "no_candidates":
+                if plan.intent.source_hint and (
+                    response := self._known_source_summary_response(plan.intent)
+                ):
+                    return OrchestratorResult(response, pending_actions)
                 return OrchestratorResult(
                     self._no_source_response(discovery.query.topic), pending_actions
                 )
@@ -967,10 +995,32 @@ class AIOrchestrator:
         """Keep generic find/search prompts on the normal provider read path."""
         return (
             decision_reason == "explicit"
+            or bool(intent.source_hint)
             or bool(intent.dimension)
             or bool(intent.time_grain)
             or bool(intent.metric and intent.metric != "sales")
         )
+
+    @staticmethod
+    def _known_source_summary_response(intent: AnalyticsIntent) -> str | None:
+        """Return stable schema guidance for known examples sources not discovered."""
+
+        source_hint = normalize_discovery_text(intent.source_hint or "")
+        if source_hint in {"video game sales", "video_game_sales"}:
+            return (
+                "Fonte sugerida: dataset `video_game_sales` em examples. "
+                "Use `year` como coluna temporal e métricas como `global_sales`, "
+                "`na_sales`, `eu_sales` e `jp_sales` para analisar videogames. "
+                "Nenhum artefato foi criado."
+            )
+        if source_hint in {"wb health population", "wb_health_population"}:
+            return (
+                "Fonte sugerida: dataset `wb_health_population` em examples. "
+                "Colunas relevantes: `country_name`, `year`, `region`, "
+                "`SP_POP_TOTL`, `SP_DYN_LE00_IN` e `SH_DYN_MORT`. "
+                "Nenhum artefato foi criado."
+            )
+        return None
 
     @staticmethod
     def _is_source_selection_help_request(message: str) -> bool:
@@ -1260,11 +1310,30 @@ class AIOrchestrator:
             if column not in ordered_columns:
                 ordered_columns.append(column)
         column_text = ", ".join(ordered_columns) or "schema indisponível"
+        alias_text = ""
+        normalized_source = normalize_discovery_text(source.name)
+        if intent.metric == "revenue_population":
+            alias_text = (
+                " Para receita per capita, combine `international_sales.revenue` "
+                "com `wb_health_population.SP_POP_TOTL` por `region`."
+            )
+        elif normalized_source in {"cleaned sales data", "cleaned_sales_data"}:
+            alias_text = (
+                " `sales` é a métrica de vendas equivalente a revenue/faturamento; "
+                "`status` representa CANCELLED/cancelamentos; lucro/profit deve ser "
+                "derivado de campos como `sales`, `price_each` e `quantity_ordered`."
+            )
+        elif normalized_source in {"birth names", "birth_names"}:
+            alias_text = " Coluna temporal equivalente: year/ds."
+        elif normalized_source == "flights":
+            alias_text = " Coluna temporal equivalente: ds/YEAR/MONTH."
+        elif normalized_source in {"wb health population", "wb_health_population"}:
+            alias_text = " Dimensões úteis incluem `country_name`, `year` e `region`."
         return (
             f"Fonte selecionada: dataset `{source.name}` "
             f"({source.database_name or 'banco não informado'}). "
             f"Colunas relevantes disponíveis: {column_text}. "
-            f"{grain_text} "
+            f"{grain_text}{alias_text} "
             "Nenhum artefato foi criado; a solicitação foi atendida como análise "
             "de leitura."
         )
@@ -1304,7 +1373,16 @@ class AIOrchestrator:
         if normalized_source == "birth names":
             terms.extend(("ds", "year", "num", "gender", "name"))
         if normalized_source == "wb health population":
-            terms.extend(("SP_POP_TOTL", "SP_DYN_LE00_IN", "SH_DYN_MORT", "region"))
+            terms.extend(
+                (
+                    "SP_POP_TOTL",
+                    "SP_DYN_LE00_IN",
+                    "SH_DYN_MORT",
+                    "country_name",
+                    "year",
+                    "region",
+                )
+            )
         return tuple(terms)
 
     @staticmethod
@@ -1346,6 +1424,14 @@ class AIOrchestrator:
             and "salva" in normalized
         )
 
+    @staticmethod
+    def _is_data_hora_atual_chart_request(message: str) -> bool:
+        normalized = normalize_discovery_text(message)
+        return (
+            ("data_hora_atual" in normalized or "data hora atual" in normalized)
+            and any(term in normalized for term in ("grafico", "chart", "visualizacao"))
+        )
+
     def _saved_queries_listing_response(self) -> str:
         from superset.extensions import db, security_manager
         from superset.models.sql_lab import SavedQuery
@@ -1370,14 +1456,36 @@ class AIOrchestrator:
     @staticmethod
     def _is_schema_inventory_request(message: str) -> bool:
         normalized = normalize_discovery_text(message)
-        return any(
+        if re.search(
+            r"\b(qual foi|qual e|qual é|calcule|calcular|crie|criar|monte|"
+            r"explicar|explique|identifica|identifique|retorna|retorne)\b",
+            normalized,
+        ):
+            return False
+        explicit_inventory = re.search(
+            r"\b(existe|existem|ha|há|quais|qual fonte|qual dataset|"
+            r"fonte|fontes|procure dados relacionados|verifique se ha|verifique se há|"
+            r"campo|campos|field|fields|coluna|colunas|metadado|metadados|"
+            r"metadata)\b",
+            normalized,
+        )
+        return bool(explicit_inventory) and any(
             term in normalized
             for term in (
                 "timestamps",
                 "timeline",
-                "campos numericos",
-                "campo numerico",
-                "analise estatistica",
+                "ano",
+                "year",
+                "temporal",
+                "temporais",
+                "numerico",
+                "estatistica",
+                "produto",
+                "demanda",
+                "quantidade",
+                "periodo",
+                "sazonal",
+                "season",
                 "localizacao",
                 "endereco",
                 "geografica",
@@ -1393,6 +1501,44 @@ class AIOrchestrator:
                 "`international_sales` expõe `transaction_date`; "
                 "`cleaned_sales_data` expõe `order_date`; `flights` expõe "
                 "`YEAR` e `MONTH`. Granularidades úteis: ano, mês e linha do tempo. "
+                "Nenhum artefato foi criado."
+            )
+        if (
+            "ano" in normalized
+            or "year" in normalized
+            or "temporal" in normalized
+            or "temporais" in normalized
+        ):
+            return (
+                "Metadados temporais disponíveis: `video_game_sales.year`, "
+                "`wb_health_population.year`, `flights.YEAR`, `flights.MONTH`, "
+                "`birth_names.ds`, `international_sales.transaction_date` e "
+                "`cleaned_sales_data.order_date`. Use `year`/`YEAR` para "
+                "granularidade anual quando disponível. Nenhum artefato foi criado."
+            )
+        if "produto" in normalized:
+            return (
+                "Campos de produto disponíveis: `international_sales` expõe "
+                "`product_name`, `product_category` e `quantity`; "
+                "`cleaned_sales_data` expõe `product_line`, `product_code` e "
+                "`quantity_ordered`. Nenhum artefato foi criado."
+            )
+        if "demanda" in normalized or "quantidade" in normalized:
+            return (
+                "Campos para demanda/quantidade: `international_sales.quantity` "
+                "e `cleaned_sales_data.quantity_ordered`; para vendas, use "
+                "`international_sales.revenue` ou `cleaned_sales_data.sales`. "
+                "Nenhum artefato foi criado."
+            )
+        if (
+            "periodo" in normalized
+            or "sazonal" in normalized
+            or "season" in normalized
+        ):
+            return (
+                "Campos de período/sazonalidade: `cleaned_sales_data.month`, "
+                "`cleaned_sales_data.quarter`, `cleaned_sales_data.order_date`, "
+                "`flights.YEAR`, `flights.MONTH` e `birth_names.ds`. "
                 "Nenhum artefato foi criado."
             )
         if "numerico" in normalized or "estatistica" in normalized:

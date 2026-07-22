@@ -81,6 +81,27 @@ def test_planner_extracts_source_hint_from_leading_no_dataset_name() -> None:
     assert plan.intent.dimension == "product_category"
 
 
+def test_planner_prefers_revenue_metric_for_big_number_revenue_prompt() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Crie um gráfico de número AI_TEST_P225 (big number/KPI) mostrando "
+        "receita total e adicione ao CBMES."
+    )
+
+    assert plan.intent.chart_type == "big_number"
+    assert plan.intent.metric == "revenue"
+
+
+def test_planner_maps_product_prompt_to_product_line_dimension() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Crie um gráfico de pizza AI_TEST_P204 de participação de vendas por "
+        "produto e adicione ao CBMES."
+    )
+
+    assert plan.intent.chart_type == "pie"
+    assert plan.intent.metric == "sales"
+    assert plan.intent.dimension == "product_line"
+
+
 def test_planner_treats_chart_in_current_dashboard_as_chart_request() -> None:
     plan = AnalyticsTaskPlanner().plan(
         "Neste dashboard, crie um gráfico AI_TEST_P51 de receita anual usando "
@@ -97,6 +118,15 @@ def test_planner_extracts_topic_after_analysis_preposition() -> None:
 
     assert plan.intent.topic == "vendas"
     assert plan.intent.dimension == "country"
+
+
+def test_planner_does_not_extract_source_hint_from_dataset_use_question() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Quero analisar vendas, mas não sei qual dataset usar."
+    )
+
+    assert plan.intent.topic == "vendas"
+    assert plan.intent.source_hint is None
 
 
 def test_planner_removes_stopwords_instead_of_using_them_as_topic() -> None:

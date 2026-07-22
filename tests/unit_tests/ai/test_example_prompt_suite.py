@@ -16,6 +16,7 @@
 # under the License.
 """Tests for the Examples prompt suite runner's deterministic oracles."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 from scripts.ai.run_example_prompt_suite import (
@@ -23,9 +24,12 @@ from scripts.ai.run_example_prompt_suite import (
     evaluate_result,
     load_cases,
     PromptCase,
+    PromptMetrics,
+    PromptResult,
     _context_for_case,
     _requires_suite_source_selection,
     _suite_source_selection,
+    _summary,
 )
 
 
@@ -236,6 +240,37 @@ def test_runner_selects_suggested_source_that_matches_oracle_terms() -> None:
     assert _suite_source_selection(snapshot, case) == "2"
 
 
+def test_runner_keeps_source_alternatives_when_case_expects_shortlist() -> None:
+    case = PromptCase(
+        id="P07",
+        prompt="Quero analisar vendas, mas não sei qual dataset usar.",
+        expected=(
+            "Executa descoberta e retorna até três alternativas com metadados; "
+            "não pede “qual tabela?”."
+        ),
+        confirm=False,
+        oracle=build_oracle(
+            "P07",
+            "Quero analisar vendas, mas não sei qual dataset usar.",
+            "Executa descoberta e retorna até três alternativas com metadados; "
+            "não pede “qual tabela?”.",
+            False,
+        ),
+    )
+    snapshot = {
+        "status": "awaiting_user_input",
+        "response": (
+            "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n"
+            "1. Dataset `cleaned_sales_data` — banco examples; colunas: sales.\n"
+            "2. Dataset `international_sales` — banco examples; colunas: revenue.\n"
+            "Qual fonte deseja utilizar? Responda com o número, nome exato ou "
+            "tipo e ID?"
+        ),
+    }
+
+    assert _suite_source_selection(snapshot, case) is None
+
+
 def test_runner_does_not_select_source_for_generic_clarification() -> None:
     snapshot = {
         "status": "awaiting_user_input",
@@ -243,3 +278,30 @@ def test_runner_does_not_select_source_for_generic_clarification() -> None:
     }
 
     assert not _requires_suite_source_selection(snapshot)
+
+
+def test_summary_reports_suite_duration() -> None:
+    started_at = datetime(2026, 7, 22, 17, 0, tzinfo=timezone.utc)
+    ended_at = datetime(2026, 7, 22, 17, 0, 12, 345000, tzinfo=timezone.utc)
+
+    summary = _summary(
+        [
+            PromptResult(
+                id="P01",
+                prompt="prompt",
+                status="completed",
+                passed=True,
+                failures=[],
+                metrics=PromptMetrics(latency_ms=1200),
+                confirmation="not_requested",
+            )
+        ],
+        started_at=started_at,
+        ended_at=ended_at,
+    )
+
+    assert summary["record_type"] == "summary"
+    assert summary["duration_ms"] == 12345
+    assert summary["duration_seconds"] == 12.345
+    assert summary["started_at"] == "2026-07-22T17:00:00+00:00"
+    assert summary["ended_at"] == "2026-07-22T17:00:12.345000+00:00"

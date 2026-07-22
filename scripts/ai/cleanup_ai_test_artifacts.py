@@ -48,6 +48,27 @@ def matches_prefix(value: str | None, prefix: str) -> bool:
     return bool(value) and value.casefold().startswith(prefix.casefold())
 
 
+def user_matches(user: Any, usernames: set[str]) -> bool:
+    """Return whether a user object matches one of the target usernames."""
+
+    return (
+        str(getattr(user, "username", "")).casefold()
+        in {username.casefold() for username in usernames}
+    )
+
+
+def is_owned_by(obj: Any, usernames: set[str]) -> bool:
+    """Return whether a Superset object belongs to a matching user."""
+
+    owners = getattr(obj, "owners", None) or []
+    if any(user_matches(owner, usernames) for owner in owners):
+        return True
+    return any(
+        user_matches(getattr(obj, attr, None), usernames)
+        for attr in ("created_by", "changed_by")
+    )
+
+
 def object_label(obj: Any, name: str | None) -> str:
     """Build a compact label for CLI output."""
 
@@ -71,6 +92,7 @@ def collect_summary(
     *,
     prefix: str,
     include_dashboards: bool,
+    owner_usernames: set[str],
     force_datasets: bool,
 ) -> tuple[CleanupSummary, dict[str, list[Any]]]:
     """Find matching artifacts and return printable labels plus ORM objects."""
@@ -85,6 +107,7 @@ def collect_summary(
         chart
         for chart in db.session.query(Slice).all()
         if matches_prefix(chart.slice_name, prefix)
+        or (owner_usernames and is_owned_by(chart, owner_usernames))
     ]
     chart_ids = {chart.id for chart in charts}
     remaining_dataset_refs = dataset_chart_refs(db.session.query(Slice).all(), chart_ids)
@@ -92,7 +115,10 @@ def collect_summary(
     datasets = []
     skipped_datasets = []
     for dataset in db.session.query(SqlaTable).all():
-        if not matches_prefix(dataset.table_name, prefix):
+        if not (
+            matches_prefix(dataset.table_name, prefix)
+            or (owner_usernames and is_owned_by(dataset, owner_usernames))
+        ):
             continue
         refs = remaining_dataset_refs.get(dataset.id, [])
         if refs and not force_datasets:
@@ -112,6 +138,7 @@ def collect_summary(
             for dashboard in db.session.query(Dashboard).all()
             if matches_prefix(dashboard.dashboard_title, prefix)
             or matches_prefix(dashboard.slug, prefix)
+            or (owner_usernames and is_owned_by(dashboard, owner_usernames))
         ]
 
     summary = CleanupSummary(
@@ -201,6 +228,24 @@ def parse_args() -> argparse.Namespace:
         help="Also remove dashboards whose title or slug starts with the prefix.",
     )
     parser.add_argument(
+        "--include-admin-owned",
+        action="store_true",
+        help=(
+            "Also remove charts, datasets, and selected dashboards owned by the "
+            "admin user. Dashboards are considered only with --include-dashboards."
+        ),
+    )
+    parser.add_argument(
+        "--owner-username",
+        action="append",
+        default=[],
+        help=(
+            "Also remove artifacts owned, created, or changed by this username. "
+            "Can be passed multiple times. Dashboards are considered only with "
+            "--include-dashboards."
+        ),
+    )
+    parser.add_argument(
         "--force-datasets",
         action="store_true",
         help="Remove matching datasets even when non-matching charts still use them.",
@@ -218,9 +263,13 @@ def main() -> int:
 
     app = create_app()
     with app.app_context():
+        owner_usernames = set(args.owner_username)
+        if args.include_admin_owned:
+            owner_usernames.add("admin")
         summary, artifacts = collect_summary(
             prefix=args.prefix,
             include_dashboards=args.include_dashboards,
+            owner_usernames=owner_usernames,
             force_datasets=args.force_datasets,
         )
         print(
@@ -228,6 +277,10 @@ def main() -> int:
             f"({'execute' if args.execute else 'dry run'})"
         )
         print(f"Prefix: {args.prefix}")
+        print(
+            "Owner usernames: "
+            + (", ".join(sorted(owner_usernames)) if owner_usernames else "<none>")
+        )
         print_summary(summary)
 
         if not args.execute:

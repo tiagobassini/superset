@@ -378,12 +378,14 @@ def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
             db.session.delete(existing)
             db.session.commit()
         else:
-            return {
+            result = {
                 "id": existing.id,
                 "name": existing.slice_name,
                 "url": existing.url,
                 "reused": True,
             }
+            result.update(_chart_summary_from_form_data(existing.form_data))
+            return result
     params.pop("overwrite", None)
     chart = CreateChartCommand(params).run()
     try:
@@ -397,10 +399,29 @@ def _create_chart(params: dict[str, Any]) -> dict[str, Any]:
             f"Created chart could not be queried and was removed: {ex}"
         ) from ex
     result = {"id": chart.id, "name": chart.slice_name, "url": chart.url}
+    result.update(_chart_summary_from_form_data(chart.form_data))
     if original_name and chart.slice_name != original_name:
         result["requested_name"] = original_name
         result["renamed"] = True
     return result
+
+
+def _chart_summary_from_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Expose the chart fields that help users audit generated artifacts."""
+
+    summary: dict[str, Any] = {}
+    group_by = form_data.get("groupby")
+    if isinstance(group_by, list) and group_by:
+        summary["groupby"] = [str(column) for column in group_by]
+    metric = form_data.get("metric")
+    metrics = form_data.get("metrics")
+    if metric:
+        summary["metric"] = metric
+    elif isinstance(metrics, list) and metrics:
+        summary["metric"] = metrics[0]
+    if time_column := form_data.get("granularity_sqla"):
+        summary["time_column"] = time_column
+    return summary
 
 
 def _ensure_chart_temporal_column(params: dict[str, Any]) -> None:
@@ -478,6 +499,9 @@ def _validate_created_chart(chart: Any) -> None:
     if not metrics and form_data.get("metric"):
         metrics = [form_data["metric"]]
     columns = list(form_data.get("groupby") or [])
+    for column in (form_data.get("source"), form_data.get("target")):
+        if column and column not in columns:
+            columns.append(column)
     if time_column := form_data.get("granularity_sqla"):
         if time_column not in columns:
             columns.append(time_column)

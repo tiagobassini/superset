@@ -218,12 +218,16 @@ class DeterministicAnalyticsPlanner:
 
         chart_title = intent.chart_title or self._chart_title(topic, intent)
         chart_viz_type = self._viz_type(intent)
+        chart_group_by = (group_by,) if group_by else ()
         if chart_viz_type == "echarts_timeseries_bar":
-            group_by = group_by
+            chart_group_by = (group_by,) if group_by else ()
         elif chart_viz_type == "pie":
             group_by = group_by or self._first_dimension(source.columns)
-            chart_time_column = chart_time_column
-            chart_metric = chart_metric
+            chart_group_by = (group_by,) if group_by else ()
+        elif chart_viz_type == "sankey_v2":
+            chart_group_by = self._sankey_dimensions(source.columns, group_by)
+        elif chart_viz_type == "big_number_total":
+            chart_group_by = ()
         chart_specification = ChartSpecification(
             datasource_id=int(source.resource_id) if isinstance(datasource_id, int) else 0,
             datasource_type="table",
@@ -232,7 +236,7 @@ class DeterministicAnalyticsPlanner:
             time_column=chart_time_column,
             metric=chart_metric,
             time_grain=self._chart_time_grain(chart_time_column, intent),
-            group_by=(group_by,) if group_by else (),
+            group_by=chart_group_by,
         )
         chart_spec_payload = asdict(chart_specification)
         chart_spec_payload["datasource_id"] = datasource_id
@@ -252,8 +256,10 @@ class DeterministicAnalyticsPlanner:
             f"usar `{chart_time_column}` como dimensão temporal e "
             f"`{chart_metric}` como métrica",
         ]
-        if group_by:
-            effects.append(f"agrupar por `{group_by}`")
+        if chart_group_by:
+            effects.append(
+                "agrupar por " + ", ".join(f"`{column}`" for column in chart_group_by)
+            )
         effects.extend(self._supporting_column_effects(source.columns, intent))
         if intent.goal is AnalyticsGoal.PUBLISH_CHART and intent.target_dashboard:
             dashboard_action, dashboard_effect = self._dashboard_action(
@@ -703,12 +709,64 @@ class DeterministicAnalyticsPlanner:
     @staticmethod
     def _first_dimension(columns: tuple[tuple[str, str], ...]) -> str | None:
         for name, column_type in columns:
+            normalized_name = normalize_discovery_text(name)
+            normalized_type = column_type.casefold()
+            if any(token in normalized_type for token in ("date", "time")):
+                continue
+            if normalized_name in {"year", "month", "ds"}:
+                continue
             if not any(
                 token in column_type.casefold()
                 for token in ("int", "float", "double", "decimal", "numeric")
             ):
                 return name
         return None
+
+    @staticmethod
+    def _sankey_dimensions(
+        columns: tuple[tuple[str, str], ...], preferred: str | None
+    ) -> tuple[str, str]:
+        """Pick two categorical columns for ECharts Sankey source and target."""
+
+        preferred_columns = [
+            "region",
+            "country",
+            "product_category",
+            "product_name",
+            "product_line",
+            "territory",
+            "state",
+            "genre",
+            "platform",
+            "publisher",
+        ]
+        categorical: list[str] = []
+        for term in preferred_columns:
+            matched = DeterministicAnalyticsPlanner._dimension_column(columns, (term,))
+            if matched and matched not in categorical:
+                categorical.append(matched)
+        for name, column_type in columns:
+            normalized_name = normalize_discovery_text(name)
+            normalized_type = column_type.casefold()
+            if any(token in normalized_type for token in ("date", "time")):
+                continue
+            if normalized_name in {"year", "month", "ds"}:
+                continue
+            if any(
+                token in normalized_type
+                for token in ("int", "float", "double", "decimal", "numeric")
+            ):
+                continue
+            if name not in categorical:
+                categorical.append(name)
+        if preferred and preferred in categorical:
+            categorical.remove(preferred)
+            categorical.insert(0, preferred)
+        if len(categorical) < 2:
+            raise AnalyticsPlanValidationError(
+                "A fonte precisa de duas dimensões categóricas para Sankey"
+            )
+        return categorical[0], categorical[1]
 
     @staticmethod
     def _aggregate_sql(

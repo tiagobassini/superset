@@ -1,250 +1,40 @@
 {
   "summary": {
-    "total_cases": 500,
-    "passed_count": 474,
-    "failed_count": 26,
-    "pass_rate_percent": 94.8,
-    "average_latency_ms": 3499.6
+    "total_cases": 501,
+    "passed_count": 499,
+    "failed_count": 2,
+    "pass_rate_percent": 99.6,
+    "average_latency_ms": 3927.3
   },
   "failure_breakdown": {
-    "awaiting_confirmation": 1,
-    "awaiting_user_input": 2,
-    "completed_but_failed": 23,
+    "awaiting_confirmation": 0,
+    "awaiting_user_input": 1,
+    "completed_but_failed": 1,
     "other_status": 0
   },
   "failure_root_causes": {
-    "missing_column": 20,
-    "missing_source": 4,
-    "planning_failure": 4,
-    "other_failure": 2,
-    "resource_not_created": 2
+    "other_failure": 1,
+    "missing_column": 1
   },
   "failures_detail": [
     {
-      "case_id": "P26",
-      "prompt": "Qual dataset de examples é adequado para analisar videogames por ano?",
+      "case_id": "P07",
+      "prompt": "Quero analisar vendas, mas não sei qual dataset usar.",
       "status": "awaiting_user_input",
       "passed": false,
       "failure_reasons": [
-        "missing expected source option video_game_sales",
-        "missing expected column year"
+        "too many alternatives: 18 > 3"
       ],
       "failure_categories": [
-        "missing_column",
-        "missing_source"
+        "other_failure"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 24864,
-      "response_preview": "Nenhum dataset foi encontrado na base de dados examples que se relacione diretamente com o tema dos videogames por ano. Vamos continuar procurando.\n\nP…"
+      "latency_ms": 29361,
+      "response_preview": "Aqui estão os datasets disponíveis para você analisar:\n\n1. bart_lines\n2. birth_france_by_region\n3. cleaned_sales_data\n4. international_sales\n5. flight…"
     },
     {
-      "case_id": "P40",
-      "prompt": "Qual fonte de examples tem dados de população e saúde por país?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column year",
-        "missing expected column country_name"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 34599,
-      "response_preview": "A fonte de dados no banco de exemplo que contém dados sobre população e saúde por país é o dataset wb_health_population (ID: 21). Você pode usar este…"
-    },
-    {
-      "case_id": "P48",
-      "prompt": "Crie um gráfico usando a consulta salva data_hora_atual.",
-      "status": "awaiting_confirmation",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option data_hora_atual"
-      ],
-      "failure_categories": [
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_confirmation",
-      "latency_ms": 3328,
-      "response_preview": "Plano de análise pronto:\n- Fonte: dataset `FCC 2018 Survey` (examples).\n- Leitura: validar o schema do dataset selecionado.\n- Leitura: obter um perfil…"
-    },
-    {
-      "case_id": "P112",
-      "prompt": "Crie um painel AI_TEST_P112 interativo de análise geográfica de vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan"
-      ],
-      "failure_categories": [
-        "planning_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 21,
-      "response_preview": "Campos de localização/endereço disponíveis: `cleaned_sales_data` tem `country`, `state`, `city`, `territory`, `address_line1` e `address_line2`; `inte…"
-    },
-    {
-      "case_id": "P116",
-      "prompt": "Monte um dashboard AI_TEST_P116 para monitoramento em tempo real de KPIs.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan"
-      ],
-      "failure_categories": [
-        "planning_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 123,
-      "response_preview": "Não encontrei o dashboard `tempo`.\nNão encontrei dashboards acessíveis parecidos."
-    },
-    {
-      "case_id": "P140",
-      "prompt": "Existe um field de \"descrição de produto\" ou \"product_name\" em alguma tabela?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column product_category"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 21407,
-      "response_preview": "Não foi possível encontrar a tabela relacionada ao banco de dados. Vou precisar que você liste o ID do banco de dados para continuar.\n\nPor favor, forn…"
-    },
-    {
-      "case_id": "P141",
-      "prompt": "Procure dados relacionados a \"demanda\" ou campos de \"quantidade\" para análise.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column quantity",
-        "missing expected column quantity_ordered"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 26192,
-      "response_preview": "A tabela de dados relacionada a \"demanda\" ou campos de \"quantidade\" é chamada \"cleaned_sales_data\". Vamos agora buscar o esquema dessa tabela."
-    },
-    {
-      "case_id": "P160",
-      "prompt": "Verifique se há informação de \"período\" ou \"season\" para análise sazonal.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column month"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 25008,
-      "response_preview": "Não foram encontrados datasets relacionados ao pedido original. Vamos continuar com a análise do dataset baseado no Saved Query selecionado.\n\nPara pro…"
-    },
-    {
-      "case_id": "P203",
-      "prompt": "Crie um gráfico de coluna AI_TEST_P203 de vendas por território e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column territory"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 234,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p203](/explore/?slice_id=219)\n- [cbmes](/superset/dashboard/cbmes/)"
-    },
-    {
-      "case_id": "P207",
-      "prompt": "Crie um heatmap AI_TEST_P207 de vendas por product_line e country e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column product_line"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 224,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p207](/explore/?slice_id=223)\n- [cbmes](/superset/dashboard/cbmes/)"
-    },
-    {
-      "case_id": "P211",
-      "prompt": "Crie um gráfico de radar AI_TEST_P211 comparando vendas por região (NA, EU, JP, Global) e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option video_game_sales"
-      ],
-      "failure_categories": [
-        "missing_source"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 224,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p211](/explore/?slice_id=227)\n- [cbmes](/superset/dashboard/cbmes/)"
-    },
-    {
-      "case_id": "P214",
-      "prompt": "Crie um gráfico de timeline AI_TEST_P214 de eventos/marcos de vendas ao longo dos anos e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P214",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 23,
-      "response_preview": "Fontes com colunas temporais: `birth_names` expõe `ds`; `international_sales` expõe `transaction_date`; `cleaned_sales_data` expõe `order_date`; `flig…"
-    },
-    {
-      "case_id": "P275",
-      "prompt": "Crie um gráfico de gradação AI_TEST_P275 mostrando intensidade de vendas por localização e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P275",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 25,
-      "response_preview": "Campos de localização/endereço disponíveis: `cleaned_sales_data` tem `country`, `state`, `city`, `territory`, `address_line1` e `address_line2`; `inte…"
-    },
-    {
-      "case_id": "P354",
-      "prompt": "Qual foi o padrão de vendas ao longo dos meses em 2023?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 123,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, product_line, territory, year, price_ea…"
-    },
-    {
-      "case_id": "P364",
-      "prompt": "Qual foi o ano com mais nascimentos registrados em birth_names?",
+      "case_id": "P142",
+      "prompt": "Verifique se existe um metadado chamado \"ano\" ou \"year\" para análises temporais.",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
@@ -254,177 +44,9 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 113,
-      "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: num, num_boys, num_girls, num_california, ds, gender, name, state…"
-    },
-    {
-      "case_id": "P365",
-      "prompt": "Compare as expectativas de vida entre continentes ous regiões.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column region",
-        "missing expected column SP_DYN_LE00_IN"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 32191,
-      "response_preview": "O banco de dados exemplos contém a tabela wb_health_population que parece ser relevante para este pedido. Vamos verificar os detalhes dessa tabela."
-    },
-    {
-      "case_id": "P393",
-      "prompt": "Qual é a taxa de crescimento mensal médio de vendas?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 120,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, product_line, territory, month, price_e…"
-    },
-    {
-      "case_id": "P395",
-      "prompt": "Qual mês do ano historicamente tem melhor performance de vendas?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 23178,
-      "response_preview": "O dataset \"cleaned_sales_data\" parece ser o mais relevante para essa consulta. Vamos começar por analisar os dados desse dataset.\n\nQualquer problema c…"
-    },
-    {
-      "case_id": "P401",
-      "prompt": "Qual foi o percentual de devoluções/cancelamentos em cleaned_sales_data?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column CANCELLED"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 123,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: status, quantity_ordered, sales, order_date, product_line,…"
-    },
-    {
-      "case_id": "P402",
-      "prompt": "Qual é a receita por capita de cada região usando dados de população?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 122,
-      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: region, SP_POP_TOTL, SP_DYN_LE00_IN, SH_DYN_MORT, SH_DYN…"
-    },
-    {
-      "case_id": "P404",
-      "prompt": "Qual é o ranking de performance dos 10 países por receita?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 113,
-      "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: ds, num, num_boys, num_girls, num_california, gender, name, state…"
-    },
-    {
-      "case_id": "P406",
-      "prompt": "Qual gênero de bebê foi mais frequente em cada década?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column year"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 114,
-      "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: ds, num, num_boys, num_girls, num_california, gender, name, state…"
-    },
-    {
-      "case_id": "P443",
-      "prompt": "Qual foi o maior ticket de venda e em qual país/contexto?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 21197,
-      "response_preview": "Desculpe, não foi possível encontrar a tabela de dados. Vou precisar que você me ajude a localizar a tabela correta para prosseguir com o seu pedido.…"
-    },
-    {
-      "case_id": "P456",
-      "prompt": "Qual é a média de lucro por pedido em cleaned_sales_data?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column profit"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 124,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, product_line, territory, price_each, ad…"
-    },
-    {
-      "case_id": "P461",
-      "prompt": "Qual mês tem histórico de mais atrasos em flights?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column ds"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 115,
-      "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
-    },
-    {
-      "case_id": "P468",
-      "prompt": "Qual estado tem menor população segundo dados de nascimentos?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option birth_names",
-        "missing expected column num"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "missing_source"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 124,
-      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: SP_POP_TOTL, SP_DYN_LE00_IN, SH_DYN_MORT, SH_DYN_MORT_FE…"
+      "latency_ms": 25751,
+      "response_preview": null
     }
   ],
-  "generated_at": "2026-07-22T15:55:52.308016+00:00"
+  "generated_at": "2026-07-22T17:59:00.507127+00:00"
 }
