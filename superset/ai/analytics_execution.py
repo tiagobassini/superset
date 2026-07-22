@@ -18,8 +18,9 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import asdict, dataclass
+from difflib import SequenceMatcher
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -38,6 +39,10 @@ from superset.ai.tools.registry import ToolRegistry
 
 class AnalyticsPlanValidationError(ValueError):
     """Raised when verified metadata cannot form a safe analytics plan."""
+
+
+class DashboardSelectionRequired(AnalyticsPlanValidationError):
+    """Raised when a requested dashboard needs a user selection."""
 
 
 @dataclass(frozen=True)
@@ -121,7 +126,7 @@ class DeterministicAnalyticsPlanner:
                 "COUNT(*)",
             )
             return self._finalize(
-                source, actions, effects, chart_specification, "COUNT(*)"
+                source, actions, effects, chart_specification, "COUNT(*)", intent
             )
         if intent.metric in {
             "revenue_population",
@@ -133,6 +138,7 @@ class DeterministicAnalyticsPlanner:
         } and intent.goal in {
             AnalyticsGoal.CREATE_DATASET,
             AnalyticsGoal.CREATE_CHART,
+            AnalyticsGoal.PUBLISH_CHART,
             AnalyticsGoal.CREATE_QUERY,
         }:
             return self._build_special_join_plan(source, intent)
@@ -168,7 +174,7 @@ class DeterministicAnalyticsPlanner:
                 source, label, time_column, metric
             )
             return self._finalize(
-                source, actions, effects, chart_specification, metric
+                source, actions, effects, chart_specification, metric, intent
             )
 
         dataset_action_index: int | None = None
@@ -205,7 +211,7 @@ class DeterministicAnalyticsPlanner:
                     source, dataset_name, time_column, metric
                 )
                 return self._finalize(
-                    source, actions, effects, chart_specification, metric
+                    source, actions, effects, chart_specification, metric, intent
                 )
         else:
             datasource_id = int(source.resource_id)
@@ -248,13 +254,16 @@ class DeterministicAnalyticsPlanner:
         ]
         if group_by:
             effects.append(f"agrupar por `{group_by}`")
+        effects.extend(self._supporting_column_effects(source.columns, intent))
         if intent.goal is AnalyticsGoal.PUBLISH_CHART and intent.target_dashboard:
             dashboard_action, dashboard_effect = self._dashboard_action(
                 intent.target_dashboard, chart_action_index=chart_action_index
             )
             actions.extend(dashboard_action)
             effects.extend(dashboard_effect)
-        return self._finalize(source, actions, effects, chart_specification, metric)
+        return self._finalize(
+            source, actions, effects, chart_specification, metric, intent
+        )
 
     def _build_special_join_plan(
         self, source: DiscoveryCandidate, intent: AnalyticsIntent
@@ -287,6 +296,7 @@ class DeterministicAnalyticsPlanner:
                 [f"salvar a consulta `{label}`", *effects],
                 chart_specification,
                 metric,
+                intent,
             )
         actions.append(
             PlannedAction(
@@ -317,6 +327,7 @@ class DeterministicAnalyticsPlanner:
                 [f"criar ou reutilizar o dataset `{dataset_name}`", *effects],
                 chart_specification,
                 metric,
+                intent,
             )
         chart_payload = asdict(chart_specification)
         chart_payload["datasource_id"] = {"$ref": "actions.0.id"}
@@ -327,16 +338,24 @@ class DeterministicAnalyticsPlanner:
                 {"chart_spec": chart_payload, "overwrite": True},
             )
         )
+        effects = [
+            f"criar ou reutilizar o dataset `{dataset_name}`",
+            *effects,
+            f"criar o gráfico `{chart_specification.chart_title}`",
+        ]
+        if intent.goal is AnalyticsGoal.PUBLISH_CHART and intent.target_dashboard:
+            dashboard_action, dashboard_effect = self._dashboard_action(
+                intent.target_dashboard, chart_action_index=1
+            )
+            actions.extend(dashboard_action)
+            effects.extend(dashboard_effect)
         return self._finalize(
             source,
             actions,
-            [
-                f"criar ou reutilizar o dataset `{dataset_name}`",
-                *effects,
-                f"criar o gráfico `{chart_specification.chart_title}`",
-            ],
+            effects,
             chart_specification,
             metric,
+            intent,
         )
 
     def _special_join_sql(
@@ -415,6 +434,7 @@ class DeterministicAnalyticsPlanner:
         effects: list[str],
         chart_specification: ChartSpecification,
         metric: str,
+        intent: AnalyticsIntent,
     ) -> DeterministicAnalyticsPlan:
         for action in actions:
             self._validate_action(action)
@@ -432,12 +452,18 @@ class DeterministicAnalyticsPlanner:
                 "obter um perfil agregado, sem expor linhas de dados",
             ),
             findings=(
-                f"coluna temporal verificada: `{chart_specification.time_column}`",
+                (
+                    f"coluna temporal verificada: `{chart_specification.time_column}`"
+                    if chart_specification.time_grain
+                    else f"coluna de agrupamento verificada: "
+                    f"`{chart_specification.time_column}`"
+                ),
                 f"métrica compatível: `{metric}`",
                 *(
                     f"dimensão compatível: `{dimension}`"
                     for dimension in chart_specification.group_by
                 ),
+                *self._supporting_column_findings(source.columns, intent),
             ),
             effects=tuple(effects),
             chart_specification=chart_specification,
@@ -445,15 +471,19 @@ class DeterministicAnalyticsPlanner:
 
     @staticmethod
     def _time_column(groups: dict[str, list[str]], intent: AnalyticsIntent) -> str:
-        if intent.time_grain == "year" and not groups["temporal"]:
+        if intent.time_grain in {"year", "month"} and not groups["temporal"]:
             raise AnalyticsPlanValidationError(
-                "A fonte não possui uma coluna temporal para a análise anual"
+                "A fonte não possui uma coluna temporal para a análise solicitada"
             )
         if groups["temporal"]:
             return groups["temporal"][0]
-        raise AnalyticsPlanValidationError(
-            "A fonte não possui uma coluna temporal verificável"
-        )
+        if groups["dimensions"]:
+            return groups["dimensions"][0]
+        if groups["identifiers"]:
+            return groups["identifiers"][0]
+        if groups["measures"]:
+            return groups["measures"][0]
+        raise AnalyticsPlanValidationError("A fonte não possui coluna verificável")
 
     @staticmethod
     def _metric(
@@ -607,7 +637,68 @@ class DeterministicAnalyticsPlanner:
             return "echarts_timeseries_line"
         if intent.chart_type == "table":
             return "table"
+        if intent.chart_type == "scatter":
+            return "echarts_timeseries_scatter"
+        if intent.chart_type == "sankey":
+            return "sankey_v2"
+        if intent.chart_type == "big_number":
+            return "big_number_total"
         return "echarts_timeseries_bar"
+
+    @classmethod
+    def _supporting_column_effects(
+        cls, columns: tuple[tuple[str, str], ...], intent: AnalyticsIntent
+    ) -> list[str]:
+        return [
+            f"considerar coluna auxiliar `{column}`"
+            for column in cls._supporting_columns(columns, intent)
+        ]
+
+    @classmethod
+    def _supporting_column_findings(
+        cls, columns: tuple[tuple[str, str], ...], intent: AnalyticsIntent
+    ) -> list[str]:
+        return [
+            f"coluna auxiliar verificada: `{column}`"
+            for column in cls._supporting_columns(columns, intent)
+        ]
+
+    @staticmethod
+    def _supporting_columns(
+        columns: tuple[tuple[str, str], ...], intent: AnalyticsIntent
+    ) -> tuple[str, ...]:
+        requested_terms: list[str] = []
+        if intent.metric == "revenue_profit":
+            requested_terms.extend(("revenue", "profit"))
+        if intent.metric == "cost":
+            requested_terms.extend(("cost", "revenue", "profit"))
+        if intent.metric == "population":
+            requested_terms.extend(("SP_POP_TOTL", "revenue", "sales"))
+        if intent.metric == "cancellations":
+            requested_terms.extend(("CANCELLED",))
+        if intent.metric == "distance":
+            requested_terms.extend(("DISTANCE",))
+        if intent.dimension:
+            requested_terms.extend(DIMENSION_TERM_GROUPS.get(intent.dimension, ()))
+        if intent.chart_type == "sankey":
+            requested_terms.extend(("region", "country"))
+        if intent.chart_type == "big_number":
+            requested_terms.extend(("revenue", "sales", "profit", "cost"))
+        matched: list[str] = []
+        for term in requested_terms:
+            normalized_term = normalize_discovery_text(term)
+            for name, _ in columns:
+                normalized_name = normalize_discovery_text(name)
+                if (
+                    normalized_term
+                    and (
+                        normalized_term in normalized_name
+                        or normalized_name in normalized_term
+                    )
+                    and name not in matched
+                ):
+                    matched.append(name)
+        return tuple(matched[:6])
 
     @staticmethod
     def _first_dimension(columns: tuple[tuple[str, str], ...]) -> str | None:
@@ -759,6 +850,8 @@ class DeterministicAnalyticsPlanner:
     ) -> str | None:
         if normalize_discovery_text(time_column) in {"year", "month", "period"}:
             return None
+        if intent.time_grain is None:
+            return None
         return "P1M" if intent.time_grain == "month" else "P1Y"
 
     @staticmethod
@@ -800,20 +893,17 @@ class DeterministicAnalyticsPlanner:
         actions: list[PlannedAction] = []
         effects: list[str] = []
         if dashboard_id is None:
-            create_index = chart_action_index + 1
-            actions.append(
-                PlannedAction(
-                    "create_dashboard",
-                    {
-                        "dashboard_title": dashboard_name,
-                        "slug": self._slug(dashboard_name),
-                    },
-                )
+            suggestions = self._dashboard_suggestions(dashboard_name)
+            options = "\n".join(
+                f"{index}. `{dashboard.dashboard_title}`"
+                for index, dashboard in enumerate(suggestions, start=1)
             )
-            dashboard_value: int | dict[str, str] = {
-                "$ref": f"actions.{create_index}.id"
-            }
-            effects.append(f"criar o dashboard `{dashboard_name}`")
+            message = f"Não encontrei o dashboard `{dashboard_name}`."
+            if options:
+                message += f"\nQual dashboard deseja usar?\n{options}"
+            else:
+                message += "\nNão encontrei dashboards acessíveis parecidos."
+            raise DashboardSelectionRequired(message)
         else:
             dashboard_value = dashboard_id
             effects.append(f"reutilizar o dashboard `{dashboard_name}`")
@@ -836,8 +926,14 @@ class DeterministicAnalyticsPlanner:
         normalized = self._normalize(dashboard_name)
         matches = []
         for dashboard in db.session.query(Dashboard).all():
-            title_matches = self._normalize(dashboard.dashboard_title) == normalized
-            slug_matches = self._normalize(str(dashboard.slug or "")) == normalized
+            title = self._normalize(dashboard.dashboard_title)
+            slug = self._normalize(str(dashboard.slug or ""))
+            title_matches = title == normalized or self._compact(title) == self._compact(
+                normalized
+            )
+            slug_matches = slug == normalized or self._compact(slug) == self._compact(
+                normalized
+            )
             if (
                 title_matches or slug_matches
             ) and security_manager.can_access_dashboard(dashboard):
@@ -850,6 +946,28 @@ class DeterministicAnalyticsPlanner:
             return matches[0].id
         return None
 
+    def _dashboard_suggestions(self, dashboard_name: str) -> list[Any]:
+        from superset.extensions import db, security_manager
+        from superset.models.dashboard import Dashboard
+
+        normalized = self._normalize(dashboard_name)
+        scored = []
+        for dashboard in db.session.query(Dashboard).all():
+            if not security_manager.can_access_dashboard(dashboard):
+                continue
+            names = (
+                str(dashboard.dashboard_title or ""),
+                str(dashboard.slug or ""),
+            )
+            score = max(
+                self._dashboard_similarity(normalized, self._normalize(name))
+                for name in names
+            )
+            if score >= 0.45:
+                scored.append((score, dashboard.dashboard_title.casefold(), dashboard))
+        scored.sort(key=lambda item: (-item[0], item[1]))
+        return [dashboard for _, __, dashboard in scored[:3]]
+
     @staticmethod
     def _slug(value: str) -> str:
         slug = re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
@@ -857,4 +975,16 @@ class DeterministicAnalyticsPlanner:
 
     @staticmethod
     def _normalize(value: str) -> str:
-        return " ".join(value.casefold().replace("_", " ").split())
+        return normalize_discovery_text(value)
+
+    @staticmethod
+    def _compact(value: str) -> str:
+        return re.sub(r"\s+", "", value)
+
+    @staticmethod
+    def _dashboard_similarity(requested: str, candidate: str) -> float:
+        if not requested or not candidate:
+            return 0.0
+        if requested in candidate or candidate in requested:
+            return 1.0
+        return SequenceMatcher(None, requested, candidate).ratio()

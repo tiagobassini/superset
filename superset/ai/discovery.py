@@ -106,7 +106,15 @@ MULTILINGUAL_TERM_GROUPS: tuple[frozenset[str], ...] = (
 METRIC_TERM_GROUPS: Mapping[str, tuple[str, ...]] = {
     "revenue": ("revenue", "receita", "faturamento"),
     "profit": ("profit", "lucro", "beneficio", "margin"),
-    "revenue_profit": ("revenue", "receita", "faturamento", "profit", "lucro"),
+    "revenue_profit": (
+        "revenue",
+        "receita",
+        "faturamento",
+        "profit",
+        "lucro",
+        "cost",
+        "custo",
+    ),
     "count": ("id", "number", "numero", "flight number", "flight_number"),
     "quantity_ordered": ("quantity ordered", "quantity_ordered"),
     "quantity": ("quantity", "quantidade", "quantity ordered", "quantity_ordered"),

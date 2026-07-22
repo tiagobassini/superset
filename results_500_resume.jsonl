@@ -1,29 +1,62 @@
 {
   "summary": {
     "total_cases": 500,
-    "passed_count": 300,
-    "failed_count": 200,
-    "pass_rate_percent": 60.0,
-    "average_latency_ms": 3162.6
+    "passed_count": 474,
+    "failed_count": 26,
+    "pass_rate_percent": 94.8,
+    "average_latency_ms": 3499.6
   },
   "failure_breakdown": {
-    "awaiting_confirmation": 5,
-    "awaiting_user_input": 127,
-    "completed_but_failed": 56,
-    "other_status": 12
+    "awaiting_confirmation": 1,
+    "awaiting_user_input": 2,
+    "completed_but_failed": 23,
+    "other_status": 0
   },
   "failure_root_causes": {
-    "missing_source": 10,
-    "planning_failure": 129,
-    "resource_not_created": 124,
-    "missing_column": 65,
-    "other_failure": 118
+    "missing_column": 20,
+    "missing_source": 4,
+    "planning_failure": 4,
+    "other_failure": 2,
+    "resource_not_created": 2
   },
   "failures_detail": [
     {
-      "case_id": "P46",
-      "prompt": "Liste as consultas SQL salvas que posso usar na database examples.",
+      "case_id": "P26",
+      "prompt": "Qual dataset de examples é adequado para analisar videogames por ano?",
+      "status": "awaiting_user_input",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected source option video_game_sales",
+        "missing expected column year"
+      ],
+      "failure_categories": [
+        "missing_column",
+        "missing_source"
+      ],
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 24864,
+      "response_preview": "Nenhum dataset foi encontrado na base de dados examples que se relacione diretamente com o tema dos videogames por ano. Vamos continuar procurando.\n\nP…"
+    },
+    {
+      "case_id": "P40",
+      "prompt": "Qual fonte de examples tem dados de população e saúde por país?",
       "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column year",
+        "missing expected column country_name"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 34599,
+      "response_preview": "A fonte de dados no banco de exemplo que contém dados sobre população e saúde por país é o dataset wb_health_population (ID: 21). Você pode usar este…"
+    },
+    {
+      "case_id": "P48",
+      "prompt": "Crie um gráfico usando a consulta salva data_hora_atual.",
+      "status": "awaiting_confirmation",
       "passed": false,
       "failure_reasons": [
         "missing expected source option data_hora_atual"
@@ -31,189 +64,14 @@
       "failure_categories": [
         "missing_source"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 17,
-      "response_preview": "Consultas SQL salvas acessíveis na database examples: `ai_test_p19`, `ai_test_p44`. Não expus o SQL das consultas."
-    },
-    {
-      "case_id": "P102",
-      "prompt": "Crie um dashboard AI_TEST_P102 com layout de 2 colunas para análises comparativas.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P102"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2018,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “2”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code, regi…"
-    },
-    {
-      "case_id": "P103",
-      "prompt": "Faça um dashboard AI_TEST_P103 dedicado à análise de dados de população global.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P103"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 201,
-      "response_preview": "Plano concluído com sucesso.\n- [Populacao](/explore/?slice_id=156)"
-    },
-    {
-      "case_id": "P104",
-      "prompt": "Crie um painel AI_TEST_P104 de monitoramento de vendas por região.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P104"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 123,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P105",
-      "prompt": "Monte um dashboard AI_TEST_P105 com indicadores-chave de desempenho (KPI) de videogames.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P105"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 168,
-      "response_preview": "Plano concluído com sucesso.\n- [Videogames](/explore/?slice_id=157)"
-    },
-    {
-      "case_id": "P106",
-      "prompt": "Crie um dashboard AI_TEST_P106 para análise de dados de voos.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P106"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 180,
-      "response_preview": "Plano concluído com sucesso.\n- [Voos](/explore/?slice_id=158)"
-    },
-    {
-      "case_id": "P107",
-      "prompt": "Faça um dashboard AI_TEST_P107 compartilhável para stakeholders de vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P107"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 173,
-      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=159)"
-    },
-    {
-      "case_id": "P108",
-      "prompt": "Crie um dashboard AI_TEST_P108 com guia de uso para novos usuários.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P108"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 107,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “usuarios”:\n1. Dataset `messages` — banco examples; colunas: bot_profile__updated, last_read, ts,…"
-    },
-    {
-      "case_id": "P109",
-      "prompt": "Montue um dashboard AI_TEST_P109 que integre dados de múltiplas fontes de vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P109"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 179,
-      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=159)"
-    },
-    {
-      "case_id": "P110",
-      "prompt": "Crie um dashboard AI_TEST_P110 com tema escuro otimizado para apresentações.",
-      "status": "awaiting_confirmation",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan"
-      ],
-      "failure_categories": [
-        "planning_failure"
-      ],
       "terminal_state": "awaiting_confirmation",
-      "latency_ms": 39978,
-      "response_preview": null
-    },
-    {
-      "case_id": "P111",
-      "prompt": "Faça um dashboard AI_TEST_P111 para comparação de tendências anuais.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P111"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1685,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “tendencias”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
+      "latency_ms": 3328,
+      "response_preview": "Plano de análise pronto:\n- Fonte: dataset `FCC 2018 Survey` (examples).\n- Leitura: validar o schema do dataset selecionado.\n- Leitura: obter um perfil…"
     },
     {
       "case_id": "P112",
       "prompt": "Crie um painel AI_TEST_P112 interativo de análise geográfica de vendas.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P112"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1371,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “geografica”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales, g…"
-    },
-    {
-      "case_id": "P113",
-      "prompt": "Crie um dashboard AI_TEST_P113 com filtros globais para análise por período.",
-      "status": "awaiting_confirmation",
+      "status": "completed",
       "passed": false,
       "failure_reasons": [
         "expected one confirmed execution plan"
@@ -221,111 +79,13 @@
       "failure_categories": [
         "planning_failure"
       ],
-      "terminal_state": "awaiting_confirmation",
-      "latency_ms": 15348,
-      "response_preview": null
-    },
-    {
-      "case_id": "P114",
-      "prompt": "Faça um dashboard AI_TEST_P114 focado em rentabilidade e margem de lucro.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P114"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 106,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
-    },
-    {
-      "case_id": "P115",
-      "prompt": "Crie um dashboard AI_TEST_P115 com exportação de dados para relatórios.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan"
-      ],
-      "failure_categories": [
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 12878,
-      "response_preview": "Para criar um dashboard com exportação de dados para relatórios, precisamos primeiro selecionar uma base de dados. A base de dados 'examples' foi enco…"
+      "terminal_state": "completed",
+      "latency_ms": 21,
+      "response_preview": "Campos de localização/endereço disponíveis: `cleaned_sales_data` tem `country`, `state`, `city`, `territory`, `address_line1` e `address_line2`; `inte…"
     },
     {
       "case_id": "P116",
       "prompt": "Monte um dashboard AI_TEST_P116 para monitoramento em tempo real de KPIs.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P116"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2248,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “kpis”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
-    },
-    {
-      "case_id": "P117",
-      "prompt": "Crie um painel AI_TEST_P117 separado por categorias de produtos.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P117"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 148,
-      "response_preview": "Plano concluído com sucesso.\n- [Produtos](/explore/?slice_id=160)"
-    },
-    {
-      "case_id": "P118",
-      "prompt": "Faça um dashboard AI_TEST_P118 para análise comparativa entre regiões.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P118"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1475,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “comparativa”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P119",
-      "prompt": "Crie um dashboard AI_TEST_P119 com análise de sazonalidade de vendas.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P119"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1533,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sazonalidade”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales,…"
-    },
-    {
-      "case_id": "P120",
-      "prompt": "Crie um painel AI_TEST_P120 dedicado à análise de dados demográficos.",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
@@ -335,2515 +95,73 @@
         "planning_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 27305,
-      "response_preview": "Para criar um dataset, precisamos fornecer o nome da tabela. Por favor, forneça o nome da tabela que você deseja usar para este painel AI_TEST_P120 de…"
+      "latency_ms": 123,
+      "response_preview": "Não encontrei o dashboard `tempo`.\nNão encontrei dashboards acessíveis parecidos."
     },
     {
-      "case_id": "P121",
-      "prompt": "Faça um dashboard AI_TEST_P121 com comparação de performance entre produtos.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P121"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1435,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P122",
-      "prompt": "Crie um dashboard AI_TEST_P122 com alertas visuais para anomalias de vendas.",
+      "case_id": "P140",
+      "prompt": "Existe um field de \"descrição de produto\" ou \"product_name\" em alguma tabela?",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected resource AI_TEST_P122"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 175,
-      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=161)"
-    },
-    {
-      "case_id": "P123",
-      "prompt": "Monte um painel AI_TEST_P123 para análise de satisfação de clientes.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P123"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1668,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “satisfacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P124",
-      "prompt": "Crie um dashboard AI_TEST_P124 com histórico de dados para auditoria.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P124"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 43017,
-      "response_preview": "Para criar um dashboard com histórico de dados para auditoria, precisamos primeiro identificar uma tabela que possa ser usada como fonte de dados. Vou…"
-    },
-    {
-      "case_id": "P125",
-      "prompt": "Faça um dashboard AI_TEST_P125 para análise de custos versus receitas.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P125"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 100,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “custos”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P126",
-      "prompt": "Crie um painel AI_TEST_P126 com drill-down para análises granulares.",
-      "status": "awaiting_confirmation",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan"
-      ],
-      "failure_categories": [
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_confirmation",
-      "latency_ms": 16288,
-      "response_preview": null
-    },
-    {
-      "case_id": "P127",
-      "prompt": "Crie um dashboard AI_TEST_P127 para gestão de dados de saúde populacional.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected resource AI_TEST_P127"
-      ],
-      "failure_categories": [
-        "resource_not_created"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 183,
-      "response_preview": "Plano concluído com sucesso.\n- [Saude](/explore/?slice_id=162)"
-    },
-    {
-      "case_id": "P128",
-      "prompt": "Faça um dashboard AI_TEST_P128 com sincronização entre múltiplos gráficos.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan"
-      ],
-      "failure_categories": [
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 19728,
-      "response_preview": "Para criar um dashboard chamado AI_TEST_P128 com sincronização entre múltiplos gráficos, precisamos primeiro definir quais tabelas e dados você gostar…"
-    },
-    {
-      "case_id": "P129",
-      "prompt": "Crie um painel AI_TEST_P129 para análise de distribuição de vendas por país.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P129"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1663,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “distribuicao”:\n1. Dataset `ai_test_p81` — banco examples; colunas: country, sales, revenue; motiv…"
-    },
-    {
-      "case_id": "P130",
-      "prompt": "Crie um dashboard AI_TEST_P130 com histórico de modificações e versioning.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P130"
-      ],
-      "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1413,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “modificacoes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
-    },
-    {
-      "case_id": "P135",
-      "prompt": "Procure por fontes com informações de \"timestamps\" e construa uma timeline.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column transaction_date",
-        "missing expected column order_date",
-        "missing expected column ds"
+        "missing expected column product_category"
       ],
       "failure_categories": [
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 8660,
-      "response_preview": "Nenhum dataset encontrado com a palavra-chave \"timestamps\". Tente usar um termo mais específico ou diferente."
+      "latency_ms": 21407,
+      "response_preview": "Não foi possível encontrar a tabela relacionada ao banco de dados. Vou precisar que você liste o ID do banco de dados para continuar.\n\nPor favor, forn…"
     },
     {
-      "case_id": "P136",
-      "prompt": "Existe na database um campo de \"status\" que eu possa usar para filtrar pedidos?",
-      "status": "awaiting_user_input",
+      "case_id": "P141",
+      "prompt": "Procure dados relacionados a \"demanda\" ou campos de \"quantidade\" para análise.",
+      "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected source option cleaned_sales_data"
-      ],
-      "failure_categories": [
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 3372,
-      "response_preview": "Para ajudá-lo com isso, preciso saber qual é a base de dados e o nome da tabela em questão. Você pode me fornecer essas informações?"
-    },
-    {
-      "case_id": "P145",
-      "prompt": "Existe informação de \"gênero\" ou \"gender\" em alguma fonte para análise demográfica?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option birth_names",
-        "missing expected column gender"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1479,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “demografica”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales,…"
-    },
-    {
-      "case_id": "P146",
-      "prompt": "Verifique se há campos numéricos que possam ser usados para análise estatística.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column DISTANCE",
-        "missing expected column num"
+        "missing expected column quantity",
+        "missing expected column quantity_ordered"
       ],
       "failure_categories": [
         "missing_column"
       ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1901,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “estatistica”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
+      "terminal_state": "completed",
+      "latency_ms": 26192,
+      "response_preview": "A tabela de dados relacionada a \"demanda\" ou campos de \"quantidade\" é chamada \"cleaned_sales_data\". Vamos agora buscar o esquema dessa tabela."
     },
     {
-      "case_id": "P149",
-      "prompt": "Existe dado de \"localização\" ou \"endereço\" em alguma tabela?",
+      "case_id": "P160",
+      "prompt": "Verifique se há informação de \"período\" ou \"season\" para análise sazonal.",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected column region",
-        "missing expected column country",
+        "missing expected column month"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 25008,
+      "response_preview": "Não foram encontrados datasets relacionados ao pedido original. Vamos continuar com a análise do dataset baseado no Saved Query selecionado.\n\nPara pro…"
+    },
+    {
+      "case_id": "P203",
+      "prompt": "Crie um gráfico de coluna AI_TEST_P203 de vendas por território e adicione ao CBMES.",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
         "missing expected column territory"
       ],
       "failure_categories": [
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 12622,
-      "response_preview": "Para verificar se há uma tabela chamada \"localização\" ou \"endereço\" em algum banco de dados, precisamos saber qual banco de dados você está interessad…"
+      "latency_ms": 234,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p203](/explore/?slice_id=219)\n- [cbmes](/superset/dashboard/cbmes/)"
     },
     {
-      "case_id": "P161",
-      "prompt": "Procure por campos relacionados a \"endereço\" ou \"localização geografica\" nas tabelas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column country"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 42623,
-      "response_preview": "A tabela long_lat contém as seguintes colunas:\n\n- LON: FLOAT\n- LAT: FLOAT\n- NUMBER: TEXT\n- STREET: TEXT\n- UNIT: TEXT\n- CITY: TEXT\n- DISTRICT: TEXT\n- R…"
-    },
-    {
-      "case_id": "P201",
-      "prompt": "Crie um gráfico de linha AI_TEST_P201 de receita ao longo do tempo e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column transaction_date",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P201",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 114,
-      "response_preview": null
-    },
-    {
-      "case_id": "P202",
-      "prompt": "Crie um gráfico de área AI_TEST_P202 de lucro acumulado e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P202",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 117,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
-    },
-    {
-      "case_id": "P205",
-      "prompt": "Crie um gráfico de donut AI_TEST_P205 de distribuição de receita por região e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P205",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 112,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
-    },
-    {
-      "case_id": "P206",
-      "prompt": "Crie um gráfico de dispersão AI_TEST_P206 comparando price vs volume e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P206",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1587,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “price”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
-    },
-    {
-      "case_id": "P209",
-      "prompt": "Crie um gráfico de barras horizontais AI_TEST_P209 com top 10 países por receita e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column country",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P209",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 107,
-      "response_preview": null
-    },
-    {
-      "case_id": "P211",
-      "prompt": "Crie um gráfico de radar AI_TEST_P211 comparando vendas por região (NA, EU, JP, Global) e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P211",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 125,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P215",
-      "prompt": "Crie um waterfall AI_TEST_P215 mostrando contribuição de receita incremental por região e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P215",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 111,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
-    },
-    {
-      "case_id": "P216",
-      "prompt": "Crie um gráfico de bolhas AI_TEST_P216 com três dimensões (país, receita, população) e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column country",
-        "missing expected column revenue",
-        "missing expected column SP_POP_TOTL",
-        "missing expected resource AI_TEST_P216",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 136,
-      "response_preview": null
-    },
-    {
-      "case_id": "P217",
-      "prompt": "Crie um gráfico de caixa AI_TEST_P217 (box plot) de quantidade de pedidos por país e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P217",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 114,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “quantidade”:\n1. Dataset `flights` — banco examples; colunas: YEAR, MONTH, DAY, DAY_OF_WEEK; motiv…"
-    },
-    {
-      "case_id": "P218",
-      "prompt": "Crie um gráfico de sankey AI_TEST_P218 mostrando fluxo de vendas entre regiões e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column region"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 265,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p218](/explore/?slice_id=171)\n- [cbmes](/superset/dashboard/cbmes/)"
-    },
-    {
-      "case_id": "P219",
-      "prompt": "Crie um histograma AI_TEST_P219 de distribuição de valores de receita e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected source option international_sales",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P219",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "missing_source",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 116,
-      "response_preview": null
-    },
-    {
-      "case_id": "P220",
-      "prompt": "Crie um gráfico de combinação AI_TEST_P220 área+linha de receita vs lucro por período e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P220",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 110,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “revenue_profit”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_…"
-    },
-    {
-      "case_id": "P222",
-      "prompt": "Crie um scatter plot AI_TEST_P222 com regression line de cost vs profit e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column cost",
-        "missing expected resource AI_TEST_P222",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 113,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “profit”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL…"
-    },
-    {
-      "case_id": "P224",
-      "prompt": "Crie um mapa de calor AI_TEST_P224 temporal de receita por mês e dia da semana e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column transaction_date",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P224",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 113,
-      "response_preview": null
-    },
-    {
-      "case_id": "P225",
-      "prompt": "Crie um gráfico de número AI_TEST_P225 (big number/KPI) mostrando receita total e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P225",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 110,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `long_lat` — banco examples; colunas: LON, LAT, NUMBER, STREET; motivo: medi…"
-    },
-    {
-      "case_id": "P226",
-      "prompt": "Crie um gráfico de progresso AI_TEST_P226 (progress bar) de realização de meta e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P226",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1365,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “meta”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
-    },
-    {
-      "case_id": "P230",
-      "prompt": "Crie um gráfico de anéis AI_TEST_P230 (ring chart) de distribuição de vendas por categoria e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column product_category",
-        "missing expected resource AI_TEST_P230",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 127,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P231",
-      "prompt": "Crie um gráfico de barras empilhadas AI_TEST_P231 de receita por país e região e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P231",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 120,
-      "response_preview": null
-    },
-    {
-      "case_id": "P232",
-      "prompt": "Crie um gráfico de área empilhada AI_TEST_P232 de vendas ao longo do tempo por categoria e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P232",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 136,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P233",
-      "prompt": "Crie um gráfico de linha com preenchimento AI_TEST_P233 de tendência de lucro e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P233",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 119,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
-    },
-    {
-      "case_id": "P234",
-      "prompt": "Crie um violin plot AI_TEST_P234 de distribuição de receita por categoria e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P234",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 113,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
-    },
-    {
-      "case_id": "P235",
-      "prompt": "Crie um gráfico de cobertura AI_TEST_P235 (coverage) de países atendidos sobre total e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P235",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1397,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sobre”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
-    },
-    {
-      "case_id": "P236",
-      "prompt": "Crie um dense rank AI_TEST_P236 dos top 15 produtos por receita e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P236",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 230,
-      "response_preview": null
-    },
-    {
-      "case_id": "P237",
-      "prompt": "Crie um gráfico de calendário AI_TEST_P237 com atividades de venda por data e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P237",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 121,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “venda”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region,…"
-    },
-    {
-      "case_id": "P239",
-      "prompt": "Crie um gráfico de métricas múltiplas AI_TEST_P239 comparando 3 KPIs principais e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P239",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1240,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “3”:\n1. Dataset `birth_france_by_region` — banco examples; colunas: DEPT_ID, 2003, 2004, 2005; mot…"
-    },
-    {
-      "case_id": "P241",
-      "prompt": "Crie um chord diagram AI_TEST_P241 mostrando relações entre regiões e categorias e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P241",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1944,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “relacoes”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, regi…"
-    },
-    {
-      "case_id": "P242",
-      "prompt": "Crie um network graph AI_TEST_P242 de conexões entre fornecedores e produtos e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P242",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1768,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “conexoes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
-    },
-    {
-      "case_id": "P243",
-      "prompt": "Crie um gráfico de fluxo AI_TEST_P243 (alluvial) de migração de clientes entre categorias e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P243",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 109,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “clientes”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, regi…"
-    },
-    {
-      "case_id": "P246",
-      "prompt": "Crie um PCA plot AI_TEST_P246 reduzindo dados multidimensionais e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 26295,
-      "response_preview": "Para criar um PCA plot, precisamos primeiro definir qual tabela do banco de dados será usada. Os bancos de dados disponíveis são: \n\n- AI_TEST_P246\n\nPo…"
-    },
-    {
-      "case_id": "P247",
-      "prompt": "Crie um gráfico de rosto de Chernoff AI_TEST_P247 representando múltiplas dimensões e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P247",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2089,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “multiplas”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
-    },
-    {
-      "case_id": "P248",
-      "prompt": "Crie uma forma customizada AI_TEST_P248 usando dados de receita em padrão visual especial e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P248",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 123,
-      "response_preview": null
-    },
-    {
-      "case_id": "P252",
-      "prompt": "Crie um dot plot AI_TEST_P252 elegante de ranking de regiões e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P252",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1913,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “regioes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
-    },
-    {
-      "case_id": "P254",
-      "prompt": "Crie um ridgeline AI_TEST_P254 mostrando distribuição de receita ao longo do tempo e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P254",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 111,
-      "response_preview": null
-    },
-    {
-      "case_id": "P256",
-      "prompt": "Crie um profile plot AI_TEST_P256 mostrando tendências de 3 métricas em paralelo e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P256",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1205,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “3”:\n1. Dataset `birth_france_by_region` — banco examples; colunas: DEPT_ID, 2003, 2004, 2005; mot…"
-    },
-    {
-      "case_id": "P257",
-      "prompt": "Crie um gráfico de célula AI_TEST_P257 (cell plot) de dados bimodais e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P257",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1709,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “celula”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
-    },
-    {
-      "case_id": "P258",
-      "prompt": "Crie um beeswarm AI_TEST_P258 com segmentação por categoria e adicione ao CBMES.",
-      "status": "awaiting_confirmation",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_confirmation",
-      "latency_ms": 19929,
-      "response_preview": null
-    },
-    {
-      "case_id": "P259",
-      "prompt": "Crie um gráfico de folha AI_TEST_P259 (leaf chart) com dados de região e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P259",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1946,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “folha”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
-    },
-    {
-      "case_id": "P260",
-      "prompt": "Crie um streamgraph AI_TEST_P260 de evolução de vendas por categoria ao longo do tempo e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P260",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 137,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P261",
-      "prompt": "Crie um gráfico de bolas de neve AI_TEST_P261 mostrando crescimento exponencial de um produto e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P261",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1572,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “um”:\n1. Dataset `birth_names` — banco examples; colunas: ds, gender, name, num; motivo: colunas r…"
-    },
-    {
-      "case_id": "P262",
-      "prompt": "Crie um arc diagram AI_TEST_P262 com conexões entre fornecedor e cliente e adicione ao CBMES.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 26713,
-      "response_preview": "Para criar um arc diagram chamado AI_TEST_P262 com conexões entre fornecedor e cliente, precisamos primeiro definir as tabelas que contêm esses dados.…"
-    },
-    {
-      "case_id": "P263",
-      "prompt": "Crie um espaço em branco AI_TEST_P263 (whitespace chart) enfatizando alguns dados vs ruído e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P263",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1522,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
-    },
-    {
-      "case_id": "P264",
-      "prompt": "Crie um gráfico em espiral AI_TEST_P264 mostrando sequência temporal de dados e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P264",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2451,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sequencia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
-    },
-    {
-      "case_id": "P266",
-      "prompt": "Crie um gráfico de fita AI_TEST_P266 (ribbon) mostrando mudanças de ranking ao longo do tempo e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P266",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1345,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “ranking”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
-    },
-    {
-      "case_id": "P267",
-      "prompt": "Crie um lollipop chart AI_TEST_P267 elegante de regiões por receita e adicione ao CBMES.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P267",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 112,
-      "response_preview": null
-    },
-    {
-      "case_id": "P268",
-      "prompt": "Crie um gráfico em explosão radial AI_TEST_P268 com dados de produto em padrão circular e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P268",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 106,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “produto”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sale…"
-    },
-    {
-      "case_id": "P269",
-      "prompt": "Crie um stem plot AI_TEST_P269 mostrando série temporal com stems e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P269",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1541,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “serie”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code,…"
-    },
-    {
-      "case_id": "P271",
-      "prompt": "Crie um braço em espiral AI_TEST_P271 com dados categóricos segmentados e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P271",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1378,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
-    },
-    {
-      "case_id": "P272",
-      "prompt": "Crie um gráfico de reflexão AI_TEST_P272 (mirror) comparando duas métricas simetricamente e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P272",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2006,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “duas”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
-    },
-    {
-      "case_id": "P273",
-      "prompt": "Crie um gráfico de embalagem de círculos AI_TEST_P273 (circle packing) com hierarquia de dados e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P273",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1473,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “circulos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
-    },
-    {
-      "case_id": "P274",
-      "prompt": "Crie um padrão radial AI_TEST_P274 de dados cíclicos e adicione ao CBMES.",
-      "status": "awaiting_confirmation",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_confirmation",
-      "latency_ms": 34325,
-      "response_preview": null
-    },
-    {
-      "case_id": "P276",
-      "prompt": "Crie um gráfico de corda AI_TEST_P276 mostrando relação de força entre entidades e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P276",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1425,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
-    },
-    {
-      "case_id": "P277",
-      "prompt": "Crie um gráfico polar de flores AI_TEST_P277 com dados categóricos em padrão simétrico e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P277",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1510,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “categoricos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P279",
-      "prompt": "Crie um gráfico ladeado AI_TEST_P279 (tilted) com ênfase em uma dimensão e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1818,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “ai_test_p279”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country…"
-    },
-    {
-      "case_id": "P281",
-      "prompt": "Crie um multi-gráfico AI_TEST_P281 com 4 visualizações diferentes de mesmos dados e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P281",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1429,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
-    },
-    {
-      "case_id": "P282",
-      "prompt": "Crie um gráfico em camadas AI_TEST_P282 (layered) mostrando sobreposição de tendências e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P282",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1694,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “tendencias”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P284",
-      "prompt": "Crie um gráfico de painel AI_TEST_P284 com 6 KPIs principais lado a lado e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P284",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1400,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
-    },
-    {
-      "case_id": "P285",
-      "prompt": "Crie um gráfico de vento AI_TEST_P285 (wind rose) de direções de vendas por região e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P285",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 132,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P287",
-      "prompt": "Crie um gráfico de engrenajem AI_TEST_P287 (mesh) com conexões de relacionamento e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P287",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1727,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “relacionamento”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity;…"
-    },
-    {
-      "case_id": "P288",
-      "prompt": "Crie um gráfico de crista AI_TEST_P288 (ridge) em 3D visual com dados temporais e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P288",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1669,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “temporais”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
-    },
-    {
-      "case_id": "P289",
-      "prompt": "Crie um gráfico de nós AI_TEST_P289 (node-link) mostrando hierarquia de dados e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P289",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 3324,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “hierarquia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P290",
-      "prompt": "Crie um gráfico de caverna AI_TEST_P290 (cave plot) com dados em ambos os lados do eixo e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P290",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1893,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “caverna”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
-    },
-    {
-      "case_id": "P291",
-      "prompt": "Crie um gráfico de colméia AI_TEST_P291 (hexbin) de densidade de dados em 2D e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P291",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1815,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “densidade”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
-    },
-    {
-      "case_id": "P293",
-      "prompt": "Crie um gráfico de aglomerado AI_TEST_P293 (cluster) de segmentação de clientes e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P293",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 107,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “clientes”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
-    },
-    {
-      "case_id": "P295",
-      "prompt": "Crie um gráfico de cones AI_TEST_P295 (cone chart) mostrando hierarquia invertida de vendasale adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P295",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 3013,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “hierarquia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P296",
-      "prompt": "Crie um gráfico de câmara AI_TEST_P296 (chamber) compartimentalizando dados por categoria e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P296",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1877,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “camara”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region…"
-    },
-    {
-      "case_id": "P297",
-      "prompt": "Crie um gráfico de leque AI_TEST_P297 (fan) mostrando dispersão de um ponto central e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P297",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1619,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “um”:\n1. Dataset `birth_names` — banco examples; colunas: ds, gender, name, num; motivo: colunas r…"
-    },
-    {
-      "case_id": "P298",
-      "prompt": "Crie um gráfico de labirinto AI_TEST_P298 (maze plot) com camado de dados segmentados e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P298",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1295,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “segmentados”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P299",
-      "prompt": "Crie um gráfico de prisma AI_TEST_P299 (prism) com reflexão de dados em perspectivas diferentes e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P299",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1211,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “prisma”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
-    },
-    {
-      "case_id": "P300",
-      "prompt": "Crie um gráfico final especial AI_TEST_P300 sintetizando todos os tipos testados em um dashboard unificado e adicione ao CBMES.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P300",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1391,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
-    },
-    {
-      "case_id": "P301",
-      "prompt": "Crie um gráfico de impacto AI_TEST_P301 mostrando influência de variáveis sobre vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 250,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p301](/explore/?slice_id=195)"
-    },
-    {
-      "case_id": "P302",
-      "prompt": "Crie um gráfico de dependência AI_TEST_P302 mostrando correlações entre métricas.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P302",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1858,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “correlacoes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P303",
-      "prompt": "Crie um gráfico de cenários AI_TEST_P303 comparando 3 diferentes cases de vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 252,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p303](/explore/?slice_id=196)"
-    },
-    {
-      "case_id": "P304",
-      "prompt": "Crie um gráfico de margem AI_TEST_P304 mostrando distribuição de lucro por produto.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P304",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 118,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
-    },
-    {
-      "case_id": "P305",
-      "prompt": "Crie um mapa de fluxo AI_TEST_P305 mostrando movimento de vendas entre regiões.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 245,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p305](/explore/?slice_id=197)"
-    },
-    {
-      "case_id": "P306",
-      "prompt": "Crie um gráfico de quartis AI_TEST_P306 analisando distribuição de preços por categoria.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P306",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2191,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “precos”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region…"
-    },
-    {
-      "case_id": "P307",
-      "prompt": "Crie um dashboard de KPIs AI_TEST_P307 com 8 métricas principais lado a lado.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P307",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2177,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “kpis”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
-    },
-    {
-      "case_id": "P308",
-      "prompt": "Crie um gráfico comparativo AI_TEST_P308 de performance YoY para análise interanual.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P308",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1819,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “interanual”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P309",
-      "prompt": "Crie um gráfico de contribuição AI_TEST_P309 mostrando % de cada região no total.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P309",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1710,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cada”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
-    },
-    {
-      "case_id": "P310",
-      "prompt": "Crie um gráfico de tendência AI_TEST_P310 com linha de regressão de vendas anual.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 253,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p310](/explore/?slice_id=198)"
-    },
-    {
-      "case_id": "P311",
-      "prompt": "Crie um gráfico de estratificação AI_TEST_P311 mostrando vendas por nível de cliente.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 263,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p311](/explore/?slice_id=199)"
-    },
-    {
-      "case_id": "P312",
-      "prompt": "Crie um scorecard AI_TEST_P312 com 4 métricas de desempenho e seus targets.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P312",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1336,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “desempenho”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P313",
-      "prompt": "Crie um gráfico de crescimento AI_TEST_P313 mostrando CAGR por produto.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P313",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1519,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cagr”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
-    },
-    {
-      "case_id": "P314",
-      "prompt": "Crie um gráfico de volatilidade AI_TEST_P314 mostrando variância de receita mensal.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P314",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 109,
-      "response_preview": null
-    },
-    {
-      "case_id": "P315",
-      "prompt": "Crie um gráfico de concentração AI_TEST_P315 analisando Índice de Herfindahl por região.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P315",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1907,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “herfindahl”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_…"
-    },
-    {
-      "case_id": "P316",
-      "prompt": "Crie um dashboard de pilar AI_TEST_P316 com 5 dimensões de análise de negócio.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P316",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1774,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “negocio”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
-    },
-    {
-      "case_id": "P317",
-      "prompt": "Crie um gráfico de atribuição AI_TEST_P317 mostrando crédito de vendas por canal.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 270,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p317](/explore/?slice_id=200)"
-    },
-    {
-      "case_id": "P318",
-      "prompt": "Crie um gráfico de benchmark AI_TEST_P318 comparando performance vs concorrentes.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P318",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1352,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P319",
-      "prompt": "Crie um gráfico de elasticidade AI_TEST_P319 mostrando relação preço-volume.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P319",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1760,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “relacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
-    },
-    {
-      "case_id": "P320",
-      "prompt": "Crie um painel de planejamento AI_TEST_P320 com realized vs planned.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P320",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2010,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “planejamento”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
-    },
-    {
-      "case_id": "P321",
-      "prompt": "Crie um gráfico de segmentação AI_TEST_P321 mostrando RFM (recência, frequência, monetário).",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P321",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1700,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “rfm”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: me…"
-    },
-    {
-      "case_id": "P322",
-      "prompt": "Crie um gráfico de impacto temporal AI_TEST_P322 mostrando efeito de campanhas em vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 253,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p322](/explore/?slice_id=201)"
-    },
-    {
-      "case_id": "P323",
-      "prompt": "Crie um dashboard executivo AI_TEST_P323 com resumo para C-level.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 18661,
-      "response_preview": "Não foi possível encontrar nenhuma tabela no banco de dados com o nome AI_TEST_P323. Verifique se o nome está correto e tente novamente.\n\nPara prosseg…"
-    },
-    {
-      "case_id": "P324",
-      "prompt": "Crie um gráfico de canal AI_TEST_P324 comparando desempenho de todos os canais.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P324",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1983,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “todos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
-    },
-    {
-      "case_id": "P325",
-      "prompt": "Crie um mapa de calor de performance AI_TEST_P325 por produto x região.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P325",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1811,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP…"
-    },
-    {
-      "case_id": "P326",
-      "prompt": "Crie um gráfico de ciclo de vida AI_TEST_P326 mostrando evolução de clientes.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 2289,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p326](/explore/?slice_id=202)"
-    },
-    {
-      "case_id": "P327",
-      "prompt": "Crie um painel de operações AI_TEST_P327 com métricas de eficiência.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P327",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2292,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “eficiencia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P328",
-      "prompt": "Crie um gráfico de risco AI_TEST_P328 mostrando cenários de pior/melhor caso.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P328",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1799,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “pior”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
-    },
-    {
-      "case_id": "P329",
-      "prompt": "Crie um dashboard de conformidade AI_TEST_P329 com compliance status.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P329",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2003,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “conformidade”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
-    },
-    {
-      "case_id": "P330",
-      "prompt": "Crie um gráfico de potencial AI_TEST_P330 mostrando oportunidades de growth.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P330",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1691,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “growth”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code,…"
-    },
-    {
-      "case_id": "P331",
-      "prompt": "Crie um painel de recursos humanos AI_TEST_P331 com métricas de RH.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P331",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1818,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “rh”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code, reg…"
-    },
-    {
-      "case_id": "P332",
-      "prompt": "Crie um gráfico de preferência AI_TEST_P332 mostrando produto/região preferida.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 243,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p332](/explore/?slice_id=203)"
-    },
-    {
-      "case_id": "P333",
-      "prompt": "Crie um dashboard de suprimentos AI_TEST_P333 com métricas de cadeia.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P333",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2943,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cadeia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
-    },
-    {
-      "case_id": "P334",
-      "prompt": "Crie um gráfico de anomalia AI_TEST_P334 destacando valores atípicos de vendas.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 282,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p334](/explore/?slice_id=204)"
-    },
-    {
-      "case_id": "P335",
-      "prompt": "Crie um painel de inovação AI_TEST_P335 mostrando produtos novos vs maduros.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P335",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 105,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “produtos”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
-    },
-    {
-      "case_id": "P336",
-      "prompt": "Crie um gráfico de lealdade AI_TEST_P336 analisando repeat purchase rate.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P336",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1612,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “repeat”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
-    },
-    {
-      "case_id": "P337",
-      "prompt": "Crie um dashboard de riscos AI_TEST_P337 com heat maps de exposição.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P337",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1705,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “exposicao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
-    },
-    {
-      "case_id": "P338",
-      "prompt": "Crie um gráfico de valor agora esperado AI_TEST_P338 com NPV por projeto/produto.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2930,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “ai_test_p338”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country…"
-    },
-    {
-      "case_id": "P339",
-      "prompt": "Crie um painel de sustentabilidade AI_TEST_P339 com métricas ESG.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P339",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2285,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sustentabilidade”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantit…"
-    },
-    {
-      "case_id": "P340",
-      "prompt": "Crie um gráfico de crosssell AI_TEST_P340 mostrando oportunidades de venda cruzada.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P340",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 123,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “venda”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region,…"
-    },
-    {
-      "case_id": "P341",
-      "prompt": "Crie um dashboard de retenção AI_TEST_P341 com churn analysis.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P341",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1863,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “retencao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
-    },
-    {
-      "case_id": "P342",
-      "prompt": "Crie um gráfico de score AI_TEST_P342 com ranking de clientes por value.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P342",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 107,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “clientes”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
-    },
-    {
-      "case_id": "P343",
-      "prompt": "Crie um painel de inovação digital AI_TEST_P343 com métricas tech.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P343",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1576,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “inovacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
-    },
-    {
-      "case_id": "P344",
-      "prompt": "Crie um gráfico de afinidade AI_TEST_P344 mostrando co-ocorrência de produtos.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P344",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 106,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “produtos”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
-    },
-    {
-      "case_id": "P345",
-      "prompt": "Crie um dashboard de diversidade AI_TEST_P345 com índices de mix de portfólio.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P345",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1995,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “portfolio”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
-    },
-    {
-      "case_id": "P346",
-      "prompt": "Crie um gráfico de persistência AI_TEST_P346 mostrando durabilidade de receita.",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected column revenue",
-        "missing expected resource AI_TEST_P346",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 109,
-      "response_preview": null
-    },
-    {
-      "case_id": "P347",
-      "prompt": "Crie um painel de satisfação AI_TEST_P347 com NPS e CSAT por segmento.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P347",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1528,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “satisfacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
-    },
-    {
-      "case_id": "P348",
-      "prompt": "Crie um gráfico de viabilidade AI_TEST_P348 comparando projetos por ROI vs risco.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P348",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2158,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “projetos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
-    },
-    {
-      "case_id": "P349",
-      "prompt": "Crie um dashboard integrado AI_TEST_P349 unificando perspectivas financeira e operacional.",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P349",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1643,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “perspectivas”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
-    },
-    {
-      "case_id": "P350",
-      "prompt": "Crie um gráfico de síntese AI_TEST_P350 resumindo indicador de performance geral (GPI).",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P350",
-        "missing dashboard CBMES"
-      ],
-      "failure_categories": [
-        "other_failure",
-        "planning_failure",
-        "resource_not_created"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1480,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
-    },
-    {
-      "case_id": "P352",
-      "prompt": "Quantos produtos diferentes existem em cleaned_sales_data?",
+      "case_id": "P207",
+      "prompt": "Crie um heatmap AI_TEST_P207 de vendas por product_line e country e adicione ao CBMES.",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
@@ -2853,8 +171,61 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 131,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: price_each, sales, order_line_number, quantity_ordered, or…"
+      "latency_ms": 224,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p207](/explore/?slice_id=223)\n- [cbmes](/superset/dashboard/cbmes/)"
+    },
+    {
+      "case_id": "P211",
+      "prompt": "Crie um gráfico de radar AI_TEST_P211 comparando vendas por região (NA, EU, JP, Global) e adicione ao CBMES.",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected source option video_game_sales"
+      ],
+      "failure_categories": [
+        "missing_source"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 224,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p211](/explore/?slice_id=227)\n- [cbmes](/superset/dashboard/cbmes/)"
+    },
+    {
+      "case_id": "P214",
+      "prompt": "Crie um gráfico de timeline AI_TEST_P214 de eventos/marcos de vendas ao longo dos anos e adicione ao CBMES.",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "expected one confirmed execution plan",
+        "missing expected resource AI_TEST_P214",
+        "missing dashboard CBMES"
+      ],
+      "failure_categories": [
+        "other_failure",
+        "planning_failure",
+        "resource_not_created"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 23,
+      "response_preview": "Fontes com colunas temporais: `birth_names` expõe `ds`; `international_sales` expõe `transaction_date`; `cleaned_sales_data` expõe `order_date`; `flig…"
+    },
+    {
+      "case_id": "P275",
+      "prompt": "Crie um gráfico de gradação AI_TEST_P275 mostrando intensidade de vendas por localização e adicione ao CBMES.",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "expected one confirmed execution plan",
+        "missing expected resource AI_TEST_P275",
+        "missing dashboard CBMES"
+      ],
+      "failure_categories": [
+        "other_failure",
+        "planning_failure",
+        "resource_not_created"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 25,
+      "response_preview": "Campos de localização/endereço disponíveis: `cleaned_sales_data` tem `country`, `state`, `city`, `territory`, `address_line1` e `address_line2`; `inte…"
     },
     {
       "case_id": "P354",
@@ -2868,38 +239,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 121,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, year, price_each, address_line1, addres…"
-    },
-    {
-      "case_id": "P359",
-      "prompt": "Qual produto teve pior performance em termos de profit?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column product_category"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 106,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “profit”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL…"
-    },
-    {
-      "case_id": "P360",
-      "prompt": "Calcule o ticket médio de vendas por país em international_sales.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 127,
-      "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: country, id, transaction_date, region, product_category,…"
+      "latency_ms": 123,
+      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, product_line, territory, year, price_ea…"
     },
     {
       "case_id": "P364",
@@ -2913,7 +254,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 117,
+      "latency_ms": 113,
       "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: num, num_boys, num_girls, num_california, ds, gender, name, state…"
     },
     {
@@ -2929,162 +270,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 43914,
-      "response_preview": "O banco de dados exemplos contém a tabela wb_health_population que parece ser relevante para o seu pedido. Vamos verificar os detalhes dessa tabela."
-    },
-    {
-      "case_id": "P368",
-      "prompt": "Quais são os 3 territórios com maior participação em cleaned_sales_data?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column territory"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 112,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: price_each, sales, order_line_number, quantity_ordered, or…"
-    },
-    {
-      "case_id": "P369",
-      "prompt": "Qual plataforma de videogames tem melhor média de vendas por título?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column platform"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 119,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P370",
-      "prompt": "Qual foi o mês com maior receita consolidada?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column sales"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 106,
-      "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
-    },
-    {
-      "case_id": "P374",
-      "prompt": "Qual editora de jogos vendeu mais cópias totais em video_game_sales?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column publisher"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 110,
-      "response_preview": "Fonte selecionada: dataset `video_game_sales` (examples). Colunas relevantes disponíveis: na_sales, eu_sales, global_sales, jp_sales, other_sales, yea…"
-    },
-    {
-      "case_id": "P377",
-      "prompt": "Descreva a distribuição de vendas entre as linhas de produto.",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column product_line"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 12930,
-      "response_preview": "Para analisar a distribuição de vendas por linha de produto, precisamos primeiro criar um novo dataset baseado no conjunto de dados 'cleaned_sales_dat…"
-    },
-    {
-      "case_id": "P384",
-      "prompt": "Quantas transações únicas foram registradas por país?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option international_sales",
-        "missing expected column country"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 14188,
-      "response_preview": "Para analisar quantas transações únicas foram registradas por país, precisamos primeiro identificar qual banco de dados contém essa informação. O banc…"
-    },
-    {
-      "case_id": "P386",
-      "prompt": "Qual categoria de produto tem melhor margem de lucro?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 117,
-      "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: profit, product_category, id, transaction_date, region, c…"
-    },
-    {
-      "case_id": "P388",
-      "prompt": "Qual é a receita acumulada até o final de cada trimestre?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column transaction_date"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 109,
-      "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
-    },
-    {
-      "case_id": "P390",
-      "prompt": "Quais são as top 5 combinações país + categoria por receita?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column product_category"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 115,
-      "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
-    },
-    {
-      "case_id": "P392",
-      "prompt": "Qual indicador de saúde (SP_DYN_MORT, SP_POP_TOTL, etc.) varia mais entre países?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option wb_health_population",
-        "missing expected column SP_POP_TOTL"
-      ],
-      "failure_categories": [
-        "missing_column",
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 43923,
-      "response_preview": "Para analisar quais indicadores de saúde variam mais entre países, precisamos primeiro verificar os dados disponíveis no banco de dados examples. Vou…"
+      "latency_ms": 32191,
+      "response_preview": "O banco de dados exemplos contém a tabela wb_health_population que parece ser relevante para este pedido. Vamos verificar os detalhes dessa tabela."
     },
     {
       "case_id": "P393",
@@ -3098,29 +285,13 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 123,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, month, price_each, address_line1, addre…"
-    },
-    {
-      "case_id": "P394",
-      "prompt": "Qual gênero de videogame tem melhor taxa de venda por plataforma?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column genre",
-        "missing expected column platform"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 123,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “venda”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region,…"
+      "latency_ms": 120,
+      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, product_line, territory, month, price_e…"
     },
     {
       "case_id": "P395",
       "prompt": "Qual mês do ano historicamente tem melhor performance de vendas?",
-      "status": "completed",
+      "status": "awaiting_user_input",
       "passed": false,
       "failure_reasons": [
         "missing expected column revenue"
@@ -3128,9 +299,9 @@
       "failure_categories": [
         "missing_column"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 19247,
-      "response_preview": "Não foi possível encontrar a coluna 'month' nesta base de dados. Vamos verificar se há algum problema com o nome da coluna ou se ela está em uma tabel…"
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 23178,
+      "response_preview": "O dataset \"cleaned_sales_data\" parece ser o mais relevante para essa consulta. Vamos começar por analisar os dados desse dataset.\n\nQualquer problema c…"
     },
     {
       "case_id": "P401",
@@ -3144,60 +315,12 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 1925,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: order_date, price_each, sales, address_line1, address_line…"
+      "latency_ms": 123,
+      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: status, quantity_ordered, sales, order_date, product_line,…"
     },
     {
-      "case_id": "P405",
-      "prompt": "Qual é o padrão sazonal de declínio ou crescimento de voos?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column year",
-        "missing expected column month"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 29341,
-      "response_preview": "Base de dados 'examples' contém a tabela 'flights', que parece ser relevante para análise do padrão sazonal. Vamos verificar o esquema dessa tabela."
-    },
-    {
-      "case_id": "P406",
-      "prompt": "Qual gênero de bebê foi mais frequente em cada década?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column ds",
-        "missing expected column gender"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 2484,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “decada”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales, globa…"
-    },
-    {
-      "case_id": "P409",
-      "prompt": "Qual padrão de custo vs receita define as regiões mais lucrativas?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue",
-        "missing expected column profit"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 120,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cost”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
-    },
-    {
-      "case_id": "P419",
-      "prompt": "Qual é o ROI potencial por região baseado em receita vs custo?",
+      "case_id": "P402",
+      "prompt": "Qual é a receita por capita de cada região usando dados de população?",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
@@ -3207,129 +330,53 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 115,
-      "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: cost, region, id, transaction_date, country, product_cate…"
+      "latency_ms": 122,
+      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: region, SP_POP_TOTL, SP_DYN_LE00_IN, SH_DYN_MORT, SH_DYN…"
     },
     {
-      "case_id": "P422",
-      "prompt": "Quantos usuários únicos ou compradores existem em cleaned_sales_data?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option cleaned_sales_data"
-      ],
-      "failure_categories": [
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 114,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “usuarios”:\n1. Dataset `messages` — banco examples; colunas: bot_profile__updated, last_read, ts,…"
-    },
-    {
-      "case_id": "P424",
-      "prompt": "Qual padrão de correlação existe entre `cost`, `profit` e `revenue`?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue",
-        "missing expected column profit"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 105,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cost”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
-    },
-    {
-      "case_id": "P429",
-      "prompt": "Qual foi a participação de mercado por editora de games em 2023 (se houver)?",
+      "case_id": "P404",
+      "prompt": "Qual é o ranking de performance dos 10 países por receita?",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected column publisher"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 112,
-      "response_preview": "Fonte selecionada: dataset `video_game_sales` (examples). Colunas relevantes disponíveis: year, na_sales, eu_sales, global_sales, jp_sales, other_sale…"
-    },
-    {
-      "case_id": "P434",
-      "prompt": "Qual nome de bebê foi ranking #1 em cada década de 1960 a 2020?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option birth_names"
-      ],
-      "failure_categories": [
-        "missing_source"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1948,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “1960”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
-    },
-    {
-      "case_id": "P436",
-      "prompt": "Qual país tem menores gastos de saúde per capita (SH_DYN_MORT) relativos?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column SH_DYN_MORT"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 234,
-      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: country_name, country_code, NY_GNP_PCAP_CD, SE_ADT_1524_…"
-    },
-    {
-      "case_id": "P452",
-      "prompt": "Qual foi a mortalidade infantil média por região segundo dados de população?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column SH_DYN_MORT"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 130,
-      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: SP_POP_TOTL, region, country_name, country_code, year, N…"
-    },
-    {
-      "case_id": "P453",
-      "prompt": "Qual é o impacto de distância de voo em atrasos (correlação)?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column DISTANCE"
+        "missing expected column revenue"
       ],
       "failure_categories": [
         "missing_column"
       ],
       "terminal_state": "completed",
       "latency_ms": 113,
-      "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
+      "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: ds, num, num_boys, num_girls, num_california, gender, name, state…"
     },
     {
-      "case_id": "P455",
-      "prompt": "Qual foi o mês em que video_game_sales foi maior globalmente?",
+      "case_id": "P406",
+      "prompt": "Qual gênero de bebê foi mais frequente em cada década?",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected source option video_game_sales"
+        "missing expected column year"
       ],
       "failure_categories": [
-        "missing_source"
+        "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 24574,
-      "response_preview": "Não foi possível obter o esquema deste dataset. Tente novamente mais tarde."
+      "latency_ms": 114,
+      "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: ds, num, num_boys, num_girls, num_california, gender, name, state…"
+    },
+    {
+      "case_id": "P443",
+      "prompt": "Qual foi o maior ticket de venda e em qual país/contexto?",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected column revenue"
+      ],
+      "failure_categories": [
+        "missing_column"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 21197,
+      "response_preview": "Desculpe, não foi possível encontrar a tabela de dados. Vou precisar que você me ajude a localizar a tabela correta para prosseguir com o seu pedido.…"
     },
     {
       "case_id": "P456",
@@ -3343,24 +390,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 118,
-      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: order_date, price_each, sales, address_line1, address_line…"
-    },
-    {
-      "case_id": "P460",
-      "prompt": "Qual é a performance de cada categoria em termos de ROI?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column cost",
-        "missing expected column profit"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1871,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “roi”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region, c…"
+      "latency_ms": 124,
+      "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, product_line, territory, price_each, ad…"
     },
     {
       "case_id": "P461",
@@ -3374,153 +405,16 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 114,
-      "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
-    },
-    {
-      "case_id": "P462",
-      "prompt": "Qual foi o nome de bebê que cresceu mais em popularidade entre décadas?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column num"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 1571,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “entre”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
-    },
-    {
-      "case_id": "P464",
-      "prompt": "Qual foi a maior margem de lucro unitária em uma transação de vendas?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column revenue",
-        "missing expected column cost"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 117,
-      "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: profit, id, transaction_date, region, country, product_ca…"
-    },
-    {
-      "case_id": "P465",
-      "prompt": "Qual foi o volume de vendas total por status (concluído, cancelado, etc)?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column quantity"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 120,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region…"
-    },
-    {
-      "case_id": "P473",
-      "prompt": "Qual companhia aérea cancelou menos voos em proporção?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column CANCELLED"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 113,
-      "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: AIRLINE, AIRLINE_DELAY, DAY, DAY_OF_WEEK, FLIGHT_NUMBER, SCHEDULED_DE…"
-    },
-    {
-      "case_id": "P483",
-      "prompt": "Qual foi a quantidade de transações únicas por ano?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column year"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 114,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “quantidade”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, s…"
-    },
-    {
-      "case_id": "P484",
-      "prompt": "Qual gênero de videogame representa maior % do total de vendas?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column genre"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 120,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
-    },
-    {
-      "case_id": "P491",
-      "prompt": "Qual performance de atrasos para rotas de longa distância vs curta distância?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column DISTANCE"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 120,
-      "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
-    },
-    {
-      "case_id": "P493",
-      "prompt": "Qual foi a receita média por categoria em relação à receita global média?",
-      "status": "awaiting_user_input",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column product_category"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "awaiting_user_input",
       "latency_ms": 115,
-      "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
+      "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
     },
     {
-      "case_id": "P494",
-      "prompt": "Qual mês historicamente tem menor receita (sazonalidade baixa)?",
-      "status": "completed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected column sales"
-      ],
-      "failure_categories": [
-        "missing_column"
-      ],
-      "terminal_state": "completed",
-      "latency_ms": 108,
-      "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
-    },
-    {
-      "case_id": "P496",
-      "prompt": "Qual foi a população juvenil (índice de natalidade) por estado segundo birth_names?",
+      "case_id": "P468",
+      "prompt": "Qual estado tem menor população segundo dados de nascimentos?",
       "status": "completed",
       "passed": false,
       "failure_reasons": [
         "missing expected source option birth_names",
-        "missing expected column gender",
         "missing expected column num"
       ],
       "failure_categories": [
@@ -3528,9 +422,9 @@
         "missing_source"
       ],
       "terminal_state": "completed",
-      "latency_ms": 120,
-      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: SP_POP_TOTL, country_name, country_code, region, year, N…"
+      "latency_ms": 124,
+      "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: SP_POP_TOTL, SP_DYN_LE00_IN, SH_DYN_MORT, SH_DYN_MORT_FE…"
     }
   ],
-  "generated_at": "2026-07-22T03:04:58.176585+00:00"
+  "generated_at": "2026-07-22T15:55:52.308016+00:00"
 }

@@ -238,6 +238,49 @@ def test_orchestrator_resumes_ambiguous_discovery_by_index_without_researching(
     assert cache.get(orchestrator._discovery_selection_key()) is None
 
 
+def test_orchestrator_preserves_dashboard_context_after_source_selection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidates = (
+        _discovery_candidate("international_sales", 40, 11),
+        _discovery_candidate("sales_history", 36, 12),
+    )
+    _patch_discovery(monkeypatch, candidates)
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    monkeypatch.setattr(
+        "superset.ai.analytics_execution.DeterministicAnalyticsPlanner"
+        "._find_dashboard_id",
+        lambda self, _: 9,
+    )
+    registry = _planning_registry()
+    publish_tool = StubTool(requires_confirmation=True)
+    publish_tool.name = "add_chart_to_dashboard"
+    registry.register(publish_tool)
+    cache = StubCache()
+    agent = SimpleNamespace(
+        id="agent-1", provider="openai", model="test", api_key_encrypted=None
+    )
+    orchestrator = AIOrchestrator(agent, registry, SimpleNamespace(id=42), cache)
+    context = {
+        "page": "dashboard",
+        "resource_name": "CBMES",
+        "metadata": {"dashboard_title": "CBMES"},
+    }
+
+    orchestrator.chat("Crie um gráfico AI_TEST_P309 de vendas por região.", [], context)
+    result = orchestrator.chat("1", [], context)
+
+    assert result.execution_plan is not None
+    assert [action["tool_name"] for action in result.execution_plan["actions"]] == [
+        "create_chart",
+        "add_chart_to_dashboard",
+    ]
+    assert "publicar o gráfico no dashboard `CBMES`" in result.response
+
+
 @pytest.mark.parametrize(
     ("selection", "expected_name"),
     [("international_sales", "international_sales"), ("dataset 12", "sales_history")],
@@ -365,6 +408,48 @@ def test_orchestrator_explains_when_discovery_finds_no_source(
     assert "qual é a tabela" not in result.response.casefold()
     assert result.response.endswith("?")
     assert provider.messages == []
+
+
+def test_orchestrator_builds_dashboard_plan_without_discovery_or_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = StubProvider([])
+    monkeypatch.setattr(
+        AIOrchestrator, "_build_provider", staticmethod(lambda _: provider)
+    )
+    discovery_calls = _patch_discovery(monkeypatch, ())
+    registry = ToolRegistry()
+    tool = StubTool(requires_confirmation=True)
+    tool.name = "create_dashboard"
+    registry.register(tool)
+
+    result = AIOrchestrator(
+        SimpleNamespace(
+            id="agent-1", provider="openai", model="test", api_key_encrypted=None
+        ),
+        registry,
+        SimpleNamespace(id=42),
+        StubCache(),
+    ).chat(
+        "Crie um dashboard AI_TEST_P103 dedicado à análise de dados de população global.",
+        [],
+        {"page": "home"},
+    )
+
+    assert result.execution_plan is not None
+    assert result.execution_plan["actions"] == [
+        {
+            "tool_name": "create_dashboard",
+            "params": {
+                "dashboard_title": "ai_test_p103",
+                "slug": "ai-test-p103",
+            },
+        }
+    ]
+    assert "dashboard `ai_test_p103`" in result.response
+    assert "populacao" in result.response
+    assert provider.messages == []
+    assert discovery_calls == []
 
 
 def test_default_registry_contains_all_mvp_tools() -> None:

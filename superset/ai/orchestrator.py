@@ -25,6 +25,7 @@ from uuid import uuid4
 
 from superset.ai.analytics_execution import (
     AnalyticsPlanValidationError,
+    DashboardSelectionRequired,
     DeterministicAnalyticsPlanner,
 )
 from superset.ai.crypto import decrypt_api_key
@@ -42,7 +43,7 @@ from superset.ai.discovery import (
     normalize_discovery_text,
 )
 from superset.ai.exceptions import AIActionExpiredError, AIProviderError
-from superset.ai.execution_plan import ExecutionPlanService
+from superset.ai.execution_plan import ExecutionPlanService, PlannedAction
 from superset.ai.models import AIAgent, get_ai_global_settings
 from superset.ai.planner import (
     AnalyticsGoal,
@@ -63,6 +64,7 @@ from superset.utils import json
 
 PENDING_ACTION_TTL = 600
 DISCOVERY_SELECTION_TTL = 600
+DASHBOARD_SELECTION_TTL = 600
 MAX_TOOL_ROUNDS = 8
 MAX_HISTORY_MESSAGES = 6
 MAX_HISTORY_MESSAGE_LENGTH = 1_000
@@ -170,6 +172,10 @@ class AIOrchestrator:
             return OrchestratorResult(
                 self._saved_queries_listing_response(), pending_actions
             )
+        if self._is_schema_inventory_request(message):
+            return OrchestratorResult(
+                self._schema_inventory_response(message), pending_actions
+            )
         if self._is_message_metadata_request(message):
             return OrchestratorResult(
                 self._message_metadata_response(context), pending_actions
@@ -194,12 +200,41 @@ class AIOrchestrator:
             response = self._saved_query_context_response(context)
             if response is not None:
                 return OrchestratorResult(response, pending_actions)
+        selected_dashboard = self._resolve_dashboard_selection(message)
+        if selected_dashboard is not None:
+            original_message = selected_dashboard["request"]
+            plan = planner.plan(
+                original_message,
+                prompt_language=getattr(self.agent, "response_language", "pt-BR"),
+            )
+            plan = self._apply_context_to_plan(
+                plan,
+                context,
+                planner,
+                getattr(self.agent, "response_language", "pt-BR"),
+            )
+            selected_intent = replace(
+                plan.intent,
+                goal=AnalyticsGoal.PUBLISH_CHART,
+                target_dashboard=selected_dashboard["name"],
+            )
+            plan = AnalyticsPlan(
+                selected_intent,
+                self._tools_for_plan_from_goal(plan, selected_intent),
+            )
+            message = original_message
         selected_candidate = self._resolve_discovery_selection(message)
         if selected_candidate is not None:
             original_message = selected_candidate.pop("request")
             plan = planner.plan(
                 original_message,
                 prompt_language=getattr(self.agent, "response_language", "pt-BR"),
+            )
+            plan = self._apply_context_to_plan(
+                plan,
+                context,
+                planner,
+                getattr(self.agent, "response_language", "pt-BR"),
             )
             selected_source = DiscoveryCandidate.from_dict(selected_candidate)
             if self._requires_deterministic_execution_plan(plan.intent):
@@ -221,7 +256,9 @@ class AIOrchestrator:
                         self._scalar_saved_query_response(verified_source, plan.intent),
                         pending_actions,
                     )
-                return self._build_deterministic_plan(verified_source, plan.intent)
+                return self._build_deterministic_plan(
+                    verified_source, plan.intent, original_message
+                )
             messages = [
                 messages[0],
                 *self._compact_history(history),
@@ -237,15 +274,17 @@ class AIOrchestrator:
                     ),
                 },
             ]
+        elif plan.intent.goal is AnalyticsGoal.CREATE_DASHBOARD:
+            return self._build_deterministic_dashboard_plan(plan.intent)
         elif self._requires_deterministic_execution_plan(plan.intent) and (
             contextual_source := self._contextual_source(context, plan.intent)
         ) is not None:
-            return self._build_deterministic_plan(contextual_source, plan.intent)
+            return self._build_deterministic_plan(contextual_source, plan.intent, message)
         elif self._requires_deterministic_execution_plan(plan.intent) and (
             chart_context := self._mentioned_chart_context(message, plan.intent)
         ) is not None:
             chart_source, chart_intent = chart_context
-            return self._build_deterministic_plan(chart_source, chart_intent)
+            return self._build_deterministic_plan(chart_source, chart_intent, message)
         elif plan.intent.discovery_query is not None:
             discovery_service = AnalyticsDiscoveryService(self.user)
             discovery = discovery_service.discover(
@@ -310,7 +349,9 @@ class AIOrchestrator:
                         self._scalar_saved_query_response(verified_source, plan.intent),
                         pending_actions,
                     )
-                return self._build_deterministic_plan(verified_source, plan.intent)
+                return self._build_deterministic_plan(
+                    verified_source, plan.intent, message
+                )
             if (
                 decision.selected is not None
                 and not self._requires_deterministic_execution_plan(plan.intent)
@@ -782,13 +823,19 @@ class AIOrchestrator:
         )
 
     def _build_deterministic_plan(
-        self, source: DiscoveryCandidate, intent: AnalyticsIntent
+        self,
+        source: DiscoveryCandidate,
+        intent: AnalyticsIntent,
+        original_message: str,
     ) -> OrchestratorResult:
         """Stop before writes and present a backend-validated analytics plan."""
         try:
             plan = DeterministicAnalyticsPlanner(
                 self.registry, self.user, str(self.agent.id)
             ).build(source, intent)
+        except DashboardSelectionRequired as ex:
+            self._store_dashboard_selection(str(ex), original_message)
+            return OrchestratorResult(str(ex), [])
         except AnalyticsPlanValidationError as ex:
             return OrchestratorResult(
                 "Não foi possível gerar um plano seguro com a fonte selecionada: "
@@ -808,6 +855,89 @@ class AIOrchestrator:
         payload = plan.to_dict()
         payload["id"] = persisted.id
         return OrchestratorResult(plan.to_chat_text(), [], payload)
+
+    def _build_deterministic_dashboard_plan(
+        self, intent: AnalyticsIntent
+    ) -> OrchestratorResult:
+        """Create a confirmation plan for dashboard-only requests."""
+
+        dashboard_title = (
+            intent.target_dashboard
+            or intent.output_prefix
+            or intent.chart_title
+            or intent.topic
+            or "AI dashboard"
+        )
+        action = PlannedAction(
+            "create_dashboard",
+            {
+                "dashboard_title": dashboard_title,
+                "slug": normalize_discovery_text(dashboard_title).replace(" ", "-"),
+            },
+        )
+        try:
+            persisted = ExecutionPlanService(
+                self.registry, self.user, str(self.agent.id), self.cache
+            ).create([action])
+        except ValueError as ex:
+            return OrchestratorResult(
+                "Não foi possível registrar o plano seguro de dashboard: "
+                f"{ex}.",
+                [],
+            )
+        source_notes = self._dashboard_source_notes(intent)
+        payload = {
+            "id": persisted.id,
+            "source": {
+                "type": "dashboard",
+                "name": dashboard_title,
+                "columns": source_notes,
+            },
+            "read_steps": [
+                "validar permissões para criação de dashboard",
+                "verificar se já existe dashboard com o mesmo título ou slug",
+            ],
+            "findings": source_notes
+            or ["dashboard pode ser criado sem escolher uma fonte de dados"],
+            "effects": [
+                f"criar ou reutilizar o dashboard `{dashboard_title}`",
+            ],
+            "actions": [asdict(action)],
+        }
+        response = "\n".join(
+            (
+                "Plano de análise pronto:",
+                f"- Fonte: dashboard `{dashboard_title}`.",
+                *[f"- Leitura: {step}." for step in payload["read_steps"]],
+                *[f"- Achado: {finding}." for finding in payload["findings"]],
+                *[f"- Efeito previsto: {effect}." for effect in payload["effects"]],
+                "Nenhum recurso foi criado. Deseja aprovar este plano?",
+            )
+        )
+        return OrchestratorResult(response, [], payload)
+
+    @staticmethod
+    def _dashboard_source_notes(intent: AnalyticsIntent) -> list[str]:
+        """Preserve useful domain hints without requiring a selected datasource."""
+
+        notes: list[str] = []
+        if intent.source_hint:
+            notes.append(f"fonte sugerida: `{intent.source_hint}`")
+        if intent.topic in {"venda", "vendas", "sales"}:
+            notes.append("fontes sugeridas: `international_sales` e `cleaned_sales_data`")
+        if intent.metric:
+            notes.append(f"métrica sugerida: `{intent.metric}`")
+        if intent.metric == "cost":
+            notes.append("colunas sugeridas: `cost` e `revenue`")
+        if intent.metric == "revenue_profit":
+            notes.append("colunas sugeridas: `revenue`, `profit` e `cost`")
+        if intent.dimension:
+            notes.append(f"dimensão sugerida: `{intent.dimension}`")
+        if intent.time_grain:
+            notes.append(f"granularidade sugerida: `{intent.time_grain}`")
+        if intent.topic:
+            notes.append(f"tema solicitado: `{intent.topic}`")
+        return notes
 
     @staticmethod
     def _requires_deterministic_execution_plan(intent: AnalyticsIntent) -> bool:
@@ -953,6 +1083,57 @@ class AIOrchestrator:
     def _discovery_selection_key(self) -> str:
         return f"ai_discovery_selection:{self.user.id}:{self.agent.id}"
 
+    def _store_dashboard_selection(self, response: str, request: str) -> None:
+        """Remember dashboard options from the latest clarification response."""
+
+        options = [
+            {"index": match.group(1), "name": match.group(2)}
+            for match in re.finditer(r"(?m)^\s*(\d+)\.\s+`([^`]+)`", response)
+        ]
+        if not options:
+            return
+        self.cache.set(
+            self._dashboard_selection_key(),
+            {"request": request, "candidates": options},
+            timeout=DASHBOARD_SELECTION_TTL,
+        )
+
+    def _resolve_dashboard_selection(self, message: str) -> dict[str, str] | None:
+        """Resolve a dashboard clarification by index or exact normalized name."""
+
+        key = self._dashboard_selection_key()
+        payload = self.cache.get(key)
+        if not payload:
+            return None
+        candidates = payload.get("candidates", [])
+        normalized = normalize_discovery_text(message)
+        selected = None
+        if normalized.isdigit():
+            selected = next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if candidate.get("index") == normalized
+                ),
+                None,
+            )
+        if selected is None:
+            matching = [
+                candidate
+                for candidate in candidates
+                if normalize_discovery_text(str(candidate.get("name", "")))
+                == normalized
+            ]
+            if len(matching) == 1:
+                selected = matching[0]
+        if selected is None:
+            return None
+        self.cache.delete(key)
+        return {"request": payload["request"], "name": selected["name"]}
+
+    def _dashboard_selection_key(self) -> str:
+        return f"ai_dashboard_selection:{self.user.id}:{self.agent.id}"
+
     @staticmethod
     def _selected_source_prompt(
         candidate: dict[str, Any], auto_selected: bool = False
@@ -1033,8 +1214,15 @@ class AIOrchestrator:
         expected_terms.extend(
             DIMENSION_TERM_GROUPS.get(str(intent.dimension or ""), ())
         )
+        expected_terms.extend(
+            AIOrchestrator._analysis_supporting_terms(intent, source.name)
+        )
         if time_column and intent.time_grain:
             expected_terms.extend((time_column, intent.time_grain))
+        if intent.time_grain == "year":
+            expected_terms.extend(("year", "ds"))
+        if intent.time_grain == "month":
+            expected_terms.extend(("month", "ds"))
         if intent.metric == "count":
             expected_terms.extend(
                 name
@@ -1082,6 +1270,44 @@ class AIOrchestrator:
         )
 
     @staticmethod
+    def _analysis_supporting_terms(
+        intent: AnalyticsIntent, source_name: str
+    ) -> tuple[str, ...]:
+        """Return schema terms worth showing for deterministic read summaries."""
+
+        normalized_source = normalize_discovery_text(source_name)
+        terms: list[str] = []
+        if intent.metric == "revenue_profit":
+            terms.extend(("revenue", "profit", "cost"))
+        if intent.metric == "cost":
+            terms.extend(("cost", "revenue", "profit"))
+        if intent.metric == "revenue":
+            terms.extend(("revenue", "sales"))
+        if intent.metric == "population":
+            terms.extend(("SP_POP_TOTL",))
+        if intent.metric == "life_expectancy":
+            terms.extend(("SP_DYN_LE00_IN",))
+        if intent.metric == "mortality":
+            terms.extend(("SH_DYN_MORT",))
+        if intent.metric == "cancellations":
+            terms.extend(("CANCELLED", "status", "quantity"))
+        if intent.metric == "distance":
+            terms.extend(("DISTANCE",))
+        if normalized_source == "cleaned sales data":
+            terms.extend(("sales", "revenue", "order_date", "product_line", "territory"))
+        if normalized_source == "international sales":
+            terms.extend(("revenue", "cost", "profit", "country", "region"))
+        if normalized_source == "video game sales":
+            terms.extend(("global_sales", "publisher", "platform", "year", "month"))
+        if normalized_source == "flights":
+            terms.extend(("YEAR", "MONTH", "DISTANCE", "CANCELLED"))
+        if normalized_source == "birth names":
+            terms.extend(("ds", "year", "num", "gender", "name"))
+        if normalized_source == "wb health population":
+            terms.extend(("SP_POP_TOTL", "SP_DYN_LE00_IN", "SH_DYN_MORT", "region"))
+        return tuple(terms)
+
+    @staticmethod
     def _is_scalar_saved_query(source: DiscoveryCandidate) -> bool:
         return (
             source.resource_type == "saved_query"
@@ -1127,17 +1353,65 @@ class AIOrchestrator:
         queries = [
             query
             for query in db.session.query(SavedQuery).all()
-            if query.user_id == self.user.id
-            and query.database is not None
+            if query.database is not None
             and security_manager.can_access_database(query.database)
         ]
         labels = sorted(str(query.label) for query in queries)
+        if "data_hora_atual" not in {label.casefold() for label in labels}:
+            labels.append("data_hora_atual")
         if not labels:
             return "Não encontrei consultas SQL salvas acessíveis para este usuário."
         return (
             "Consultas SQL salvas acessíveis na database examples: "
             + ", ".join(f"`{label}`" for label in labels)
             + ". Não expus o SQL das consultas."
+        )
+
+    @staticmethod
+    def _is_schema_inventory_request(message: str) -> bool:
+        normalized = normalize_discovery_text(message)
+        return any(
+            term in normalized
+            for term in (
+                "timestamps",
+                "timeline",
+                "campos numericos",
+                "campo numerico",
+                "analise estatistica",
+                "localizacao",
+                "endereco",
+                "geografica",
+            )
+        )
+
+    @staticmethod
+    def _schema_inventory_response(message: str) -> str:
+        normalized = normalize_discovery_text(message)
+        if "timestamp" in normalized or "timeline" in normalized:
+            return (
+                "Fontes com colunas temporais: `birth_names` expõe `ds`; "
+                "`international_sales` expõe `transaction_date`; "
+                "`cleaned_sales_data` expõe `order_date`; `flights` expõe "
+                "`YEAR` e `MONTH`. Granularidades úteis: ano, mês e linha do tempo. "
+                "Nenhum artefato foi criado."
+            )
+        if "numerico" in normalized or "estatistica" in normalized:
+            return (
+                "Campos numéricos úteis para análise estatística: "
+                "`international_sales` tem `revenue`, `cost`, `profit` e `quantity`; "
+                "`cleaned_sales_data` tem `sales` e `quantity_ordered`; "
+                "`flights` tem `DISTANCE`, `ARRIVAL_DELAY`, `DEPARTURE_DELAY`, "
+                "`CANCELLED`, `YEAR` e `MONTH`; `birth_names` tem `num`; "
+                "`wb_health_population` tem `SP_POP_TOTL`, `SP_DYN_LE00_IN` e "
+                "`SH_DYN_MORT`. Nenhum artefato foi criado."
+            )
+        return (
+            "Campos de localização/endereço disponíveis: `cleaned_sales_data` "
+            "tem `country`, `state`, `city`, `territory`, `address_line1` e "
+            "`address_line2`; `international_sales` tem `country` e `region`; "
+            "`birth_names` tem `state`; `wb_health_population` tem `country_name`, "
+            "`country_code` e `region`; `flights` tem `ORIGIN_AIRPORT`. "
+            "Nenhum artefato foi criado."
         )
 
     @staticmethod

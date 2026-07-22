@@ -22,6 +22,7 @@ import pytest
 
 from superset.ai.analytics_execution import (
     AnalyticsPlanValidationError,
+    DashboardSelectionRequired,
     DeterministicAnalyticsPlanner,
 )
 from superset.ai.chart_spec import ChartSpecification
@@ -188,6 +189,28 @@ def test_deterministic_planner_rejects_annual_chart_without_verified_time() -> N
         )
 
 
+def test_deterministic_planner_builds_categorical_chart_without_time_column() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteTool("create_chart", ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.CREATE_CHART,
+        topic="regiao",
+        metric="revenue",
+        dimension="region",
+    )
+
+    plan = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    ).build(
+        _dataset_source((("region", "VARCHAR"), ("revenue", "NUMERIC"))),
+        intent,
+    )
+
+    assert plan.chart_specification.time_column == "region"
+    assert plan.chart_specification.time_grain is None
+    assert "coluna de agrupamento verificada: `region`" in plan.findings
+
+
 def test_deterministic_planner_reuses_dashboard_with_dependent_publish_action(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -216,6 +239,53 @@ def test_deterministic_planner_reuses_dashboard_with_dependent_publish_action(
         "chart_id": {"$ref": "actions.0.id"},
         "dashboard_id": 9,
     }
+
+
+def test_deterministic_planner_normalizes_dashboard_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    planner = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    )
+
+    dashboard = SimpleNamespace(id=9, dashboard_title="CBMES", slug="cbmes")
+    monkeypatch.setattr(
+        "superset.extensions.db.session.query",
+        lambda _: SimpleNamespace(all=lambda: [dashboard]),
+    )
+    monkeypatch.setattr(
+        "superset.extensions.security_manager.can_access_dashboard",
+        lambda _: True,
+    )
+
+    assert planner._find_dashboard_id("c-b_més") == 9
+
+
+def test_deterministic_planner_asks_for_close_dashboard_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = ToolRegistry()
+    for name in ("create_chart", "add_chart_to_dashboard"):
+        registry.register(WriteTool(name, ToolResult(True, {"id": 1})))
+    intent = AnalyticsIntent(
+        goal=AnalyticsGoal.PUBLISH_CHART,
+        topic="vendas",
+        target_dashboard="CMBES",
+        metric="count",
+    )
+    planner = DeterministicAnalyticsPlanner(
+        registry, SimpleNamespace(id=4), "agent-1"
+    )
+    dashboard = SimpleNamespace(id=9, dashboard_title="CBMES", slug="cbmes")
+    monkeypatch.setattr(planner, "_find_dashboard_id", lambda _: None)
+    monkeypatch.setattr(planner, "_dashboard_suggestions", lambda _: [dashboard])
+
+    with pytest.raises(DashboardSelectionRequired, match="CBMES"):
+        planner.build(
+            _dataset_source((("region", "VARCHAR"), ("amount", "NUMERIC"))),
+            intent,
+        )
 
 
 def test_deterministic_planner_preserves_requested_chart_title() -> None:

@@ -116,6 +116,7 @@ TERMINAL_STATES = {
     "completed",
     "failed",
 }
+SOURCE_SELECTION_PATTERN = re.compile(r"Qual fonte deseja utilizar\?", re.I)
 
 
 @dataclass(frozen=True)
@@ -294,7 +295,9 @@ def evaluate_result(
     for resource in case.oracle.expected_resources:
         if resource.casefold() not in text:
             failures.append(f"missing expected resource {resource}")
-    if case.oracle.expected_dashboard and case.oracle.expected_dashboard.casefold() not in text:
+    if case.oracle.expected_dashboard and not _normalized_text_contains(
+        text, case.oracle.expected_dashboard
+    ):
         failures.append(f"missing dashboard {case.oracle.expected_dashboard}")
     if case.oracle.max_alternatives is not None:
         alternatives = _count_numbered_alternatives(snapshot.get("response") or "")
@@ -375,6 +378,8 @@ def execute_case(case: PromptCase, user_id: int, agent_id: str) -> PromptResult:
     started = time.monotonic()
     confirmation = "not_requested"
     progress = AITaskProgress(cache_manager.cache, user_id, agent_id)
+    cache_manager.cache.delete(f"ai_discovery_selection:{user_id}:{agent_id}")
+    cache_manager.cache.delete(f"ai_dashboard_selection:{user_id}:{agent_id}")
     task_id = progress.create()
     try:
         planning_started = time.monotonic()
@@ -390,14 +395,29 @@ def execute_case(case: PromptCase, user_id: int, agent_id: str) -> PromptResult:
                 },
             )
         ).get()
-        metrics.planning_latency_ms = int((time.monotonic() - planning_started) * 1000)
         snapshot = progress.snapshot(task_id)
+        if source_selection := _suite_source_selection(snapshot, case):
+            run_ai_task.apply(
+                args=(
+                    task_id,
+                    agent_id,
+                    user_id,
+                    {
+                        "message": source_selection,
+                        "history": [],
+                        "context": _context_for_case(case),
+                    },
+                )
+            ).get()
+            snapshot = progress.snapshot(task_id)
+        metrics.planning_latency_ms = int((time.monotonic() - planning_started) * 1000)
         if case.confirm:
             plan = _execution_plan_action(snapshot)
             if plan is None:
                 confirmation = "missing_plan"
             else:
                 confirmation = "executed"
+                confirmed_plan_snapshot = snapshot
                 execution_started = time.monotonic()
                 run_ai_plan_task.apply(
                     args=(task_id, plan["id"], agent_id, user_id)
@@ -406,6 +426,7 @@ def execute_case(case: PromptCase, user_id: int, agent_id: str) -> PromptResult:
                     (time.monotonic() - execution_started) * 1000
                 )
                 snapshot = progress.snapshot(task_id)
+                snapshot["confirmed_plan_snapshot"] = confirmed_plan_snapshot
         from flask import current_app
         from superset.extensions import security_manager
         from superset.utils.core import override_user
@@ -519,11 +540,61 @@ def _execution_plan_action(snapshot: dict[str, Any]) -> dict[str, Any] | None:
     )
 
 
+def _requires_suite_source_selection(snapshot: dict[str, Any]) -> bool:
+    """Return whether the suite should choose a suggested data source."""
+
+    response = snapshot.get("response") or ""
+    return (
+        snapshot.get("status") == "awaiting_user_input"
+        and bool(SOURCE_SELECTION_PATTERN.search(response))
+        and _count_numbered_alternatives(response) > 0
+    )
+
+
+def _suite_source_selection(snapshot: dict[str, Any], case: PromptCase) -> str | None:
+    """Choose the suggested source that best matches the case oracle."""
+
+    if not _requires_suite_source_selection(snapshot):
+        return None
+    response = snapshot.get("response") or ""
+    options = re.findall(r"(?m)^\s*(\d+)\.\s+(.+)$", response)
+    if not options:
+        return None
+    expected_terms = (
+        *case.oracle.expected_sources,
+        *case.oracle.expected_columns,
+    )
+    if not expected_terms:
+        return options[0][0]
+    ranked = sorted(
+        (
+            (
+                sum(
+                    1
+                    for term in expected_terms
+                    if term.casefold() in option_text.casefold()
+                ),
+                int(option_number),
+                option_number,
+            )
+            for option_number, option_text in options
+        ),
+        key=lambda item: (-item[0], item[1]),
+    )
+    return ranked[0][2]
+
+
 def _context_for_case(case: PromptCase) -> dict[str, Any]:
     """Return the documented page context for a prompt case."""
 
     match = CONTEXT_PATTERN.search(case.expected)
     if match is None:
+        if case.confirm and case.oracle.expected_dashboard:
+            return {
+                "page": "dashboard",
+                "resource_name": case.oracle.expected_dashboard,
+                "metadata": {"dashboard_title": case.oracle.expected_dashboard},
+            }
         return {"page": "other"}
     raw_context = match.group("context")
     page, _, resource_name = raw_context.partition(":")
@@ -600,11 +671,22 @@ def _searchable_text(
             "response": snapshot.get("response"),
             "pending_actions": snapshot.get("pending_actions"),
             "execution_plan": snapshot.get("execution_plan"),
+            "confirmed_plan_snapshot": snapshot.get("confirmed_plan_snapshot"),
             "events": snapshot.get("events"),
             "resources": resources,
         },
         default=str,
     ).casefold()
+
+
+def _normalized_text_contains(text: str, expected: str) -> bool:
+    """Compare dashboard/resource names after punctuation-insensitive normalization."""
+
+    return _normalize_for_match(expected) in _normalize_for_match(text)
+
+
+def _normalize_for_match(value: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", value.casefold()).split())
 
 
 def _count_numbered_alternatives(response: str) -> int:

@@ -40,6 +40,16 @@ def test_planner_recognizes_analytics_goals(message: str, goal: AnalyticsGoal) -
     assert AnalyticsTaskPlanner().plan(message).intent.goal is goal
 
 
+def test_planner_prioritizes_dashboard_creation_over_chart_topics() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Faça um dashboard AI_TEST_P103 dedicado à análise de dados de população global."
+    )
+
+    assert plan.intent.goal is AnalyticsGoal.CREATE_DASHBOARD
+    assert plan.intent.target_dashboard == "ai_test_p103"
+    assert plan.intent.chart_title is None
+
+
 def test_planner_handles_portuguese_publish_synonym_and_source() -> None:
     plan = AnalyticsTaskPlanner().plan(
         "Analise o banco international_sales, inclua um grafico com quantidade "
@@ -69,6 +79,17 @@ def test_planner_extracts_source_hint_from_leading_no_dataset_name() -> None:
     assert plan.intent.topic == "quantidade"
     assert plan.intent.metric == "quantity"
     assert plan.intent.dimension == "product_category"
+
+
+def test_planner_treats_chart_in_current_dashboard_as_chart_request() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Neste dashboard, crie um gráfico AI_TEST_P51 de receita anual usando "
+        "international_sales."
+    )
+
+    assert plan.intent.goal is AnalyticsGoal.CREATE_CHART
+    assert plan.intent.chart_title == "ai_test_p51"
+    assert plan.intent.source_hint == "international_sales"
 
 
 def test_planner_extracts_topic_after_analysis_preposition() -> None:
@@ -132,9 +153,34 @@ def test_planner_prioritizes_cost_for_cost_versus_revenue_prompt() -> None:
         "Crie um gráfico AI_TEST_P14 de custo versus receita por região."
     )
 
+    assert plan.intent.source_hint == "international_sales"
     assert plan.intent.metric == "cost"
     assert plan.intent.dimension == "region"
     assert plan.intent.chart_title == "ai_test_p14"
+
+
+def test_planner_uses_international_sales_for_implicit_revenue_and_profit() -> None:
+    revenue = AnalyticsTaskPlanner().plan(
+        "Crie um gráfico de linha AI_TEST_P201 de receita ao longo do tempo."
+    )
+    profit = AnalyticsTaskPlanner().plan(
+        "Crie um gráfico de área AI_TEST_P202 de lucro acumulado."
+    )
+
+    assert revenue.intent.source_hint == "international_sales"
+    assert revenue.intent.metric == "revenue"
+    assert profit.intent.source_hint == "international_sales"
+    assert profit.intent.metric == "profit"
+
+
+def test_planner_uses_birth_names_for_demographic_gender_requests() -> None:
+    plan = AnalyticsTaskPlanner().plan(
+        "Qual gênero de bebê foi mais frequente em cada década?"
+    )
+
+    assert plan.intent.source_hint == "birth_names"
+    assert plan.intent.discovery_query is not None
+    assert plan.intent.discovery_query.normalized_topic == "birth names"
 
 
 def test_planner_preserves_requested_ai_test_resource_names() -> None:

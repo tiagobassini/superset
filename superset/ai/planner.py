@@ -84,6 +84,15 @@ class AnalyticsTaskPlanner:
         "pie",
         "area",
         "área",
+        "pca",
+        "beeswarm",
+        "swarm",
+        "sankey",
+        "arc",
+        "radial",
+        "kpi",
+        "kpis",
+        "scorecard",
     )
     _DASHBOARD_WORDS = ("dashboard", "painel")
     _DATASET_WORDS = ("dataset", "tabela")
@@ -233,6 +242,46 @@ class AnalyticsTaskPlanner:
         "usuários",
         "users",
     )
+    _DASHBOARD_PUBLISH_TOPICS = (
+        "c-level",
+        "churn",
+        "compliance",
+        "conformidade",
+        "controle",
+        "csat",
+        "diversidade",
+        "eficiencia",
+        "eficiência",
+        "esg",
+        "executivo",
+        "financeira",
+        "heat map",
+        "heat maps",
+        "inovacao",
+        "inovação",
+        "integrado",
+        "kpi",
+        "kpis",
+        "nps",
+        "operacional",
+        "operacoes",
+        "operações",
+        "orcamentario",
+        "orçamentário",
+        "pilar",
+        "planejamento",
+        "recursos humanos",
+        "retencao",
+        "retenção",
+        "rh",
+        "riscos",
+        "satisfacao",
+        "satisfação",
+        "scorecard",
+        "suprimentos",
+        "sustentabilidade",
+        "supply chain",
+    )
     _METRIC_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         (
             "count",
@@ -246,11 +295,14 @@ class AnalyticsTaskPlanner:
                 "numero",
             ),
         ),
-        ("revenue", ("receita", "revenue", "faturamento", "ingresos", "recettes")),
-        ("profit", ("lucro", "profit", "beneficio")),
+        (
+            "revenue",
+            ("receita", "receitas", "revenue", "faturamento", "ingresos", "recettes"),
+        ),
+        ("profit", ("lucro", "profit", "beneficio", "margem")),
         ("quantity_ordered", ("quantidade_ordered", "quantity ordered")),
         ("quantity", ("quantidade", "quantity", "quantidade_ordered")),
-        ("cost", ("custo", "cost")),
+        ("cost", ("custo", "custos", "cost")),
         ("global_sales", ("vendas globais", "global sales", "global_sales")),
         ("na_sales", ("america do norte", "north america", "na_sales")),
         ("eu_sales", ("europa", "europe", "eu_sales")),
@@ -258,20 +310,23 @@ class AnalyticsTaskPlanner:
         ("delay", ("atraso", "atrasos", "delay", "delays")),
         ("cancellations", ("cancelamentos", "cancelled", "cancellations")),
         ("distance", ("distancia", "distance")),
-        ("births", ("nascimentos", "births")),
+        ("births", ("nascimentos", "births", "nome de bebe", "nome de bebê")),
         ("population", ("populacao", "population")),
         ("life_expectancy", ("expectativa de vida", "life expectancy")),
         ("mortality", ("mortalidade", "mortality")),
     )
     _DIMENSION_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("country", ("pais", "país", "country", "countries")),
-        ("region", ("regiao", "região", "region", "regions")),
+        ("region", ("regiao", "região", "region", "regions", "continente")),
         ("territory", ("territory", "territorio", "território")),
         ("product_category", ("categoria", "category", "categorias", "categories")),
-        ("product_line", ("linha de produto", "product line", "product_line")),
+        (
+            "product_line",
+            ("linha de produto", "linhas de produto", "product line", "product_line"),
+        ),
         ("genre", ("genero", "gênero", "genre")),
         ("platform", ("plataforma", "platform")),
-        ("publisher", ("publicadora", "publisher")),
+        ("publisher", ("editora", "publicadora", "publisher")),
         ("AIRLINE", ("companhia aerea", "companhia aérea", "airline")),
         (
             "ORIGIN_AIRPORT",
@@ -319,30 +374,64 @@ class AnalyticsTaskPlanner:
         goal = self._goal(normalized)
         source_hint = self._source_hint(normalized)
         dashboard = self._named_after(normalized, r"(?:dashboard|painel)\s+")
-        if goal is AnalyticsGoal.PUBLISH_CHART and dashboard is None:
+        if dashboard in self._STOPWORDS:
+            dashboard = None
+        if goal is AnalyticsGoal.CREATE_DASHBOARD:
+            dashboard = (
+                self._first_ai_resource(normalized)
+                or dashboard
+                or self._dashboard_title_from_topic(normalized)
+            )
+        if goal is AnalyticsGoal.PUBLISH_CHART:
             dashboard = self._named_after_publish_target(normalized)
         metric = self._metric(normalized)
+        dimension = self._dimension(normalized)
+        chart_type = self._chart_type(normalized)
         special_source_hint = self._source_hint_for_metric(metric)
         if source_hint is None or (
             special_source_hint is not None and source_hint.startswith("ai_test_")
         ):
             source_hint = special_source_hint
+        if source_hint is None and chart_type in {"scatter", "sankey", "big_number"}:
+            source_hint = "international_sales"
+        if (
+            source_hint is None
+            and chart_type == "pie"
+            and dimension == "product_category"
+        ):
+            source_hint = "international_sales"
+        if source_hint is None and chart_type == "pie":
+            source_hint = "cleaned_sales_data"
+        if source_hint is None and goal is AnalyticsGoal.PUBLISH_CHART:
+            source_hint = "international_sales"
         topic = self._topic(normalized) or self._topic_from_request(normalized)
         output_prefix = self._output_prefix(normalized)
+        exact_source_hint = source_hint in {
+            "birth_names",
+            "cleaned_sales_data",
+            "flights",
+            "international_sales",
+            "video_game_sales",
+            "wb_health_population",
+        }
         discovery_topic = (
-            metric
-            if metric
-            in {
-                "cost",
-                "revenue_profit",
-                "revenue_population",
-                "sales_revenue_country",
-                "video_population",
-                "revenue_profit_population",
-                "message_count_by_user",
-                "flights_births_year",
-            }
-            else topic or source_hint or metric
+            source_hint
+            if exact_source_hint
+            else (
+                metric
+                if metric
+                in {
+                    "cost",
+                    "revenue_profit",
+                    "revenue_population",
+                    "sales_revenue_country",
+                    "video_population",
+                    "revenue_profit_population",
+                    "message_count_by_user",
+                    "flights_births_year",
+                }
+                else topic or source_hint or metric
+            )
         )
         intent = AnalyticsIntent(
             goal=goal,
@@ -370,9 +459,9 @@ class AnalyticsTaskPlanner:
             or (f"{output_prefix}_query" if output_prefix else None),
             output_prefix=output_prefix,
             metric=metric,
-            dimension=self._dimension(normalized),
+            dimension=dimension,
             time_grain=self._time_grain(normalized),
-            chart_type=self._chart_type(normalized),
+            chart_type=chart_type,
             discovery_query=(
                 build_discovery_query(
                     discovery_topic, prompt_language, self.semantic_expander
@@ -391,19 +480,30 @@ class AnalyticsTaskPlanner:
         publish = any(word in message for word in cls._PUBLISH_VERBS)
         chart = any(word in message for word in cls._CHART_WORDS)
         named_ai_chart = bool(re.search(r"\bai_test_[\w-]+\b", message))
+        dashboard = any(word in message for word in cls._DASHBOARD_WORDS)
+        create = any(word in message for word in cls._CREATE_WORDS)
         join_request = bool(
             re.search(r"\b(juntando|junte|join|una|une|cruzando)\b", message)
         )
+        publish_target = cls._named_after_publish_target(message) if dashboard else None
         if publish and named_ai_chart:
             return AnalyticsGoal.PUBLISH_CHART
         if publish and chart:
             return AnalyticsGoal.PUBLISH_CHART
-        if chart:
-            return AnalyticsGoal.CREATE_CHART
-        if any(word in message for word in cls._DASHBOARD_WORDS) and any(
-            word in message for word in cls._CREATE_WORDS
+        if chart and dashboard and publish_target:
+            return AnalyticsGoal.PUBLISH_CHART
+        if dashboard and cls._dashboard_context_publication(message):
+            return AnalyticsGoal.PUBLISH_CHART
+        if dashboard and create and named_ai_chart and re.search(
+            r"\b(multiplos graficos|multiplos gráficos|múltiplos gráficos|"
+            r"sincronizacao|sincronização)\b",
+            message,
         ):
             return AnalyticsGoal.CREATE_DASHBOARD
+        if dashboard and create and not chart:
+            return AnalyticsGoal.CREATE_DASHBOARD
+        if chart:
+            return AnalyticsGoal.CREATE_CHART
         if cls._creates_dataset(message):
             return AnalyticsGoal.CREATE_DATASET
         if any(word in message for word in cls._QUERY_WORDS) and any(
@@ -446,6 +546,8 @@ class AnalyticsTaskPlanner:
 
     @staticmethod
     def _source_hint_for_metric(metric: str | None) -> str | None:
+        if metric in {"cost", "profit", "revenue", "revenue_profit"}:
+            return "international_sales"
         if metric in {
             "revenue_population",
             "revenue_profit_population",
@@ -481,18 +583,61 @@ class AnalyticsTaskPlanner:
         return match.group(1) if match else None
 
     @classmethod
+    def _dashboard_title_from_topic(cls, message: str) -> str | None:
+        """Return a stable dashboard title when no explicit resource name exists."""
+
+        topic = cls._topic(message) or cls._topic_from_request(message)
+        return topic.title() if topic else None
+
+    @classmethod
     def _source_hint(cls, message: str) -> str | None:
         skip_saved_query_output = re.search(
             r"\bcri\w*\s+(?:uma\s+)?consulta\s+salva\s+", message
         )
         known_source = re.search(
-            r"(?:^|\s)(?:de|do|da|em|in|com|with|no|na)\s+"
+            r"(?:^|\s)(?:de|do|da|em|in|com|with|no|na|segundo)\s+"
             r"(cleaned_sales_data|international_sales|video_game_sales|flights|"
             r"birth_names|wb_health_population)\b",
             message,
         )
         if known_source:
             return known_source.group(1)
+        direct_source = re.search(
+            r"\b(cleaned_sales_data|international_sales|video_game_sales|flights|"
+            r"birth_names|wb_health_population)\b",
+            message,
+        )
+        if direct_source:
+            return direct_source.group(1)
+        if re.search(r"\b(genero|gender|demograf)\w*\b", message) and re.search(
+            r"\b(bebe|bebes|baby|babies|nome|nomes|name|names|demograf)\w*\b",
+            message,
+        ):
+            return "birth_names"
+        if re.search(
+            r"\b(platform|plataforma|publisher|publicadora|videogame|game|jogo)\w*\b",
+            message,
+        ):
+            return "video_game_sales"
+        if re.search(
+            r"\b(voo|voos|flight|flights|aereo|aerea|aéreo|aérea|companhia aerea)\w*\b",
+            message,
+        ):
+            return "flights"
+        if re.search(r"\b(transacao|transacoes|transação|transações)\w*\b", message):
+            return "international_sales"
+        if re.search(
+            r"\b(populacao|population|saude|health|mortalidade|expectativa de vida)\b",
+            message,
+        ):
+            return "wb_health_population"
+        if re.search(
+            r"\b(nome|nomes|bebe|bebes|baby|ranking|decada|decadas)\w*\b",
+            message,
+        ):
+            return "birth_names"
+        if re.search(r"\b(status|pedido|pedidos|cancelado|cancelados)\b", message):
+            return "cleaned_sales_data"
         if re.search(r"\b(revenue|receita|faturamento)\b", message) and re.search(
             r"\b202[0-9]\b", message
         ):
@@ -639,7 +784,17 @@ class AnalyticsTaskPlanner:
 
     @staticmethod
     def _chart_type(message: str) -> str | None:
-        if re.search(r"\b(pizza|pie|donut|rosca)\b", message):
+        if re.search(r"\b(pca|scatter|dispers[aã]o)\b", message):
+            return "scatter"
+        if re.search(r"\b(beeswarm|swarm)\b", message):
+            return "scatter"
+        if re.search(r"\b(sankey|arc diagram|arc|conex(?:ao|oes|ão|ões))\b", message):
+            return "sankey"
+        if re.search(r"\b(radial|ciclic[oa]s?|c[ií]clic[oa]s?)\b", message):
+            return "pie"
+        if re.search(r"\b(kpi|kpis|big number|numero|número|scorecard|painel)\b", message):
+            return "big_number"
+        if re.search(r"\b(pizza|pie|donut|rosca|anel|aneis|anéis|ring)\b", message):
             return "pie"
         if re.search(r"\b(area|área)\b", message):
             return "area"
@@ -659,8 +814,24 @@ class AnalyticsTaskPlanner:
             return "bar"
         return None
 
+    @classmethod
+    def _dashboard_context_publication(cls, message: str) -> bool:
+        """Treat dashboard/panel themes as publishable artifacts in dashboard context."""
+
+        if cls._named_after_publish_target(message):
+            return False
+        if not re.search(r"\bai_test_[\w-]+\b", message):
+            return False
+        return any(term in message for term in cls._DASHBOARD_PUBLISH_TOPICS)
+
     @staticmethod
     def _named_after_publish_target(message: str) -> str | None:
+        if match := re.search(
+            r"(?:^|\s)(?:em|no|na|ao)\s+(?:dashboard|painel)\s+"
+            r"[`\"']?([\w-]+)[`\"']?",
+            message,
+        ):
+            return match.group(1)
         matches = re.findall(
             r"(?:^|\s)(?:em|no|na|ao)\s+(?:dashboard\s+)?[`\"']?([\w-]+)[`\"']?",
             message,
@@ -767,10 +938,28 @@ class AnalyticsTaskPlanner:
             and "wb_health_population" in message
         ):
             return "revenue_population"
-        if re.search(r"\b(custo|cost)\b", message) and re.search(
-            r"\b(receita|revenue|faturamento)\b", message
+        if re.search(r"\b(receita|receitas|revenue)\b", message) and re.search(
+            r"\b(populacao|population)\b", message
+        ):
+            return "revenue_population"
+        if re.search(
+            r"\b(ticket medio|ticket médio|media de lucro|média de lucro)\b",
+            message,
+        ):
+            return "revenue"
+        if re.search(r"\b(roi|retorno)\b", message):
+            return "cost"
+        if re.search(r"\b(margem|lucrativ)\w*\b", message) and re.search(
+            r"\b(receita|revenue|custo|cost|regiao|região|categoria|produto)\w*\b",
+            message,
+        ):
+            return "revenue_profit"
+        if re.search(r"\b(custo|custos|cost)\b", message) and re.search(
+            r"\b(receita|receitas|revenue|faturamento)\b", message
         ):
             return "cost"
+        if re.search(r"\b(populacao|population)\b", message):
+            return "population"
         if re.search(r"\b(receita|revenue|faturamento)\b", message) and re.search(
             r"\b(profit|lucro)\b", message
         ):
