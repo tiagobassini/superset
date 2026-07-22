@@ -4,22 +4,37 @@
     "passed_count": 300,
     "failed_count": 200,
     "pass_rate_percent": 60.0,
-    "average_latency_ms": 3484.3
+    "average_latency_ms": 3162.6
   },
   "failure_breakdown": {
-    "awaiting_confirmation": 3,
-    "awaiting_user_input": 124,
-    "completed_but_failed": 59,
-    "other_status": 14
+    "awaiting_confirmation": 5,
+    "awaiting_user_input": 127,
+    "completed_but_failed": 56,
+    "other_status": 12
   },
   "failure_root_causes": {
-    "planning_failure": 129,
-    "resource_not_created": 127,
-    "missing_column": 65,
     "missing_source": 10,
-    "other_failure": 117
+    "planning_failure": 129,
+    "resource_not_created": 124,
+    "missing_column": 65,
+    "other_failure": 118
   },
   "failures_detail": [
+    {
+      "case_id": "P46",
+      "prompt": "Liste as consultas SQL salvas que posso usar na database examples.",
+      "status": "completed",
+      "passed": false,
+      "failure_reasons": [
+        "missing expected source option data_hora_atual"
+      ],
+      "failure_categories": [
+        "missing_source"
+      ],
+      "terminal_state": "completed",
+      "latency_ms": 17,
+      "response_preview": "Consultas SQL salvas acessíveis na database examples: `ai_test_p19`, `ai_test_p44`. Não expus o SQL das consultas."
+    },
     {
       "case_id": "P102",
       "prompt": "Crie um dashboard AI_TEST_P102 com layout de 2 colunas para análises comparativas.",
@@ -34,7 +49,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1854,
+      "latency_ms": 2018,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “2”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code, regi…"
     },
     {
@@ -49,8 +64,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 294,
-      "response_preview": "Plano concluído com sucesso.\n- [Populacao](/explore/?slice_id=612)"
+      "latency_ms": 201,
+      "response_preview": "Plano concluído com sucesso.\n- [Populacao](/explore/?slice_id=156)"
     },
     {
       "case_id": "P104",
@@ -66,7 +81,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 116,
+      "latency_ms": 123,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -81,8 +96,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 157,
-      "response_preview": "Plano concluído com sucesso.\n- [Videogames](/explore/?slice_id=613)"
+      "latency_ms": 168,
+      "response_preview": "Plano concluído com sucesso.\n- [Videogames](/explore/?slice_id=157)"
     },
     {
       "case_id": "P106",
@@ -96,8 +111,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 166,
-      "response_preview": "Plano concluído com sucesso.\n- [Voos](/explore/?slice_id=614)"
+      "latency_ms": 180,
+      "response_preview": "Plano concluído com sucesso.\n- [Voos](/explore/?slice_id=158)"
     },
     {
       "case_id": "P107",
@@ -111,8 +126,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 164,
-      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=615)"
+      "latency_ms": 173,
+      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=159)"
     },
     {
       "case_id": "P108",
@@ -128,7 +143,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 99,
+      "latency_ms": 107,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “usuarios”:\n1. Dataset `messages` — banco examples; colunas: bot_profile__updated, last_read, ts,…"
     },
     {
@@ -143,8 +158,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 169,
-      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=615)"
+      "latency_ms": 179,
+      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=159)"
     },
     {
       "case_id": "P110",
@@ -158,7 +173,7 @@
         "planning_failure"
       ],
       "terminal_state": "awaiting_confirmation",
-      "latency_ms": 34855,
+      "latency_ms": 39978,
       "response_preview": null
     },
     {
@@ -175,7 +190,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1679,
+      "latency_ms": 1685,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “tendencias”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -192,25 +207,23 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1314,
+      "latency_ms": 1371,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “geografica”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales, g…"
     },
     {
       "case_id": "P113",
       "prompt": "Crie um dashboard AI_TEST_P113 com filtros globais para análise por período.",
-      "status": "completed",
+      "status": "awaiting_confirmation",
       "passed": false,
       "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P113"
+        "expected one confirmed execution plan"
       ],
       "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
+        "planning_failure"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 44319,
-      "response_preview": "Para criar um dashboard com filtros globais para análise por período, precisamos primeiro selecionar uma tabela que possa ser usada como base. Vou lis…"
+      "terminal_state": "awaiting_confirmation",
+      "latency_ms": 15348,
+      "response_preview": null
     },
     {
       "case_id": "P114",
@@ -226,25 +239,23 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 102,
+      "latency_ms": 106,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
     },
     {
       "case_id": "P115",
       "prompt": "Crie um dashboard AI_TEST_P115 com exportação de dados para relatórios.",
-      "status": "completed",
+      "status": "awaiting_user_input",
       "passed": false,
       "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P115"
+        "expected one confirmed execution plan"
       ],
       "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
+        "planning_failure"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 19110,
-      "response_preview": "Para criar um dashboard com dados de banco de dados, precisamos primeiro identificar uma base de dados. Você gostaria que eu buscasse a base de dados…"
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 12878,
+      "response_preview": "Para criar um dashboard com exportação de dados para relatórios, precisamos primeiro selecionar uma base de dados. A base de dados 'examples' foi enco…"
     },
     {
       "case_id": "P116",
@@ -260,7 +271,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2171,
+      "latency_ms": 2248,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “kpis”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
     },
     {
@@ -275,8 +286,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 149,
-      "response_preview": "Plano concluído com sucesso.\n- [Produtos](/explore/?slice_id=616)"
+      "latency_ms": 148,
+      "response_preview": "Plano concluído com sucesso.\n- [Produtos](/explore/?slice_id=160)"
     },
     {
       "case_id": "P118",
@@ -292,7 +303,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1446,
+      "latency_ms": 1475,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “comparativa”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -309,7 +320,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1508,
+      "latency_ms": 1533,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sazonalidade”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales,…"
     },
     {
@@ -318,16 +329,14 @@
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "expected one confirmed execution plan",
-        "missing expected resource AI_TEST_P120"
+        "expected one confirmed execution plan"
       ],
       "failure_categories": [
-        "planning_failure",
-        "resource_not_created"
+        "planning_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 43909,
-      "response_preview": "Para criar um painel dedicado à análise de dados demográficos, precisamos primeiro identificar uma tabela que possa ser usada para essa finalidade. Vo…"
+      "latency_ms": 27305,
+      "response_preview": "Para criar um dataset, precisamos fornecer o nome da tabela. Por favor, forneça o nome da tabela que você deseja usar para este painel AI_TEST_P120 de…"
     },
     {
       "case_id": "P121",
@@ -343,7 +352,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1385,
+      "latency_ms": 1435,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -358,8 +367,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 167,
-      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=617)"
+      "latency_ms": 175,
+      "response_preview": "Plano concluído com sucesso.\n- [Vendas](/explore/?slice_id=161)"
     },
     {
       "case_id": "P123",
@@ -375,7 +384,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1439,
+      "latency_ms": 1668,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “satisfacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -392,8 +401,8 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 68432,
-      "response_preview": "Para criar um dashboard com histórico de dados para auditoria, precisamos primeiro selecionar uma tabela que possa fornecer esse tipo de informação. V…"
+      "latency_ms": 43017,
+      "response_preview": "Para criar um dashboard com histórico de dados para auditoria, precisamos primeiro identificar uma tabela que possa ser usada como fonte de dados. Vou…"
     },
     {
       "case_id": "P125",
@@ -411,7 +420,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 96,
+      "latency_ms": 100,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “custos”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -426,7 +435,7 @@
         "planning_failure"
       ],
       "terminal_state": "awaiting_confirmation",
-      "latency_ms": 16376,
+      "latency_ms": 16288,
       "response_preview": null
     },
     {
@@ -441,13 +450,13 @@
         "resource_not_created"
       ],
       "terminal_state": "completed",
-      "latency_ms": 184,
-      "response_preview": "Plano concluído com sucesso.\n- [Saude](/explore/?slice_id=618)"
+      "latency_ms": 183,
+      "response_preview": "Plano concluído com sucesso.\n- [Saude](/explore/?slice_id=162)"
     },
     {
       "case_id": "P128",
       "prompt": "Faça um dashboard AI_TEST_P128 com sincronização entre múltiplos gráficos.",
-      "status": "completed",
+      "status": "awaiting_user_input",
       "passed": false,
       "failure_reasons": [
         "expected one confirmed execution plan"
@@ -455,9 +464,9 @@
       "failure_categories": [
         "planning_failure"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 35507,
-      "response_preview": "Para criar um dashboard chamado AI_TEST_P128 com sincronização entre múltiplos gráficos, precisamos primeiro selecionar quais datasets serão usados. V…"
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 19728,
+      "response_preview": "Para criar um dashboard chamado AI_TEST_P128 com sincronização entre múltiplos gráficos, precisamos primeiro definir quais tabelas e dados você gostar…"
     },
     {
       "case_id": "P129",
@@ -473,7 +482,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1609,
+      "latency_ms": 1663,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “distribuicao”:\n1. Dataset `ai_test_p81` — banco examples; colunas: country, sales, revenue; motiv…"
     },
     {
@@ -490,7 +499,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1378,
+      "latency_ms": 1413,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “modificacoes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
     },
     {
@@ -507,8 +516,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 6706,
-      "response_preview": "Para criar uma timeline baseada em fontes que contêm a informação \"timestamps\", precisamos primeiro identificar quais são essas fontes. Você pode me l…"
+      "latency_ms": 8660,
+      "response_preview": "Nenhum dataset encontrado com a palavra-chave \"timestamps\". Tente usar um termo mais específico ou diferente."
     },
     {
       "case_id": "P136",
@@ -522,8 +531,8 @@
         "missing_source"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 3228,
-      "response_preview": "Para ajudá-lo com isso, preciso saber qual é a base de dados e o nome da tabela em questão. Você pode fornecer essas informações?"
+      "latency_ms": 3372,
+      "response_preview": "Para ajudá-lo com isso, preciso saber qual é a base de dados e o nome da tabela em questão. Você pode me fornecer essas informações?"
     },
     {
       "case_id": "P145",
@@ -539,7 +548,7 @@
         "missing_source"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1450,
+      "latency_ms": 1479,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “demografica”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales,…"
     },
     {
@@ -555,7 +564,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1830,
+      "latency_ms": 1901,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “estatistica”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -572,8 +581,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 5129,
-      "response_preview": "Para ajudar com isso, preciso saber qual banco de dados você está interessado em verificar. Você pode me informar o ID do banco de dados específico qu…"
+      "latency_ms": 12622,
+      "response_preview": "Para verificar se há uma tabela chamada \"localização\" ou \"endereço\" em algum banco de dados, precisamos saber qual banco de dados você está interessad…"
     },
     {
       "case_id": "P161",
@@ -581,15 +590,14 @@
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected column region",
         "missing expected column country"
       ],
       "failure_categories": [
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 16047,
-      "response_preview": "Para prosseguir com a busca de campos relacionados a \"endereço\" ou \"localização geografica\", precisamos primeiro identificar qual banco de dados você…"
+      "latency_ms": 42623,
+      "response_preview": "A tabela long_lat contém as seguintes colunas:\n\n- LON: FLOAT\n- LAT: FLOAT\n- NUMBER: TEXT\n- STREET: TEXT\n- UNIT: TEXT\n- CITY: TEXT\n- DISTRICT: TEXT\n- R…"
     },
     {
       "case_id": "P201",
@@ -610,7 +618,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 103,
+      "latency_ms": 114,
       "response_preview": null
     },
     {
@@ -629,7 +637,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 104,
+      "latency_ms": 117,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
     },
     {
@@ -648,7 +656,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 105,
+      "latency_ms": 112,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
     },
     {
@@ -669,7 +677,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1639,
+      "latency_ms": 1587,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “price”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
     },
     {
@@ -691,7 +699,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 103,
+      "latency_ms": 107,
       "response_preview": null
     },
     {
@@ -710,7 +718,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 114,
+      "latency_ms": 125,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -729,7 +737,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 102,
+      "latency_ms": 111,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
     },
     {
@@ -752,7 +760,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 104,
+      "latency_ms": 136,
       "response_preview": null
     },
     {
@@ -771,7 +779,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 107,
+      "latency_ms": 114,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “quantidade”:\n1. Dataset `flights` — banco examples; colunas: YEAR, MONTH, DAY, DAY_OF_WEEK; motiv…"
     },
     {
@@ -786,8 +794,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 212,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p218](/explore/?slice_id=627)\n- [cbmes](/superset/dashboard/teste/)"
+      "latency_ms": 265,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p218](/explore/?slice_id=171)\n- [cbmes](/superset/dashboard/cbmes/)"
     },
     {
       "case_id": "P219",
@@ -809,7 +817,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 103,
+      "latency_ms": 116,
       "response_preview": null
     },
     {
@@ -828,7 +836,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 105,
+      "latency_ms": 110,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “revenue_profit”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_…"
     },
     {
@@ -849,7 +857,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 103,
+      "latency_ms": 113,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “profit”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL…"
     },
     {
@@ -871,7 +879,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 95,
+      "latency_ms": 113,
       "response_preview": null
     },
     {
@@ -892,7 +900,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 104,
+      "latency_ms": 110,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `long_lat` — banco examples; colunas: LON, LAT, NUMBER, STREET; motivo: medi…"
     },
     {
@@ -911,7 +919,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1356,
+      "latency_ms": 1365,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “meta”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
     },
     {
@@ -932,7 +940,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 126,
+      "latency_ms": 127,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -953,7 +961,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 115,
+      "latency_ms": 120,
       "response_preview": null
     },
     {
@@ -972,7 +980,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 129,
+      "latency_ms": 136,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -991,7 +999,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 109,
+      "latency_ms": 119,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
     },
     {
@@ -1010,7 +1018,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 106,
+      "latency_ms": 113,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
     },
     {
@@ -1029,7 +1037,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1520,
+      "latency_ms": 1397,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sobre”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
     },
     {
@@ -1050,7 +1058,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 107,
+      "latency_ms": 230,
       "response_preview": null
     },
     {
@@ -1069,7 +1077,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 116,
+      "latency_ms": 121,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “venda”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region,…"
     },
     {
@@ -1088,7 +1096,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1167,
+      "latency_ms": 1240,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “3”:\n1. Dataset `birth_france_by_region` — banco examples; colunas: DEPT_ID, 2003, 2004, 2005; mot…"
     },
     {
@@ -1107,7 +1115,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1874,
+      "latency_ms": 1944,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “relacoes”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, regi…"
     },
     {
@@ -1126,7 +1134,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1701,
+      "latency_ms": 1768,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “conexoes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
     },
     {
@@ -1145,7 +1153,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 96,
+      "latency_ms": 109,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “clientes”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, regi…"
     },
     {
@@ -1162,8 +1170,8 @@
         "planning_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 19909,
-      "response_preview": "Não foi possível encontrar a tabela AI_TEST_P246 no banco de dados especificado. Verifique o nome da tabela e tente novamente.\n\nPara prosseguir, preci…"
+      "latency_ms": 26295,
+      "response_preview": "Para criar um PCA plot, precisamos primeiro definir qual tabela do banco de dados será usada. Os bancos de dados disponíveis são: \n\n- AI_TEST_P246\n\nPo…"
     },
     {
       "case_id": "P247",
@@ -1181,7 +1189,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1979,
+      "latency_ms": 2089,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “multiplas”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
     },
     {
@@ -1202,7 +1210,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 109,
+      "latency_ms": 123,
       "response_preview": null
     },
     {
@@ -1221,7 +1229,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1887,
+      "latency_ms": 1913,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “regioes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
     },
     {
@@ -1242,7 +1250,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 120,
+      "latency_ms": 111,
       "response_preview": null
     },
     {
@@ -1261,7 +1269,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1192,
+      "latency_ms": 1205,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “3”:\n1. Dataset `birth_france_by_region` — banco examples; colunas: DEPT_ID, 2003, 2004, 2005; mot…"
     },
     {
@@ -1280,13 +1288,13 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1719,
+      "latency_ms": 1709,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “celula”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
     },
     {
       "case_id": "P258",
       "prompt": "Crie um beeswarm AI_TEST_P258 com segmentação por categoria e adicione ao CBMES.",
-      "status": "completed",
+      "status": "awaiting_confirmation",
       "passed": false,
       "failure_reasons": [
         "expected one confirmed execution plan",
@@ -1296,9 +1304,9 @@
         "other_failure",
         "planning_failure"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 55828,
-      "response_preview": "Não foi possível encontrar a tabela AI_TEST_P258 em nenhum dos bancos de dados disponíveis. Por favor, verifique o nome da tabela e tente novamente.\nP…"
+      "terminal_state": "awaiting_confirmation",
+      "latency_ms": 19929,
+      "response_preview": null
     },
     {
       "case_id": "P259",
@@ -1316,7 +1324,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1866,
+      "latency_ms": 1946,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “folha”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
     },
     {
@@ -1335,7 +1343,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 122,
+      "latency_ms": 137,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -1354,13 +1362,13 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1486,
+      "latency_ms": 1572,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “um”:\n1. Dataset `birth_names` — banco examples; colunas: ds, gender, name, num; motivo: colunas r…"
     },
     {
       "case_id": "P262",
       "prompt": "Crie um arc diagram AI_TEST_P262 com conexões entre fornecedor e cliente e adicione ao CBMES.",
-      "status": "awaiting_user_input",
+      "status": "completed",
       "passed": false,
       "failure_reasons": [
         "expected one confirmed execution plan",
@@ -1370,9 +1378,9 @@
         "other_failure",
         "planning_failure"
       ],
-      "terminal_state": "awaiting_user_input",
-      "latency_ms": 70609,
-      "response_preview": "Para criar um arc diagram chamado AI_TEST_P262 com conexões entre fornecedor e cliente, precisamos primeiro selecionar a tabela correta. Vou listar as…"
+      "terminal_state": "completed",
+      "latency_ms": 26713,
+      "response_preview": "Para criar um arc diagram chamado AI_TEST_P262 com conexões entre fornecedor e cliente, precisamos primeiro definir as tabelas que contêm esses dados.…"
     },
     {
       "case_id": "P263",
@@ -1390,7 +1398,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1454,
+      "latency_ms": 1522,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
     },
     {
@@ -1409,7 +1417,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2429,
+      "latency_ms": 2451,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sequencia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
     },
     {
@@ -1428,7 +1436,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1355,
+      "latency_ms": 1345,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “ranking”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
     },
     {
@@ -1449,7 +1457,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 109,
+      "latency_ms": 112,
       "response_preview": null
     },
     {
@@ -1468,7 +1476,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 103,
+      "latency_ms": 106,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “produto”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sale…"
     },
     {
@@ -1487,7 +1495,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1409,
+      "latency_ms": 1541,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “serie”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code,…"
     },
     {
@@ -1506,7 +1514,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1370,
+      "latency_ms": 1378,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
     },
     {
@@ -1525,7 +1533,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1983,
+      "latency_ms": 2006,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “duas”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
     },
     {
@@ -1544,23 +1552,25 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1405,
+      "latency_ms": 1473,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “circulos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
     },
     {
       "case_id": "P274",
       "prompt": "Crie um padrão radial AI_TEST_P274 de dados cíclicos e adicione ao CBMES.",
-      "status": "completed",
+      "status": "awaiting_confirmation",
       "passed": false,
       "failure_reasons": [
-        "expected one confirmed execution plan"
+        "expected one confirmed execution plan",
+        "missing dashboard CBMES"
       ],
       "failure_categories": [
+        "other_failure",
         "planning_failure"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 24722,
-      "response_preview": "Não foi possível encontrar a tabela AI_TEST_P274 no banco de dados CBMES. Verifique se o nome da tabela está correto e se há uma tabela com esse nome…"
+      "terminal_state": "awaiting_confirmation",
+      "latency_ms": 34325,
+      "response_preview": null
     },
     {
       "case_id": "P276",
@@ -1578,7 +1588,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1475,
+      "latency_ms": 1425,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
     },
     {
@@ -1597,7 +1607,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1495,
+      "latency_ms": 1510,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “categoricos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -1614,7 +1624,7 @@
         "planning_failure"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1592,
+      "latency_ms": 1818,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “ai_test_p279”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country…"
     },
     {
@@ -1633,7 +1643,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1350,
+      "latency_ms": 1429,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
     },
     {
@@ -1652,7 +1662,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1631,
+      "latency_ms": 1694,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “tendencias”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -1671,7 +1681,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1357,
+      "latency_ms": 1400,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
     },
     {
@@ -1690,7 +1700,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 120,
+      "latency_ms": 132,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -1709,7 +1719,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1657,
+      "latency_ms": 1727,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “relacionamento”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity;…"
     },
     {
@@ -1728,7 +1738,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1939,
+      "latency_ms": 1669,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “temporais”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
     },
     {
@@ -1747,7 +1757,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2898,
+      "latency_ms": 3324,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “hierarquia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -1766,7 +1776,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1772,
+      "latency_ms": 1893,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “caverna”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
     },
     {
@@ -1785,7 +1795,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1701,
+      "latency_ms": 1815,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “densidade”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
     },
     {
@@ -1804,7 +1814,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 97,
+      "latency_ms": 107,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “clientes”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
     },
     {
@@ -1823,7 +1833,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 3043,
+      "latency_ms": 3013,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “hierarquia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -1842,7 +1852,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1902,
+      "latency_ms": 1877,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “camara”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region…"
     },
     {
@@ -1861,7 +1871,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1584,
+      "latency_ms": 1619,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “um”:\n1. Dataset `birth_names` — banco examples; colunas: ds, gender, name, num; motivo: colunas r…"
     },
     {
@@ -1880,7 +1890,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1230,
+      "latency_ms": 1295,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “segmentados”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -1899,7 +1909,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1122,
+      "latency_ms": 1211,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “prisma”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
     },
     {
@@ -1918,7 +1928,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1888,
+      "latency_ms": 1391,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “e”:\n1. Consulta salva `ai_test_p84` — banco examples; colunas: user_id, user_name, message_count;…"
     },
     {
@@ -1933,8 +1943,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 207,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p301](/explore/?slice_id=651)"
+      "latency_ms": 250,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p301](/explore/?slice_id=195)"
     },
     {
       "case_id": "P302",
@@ -1952,7 +1962,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1797,
+      "latency_ms": 1858,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “correlacoes”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -1967,8 +1977,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 191,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p303](/explore/?slice_id=652)"
+      "latency_ms": 252,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p303](/explore/?slice_id=196)"
     },
     {
       "case_id": "P304",
@@ -1986,7 +1996,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 104,
+      "latency_ms": 118,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “lucro”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
     },
     {
@@ -2001,8 +2011,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 202,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p305](/explore/?slice_id=653)"
+      "latency_ms": 245,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p305](/explore/?slice_id=197)"
     },
     {
       "case_id": "P306",
@@ -2020,7 +2030,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2098,
+      "latency_ms": 2191,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “precos”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region…"
     },
     {
@@ -2039,7 +2049,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2019,
+      "latency_ms": 2177,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “kpis”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
     },
     {
@@ -2058,7 +2068,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1776,
+      "latency_ms": 1819,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “interanual”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -2077,7 +2087,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1625,
+      "latency_ms": 1710,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cada”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL;…"
     },
     {
@@ -2092,8 +2102,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 199,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p310](/explore/?slice_id=654)"
+      "latency_ms": 253,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p310](/explore/?slice_id=198)"
     },
     {
       "case_id": "P311",
@@ -2107,8 +2117,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 203,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p311](/explore/?slice_id=655)"
+      "latency_ms": 263,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p311](/explore/?slice_id=199)"
     },
     {
       "case_id": "P312",
@@ -2126,7 +2136,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1276,
+      "latency_ms": 1336,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “desempenho”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -2145,7 +2155,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1459,
+      "latency_ms": 1519,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cagr”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
     },
     {
@@ -2166,7 +2176,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 104,
+      "latency_ms": 109,
       "response_preview": null
     },
     {
@@ -2185,7 +2195,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1809,
+      "latency_ms": 1907,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “herfindahl”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_…"
     },
     {
@@ -2204,7 +2214,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1496,
+      "latency_ms": 1774,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “negocio”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
     },
     {
@@ -2219,8 +2229,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 188,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p317](/explore/?slice_id=656)"
+      "latency_ms": 270,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p317](/explore/?slice_id=200)"
     },
     {
       "case_id": "P318",
@@ -2238,7 +2248,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1320,
+      "latency_ms": 1352,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -2257,7 +2267,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1703,
+      "latency_ms": 1760,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “relacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo…"
     },
     {
@@ -2276,7 +2286,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1914,
+      "latency_ms": 2010,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “planejamento”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
     },
     {
@@ -2295,7 +2305,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1580,
+      "latency_ms": 1700,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “rfm”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: me…"
     },
     {
@@ -2310,13 +2320,13 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 187,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p322](/explore/?slice_id=657)"
+      "latency_ms": 253,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p322](/explore/?slice_id=201)"
     },
     {
       "case_id": "P323",
       "prompt": "Crie um dashboard executivo AI_TEST_P323 com resumo para C-level.",
-      "status": "awaiting_confirmation",
+      "status": "awaiting_user_input",
       "passed": false,
       "failure_reasons": [
         "expected one confirmed execution plan",
@@ -2326,9 +2336,9 @@
         "other_failure",
         "planning_failure"
       ],
-      "terminal_state": "awaiting_confirmation",
-      "latency_ms": 23365,
-      "response_preview": null
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 18661,
+      "response_preview": "Não foi possível encontrar nenhuma tabela no banco de dados com o nome AI_TEST_P323. Verifique se o nome está correto e tente novamente.\n\nPara prosseg…"
     },
     {
       "case_id": "P324",
@@ -2346,7 +2356,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1925,
+      "latency_ms": 1983,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “todos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
     },
     {
@@ -2365,7 +2375,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1311,
+      "latency_ms": 1811,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP…"
     },
     {
@@ -2380,8 +2390,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 2116,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p326](/explore/?slice_id=658)"
+      "latency_ms": 2289,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p326](/explore/?slice_id=202)"
     },
     {
       "case_id": "P327",
@@ -2399,7 +2409,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2371,
+      "latency_ms": 2292,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “eficiencia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -2418,7 +2428,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1709,
+      "latency_ms": 1799,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “pior”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo: m…"
     },
     {
@@ -2437,7 +2447,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1937,
+      "latency_ms": 2003,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “conformidade”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
     },
     {
@@ -2456,7 +2466,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1566,
+      "latency_ms": 1691,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “growth”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code,…"
     },
     {
@@ -2475,7 +2485,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1790,
+      "latency_ms": 1818,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “rh”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country_code, reg…"
     },
     {
@@ -2490,8 +2500,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 170,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p332](/explore/?slice_id=659)"
+      "latency_ms": 243,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p332](/explore/?slice_id=203)"
     },
     {
       "case_id": "P333",
@@ -2509,7 +2519,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2762,
+      "latency_ms": 2943,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cadeia”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
     },
     {
@@ -2524,8 +2534,8 @@
         "other_failure"
       ],
       "terminal_state": "completed",
-      "latency_ms": 189,
-      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p334](/explore/?slice_id=660)"
+      "latency_ms": 282,
+      "response_preview": "Plano concluído com sucesso.\n- [ai_test_p334](/explore/?slice_id=204)"
     },
     {
       "case_id": "P335",
@@ -2543,7 +2553,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 95,
+      "latency_ms": 105,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “produtos”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
     },
     {
@@ -2562,7 +2572,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1523,
+      "latency_ms": 1612,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “repeat”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motivo:…"
     },
     {
@@ -2581,7 +2591,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1776,
+      "latency_ms": 1705,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “exposicao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
     },
     {
@@ -2598,7 +2608,7 @@
         "planning_failure"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2796,
+      "latency_ms": 2930,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “ai_test_p338”:\n1. Dataset `wb_health_population` — banco examples; colunas: country_name, country…"
     },
     {
@@ -2617,7 +2627,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1989,
+      "latency_ms": 2285,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “sustentabilidade”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantit…"
     },
     {
@@ -2636,7 +2646,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 109,
+      "latency_ms": 123,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “venda”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region,…"
     },
     {
@@ -2655,7 +2665,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1803,
+      "latency_ms": 1863,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “retencao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
     },
     {
@@ -2674,7 +2684,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 96,
+      "latency_ms": 107,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “clientes”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
     },
     {
@@ -2693,7 +2703,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1496,
+      "latency_ms": 1576,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “inovacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
     },
     {
@@ -2712,7 +2722,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 95,
+      "latency_ms": 106,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “produtos”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sal…"
     },
     {
@@ -2731,7 +2741,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1909,
+      "latency_ms": 1995,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “portfolio”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; moti…"
     },
     {
@@ -2752,7 +2762,7 @@
         "resource_not_created"
       ],
       "terminal_state": "failed",
-      "latency_ms": 102,
+      "latency_ms": 109,
       "response_preview": null
     },
     {
@@ -2771,7 +2781,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1474,
+      "latency_ms": 1528,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “satisfacao”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mot…"
     },
     {
@@ -2790,7 +2800,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2014,
+      "latency_ms": 2158,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “projetos”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; motiv…"
     },
     {
@@ -2809,7 +2819,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1529,
+      "latency_ms": 1643,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “perspectivas”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; m…"
     },
     {
@@ -2828,7 +2838,7 @@
         "resource_not_created"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1253,
+      "latency_ms": 1480,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “performance”:\n1. Dataset `ai_test_p100_dataset` — banco examples; colunas: year, sum_quantity; mo…"
     },
     {
@@ -2843,7 +2853,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 104,
+      "latency_ms": 131,
       "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: price_each, sales, order_line_number, quantity_ordered, or…"
     },
     {
@@ -2858,7 +2868,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 111,
+      "latency_ms": 121,
       "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, year, price_each, address_line1, addres…"
     },
     {
@@ -2873,7 +2883,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 95,
+      "latency_ms": 106,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “profit”:\n1. Dataset `ai_test_p85` — banco examples; colunas: region, revenue, profit, SP_POP_TOTL…"
     },
     {
@@ -2888,7 +2898,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 217,
+      "latency_ms": 127,
       "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: country, id, transaction_date, region, product_category,…"
     },
     {
@@ -2903,7 +2913,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 105,
+      "latency_ms": 117,
       "response_preview": "Fonte selecionada: dataset `birth_names` (examples). Colunas relevantes disponíveis: num, num_boys, num_girls, num_california, ds, gender, name, state…"
     },
     {
@@ -2912,14 +2922,15 @@
       "status": "completed",
       "passed": false,
       "failure_reasons": [
-        "missing expected column region"
+        "missing expected column region",
+        "missing expected column SP_DYN_LE00_IN"
       ],
       "failure_categories": [
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 94201,
-      "response_preview": "The SQL query you've provided is designed to retrieve the first 100 records from a table named `wb_health_population` in the database. This table cont…"
+      "latency_ms": 43914,
+      "response_preview": "O banco de dados exemplos contém a tabela wb_health_population que parece ser relevante para o seu pedido. Vamos verificar os detalhes dessa tabela."
     },
     {
       "case_id": "P368",
@@ -2933,7 +2944,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 100,
+      "latency_ms": 112,
       "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: price_each, sales, order_line_number, quantity_ordered, or…"
     },
     {
@@ -2948,7 +2959,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 117,
+      "latency_ms": 119,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -2963,7 +2974,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 102,
+      "latency_ms": 106,
       "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
     },
     {
@@ -2978,7 +2989,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 100,
+      "latency_ms": 110,
       "response_preview": "Fonte selecionada: dataset `video_game_sales` (examples). Colunas relevantes disponíveis: na_sales, eu_sales, global_sales, jp_sales, other_sales, yea…"
     },
     {
@@ -2993,13 +3004,13 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 41528,
-      "response_preview": "Para analisar a distribuição de vendas entre as linhas de produto usando o dataset \"cleaned_sales_data\", precisamos primeiro verificar os dados dispon…"
+      "latency_ms": 12930,
+      "response_preview": "Para analisar a distribuição de vendas por linha de produto, precisamos primeiro criar um novo dataset baseado no conjunto de dados 'cleaned_sales_dat…"
     },
     {
       "case_id": "P384",
       "prompt": "Quantas transações únicas foram registradas por país?",
-      "status": "completed",
+      "status": "awaiting_user_input",
       "passed": false,
       "failure_reasons": [
         "missing expected source option international_sales",
@@ -3009,9 +3020,9 @@
         "missing_column",
         "missing_source"
       ],
-      "terminal_state": "completed",
-      "latency_ms": 35774,
-      "response_preview": "Para responder a sua pergunta, precisamos de um dataset que contenha transações únicas por país. No banco de dados 'examples', há várias tabelas dispo…"
+      "terminal_state": "awaiting_user_input",
+      "latency_ms": 14188,
+      "response_preview": "Para analisar quantas transações únicas foram registradas por país, precisamos primeiro identificar qual banco de dados contém essa informação. O banc…"
     },
     {
       "case_id": "P386",
@@ -3025,7 +3036,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 111,
+      "latency_ms": 117,
       "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: profit, product_category, id, transaction_date, region, c…"
     },
     {
@@ -3040,7 +3051,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 104,
+      "latency_ms": 109,
       "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
     },
     {
@@ -3055,7 +3066,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 219,
+      "latency_ms": 115,
       "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
     },
     {
@@ -3072,8 +3083,8 @@
         "missing_source"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 42704,
-      "response_preview": "O banco de dados 'examples' contém as seguintes tabelas: FCC 2018 Survey, bart_lines, birth_france_by_region, birth_names, cleaned_sales_data, flights…"
+      "latency_ms": 43923,
+      "response_preview": "Para analisar quais indicadores de saúde variam mais entre países, precisamos primeiro verificar os dados disponíveis no banco de dados examples. Vou…"
     },
     {
       "case_id": "P393",
@@ -3087,7 +3098,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 111,
+      "latency_ms": 123,
       "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: sales, order_date, month, price_each, address_line1, addre…"
     },
     {
@@ -3103,7 +3114,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 105,
+      "latency_ms": 123,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “venda”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region,…"
     },
     {
@@ -3118,23 +3129,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 39497,
-      "response_preview": "Para analisar qual mês do ano historicamente tem melhor performance de vendas, precisamos primeiro criar um novo dataset com uma agregação da coluna '…"
-    },
-    {
-      "case_id": "P400",
-      "prompt": "Quantos registros de voos correspondem a rotas nacionais vs internacionais?",
-      "status": "failed",
-      "passed": false,
-      "failure_reasons": [
-        "missing expected source option flights"
-      ],
-      "failure_categories": [
-        "missing_source"
-      ],
-      "terminal_state": "failed",
-      "latency_ms": 11739,
-      "response_preview": null
+      "latency_ms": 19247,
+      "response_preview": "Não foi possível encontrar a coluna 'month' nesta base de dados. Vamos verificar se há algum problema com o nome da coluna ou se ela está em uma tabel…"
     },
     {
       "case_id": "P401",
@@ -3148,7 +3144,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 1832,
+      "latency_ms": 1925,
       "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: order_date, price_each, sales, address_line1, address_line…"
     },
     {
@@ -3164,8 +3160,8 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 18906,
-      "response_preview": "O dataset de voos parece ser relevante para análise do padrão sazonal. Vamos começar pelo schema deste dataset."
+      "latency_ms": 29341,
+      "response_preview": "Base de dados 'examples' contém a tabela 'flights', que parece ser relevante para análise do padrão sazonal. Vamos verificar o esquema dessa tabela."
     },
     {
       "case_id": "P406",
@@ -3180,7 +3176,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 2572,
+      "latency_ms": 2484,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “decada”:\n1. Dataset `video_game_sales` — banco examples; colunas: year, na_sales, eu_sales, globa…"
     },
     {
@@ -3196,7 +3192,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 96,
+      "latency_ms": 120,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cost”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
     },
     {
@@ -3211,7 +3207,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 206,
+      "latency_ms": 115,
       "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: cost, region, id, transaction_date, country, product_cate…"
     },
     {
@@ -3226,7 +3222,7 @@
         "missing_source"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 95,
+      "latency_ms": 114,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “usuarios”:\n1. Dataset `messages` — banco examples; colunas: bot_profile__updated, last_read, ts,…"
     },
     {
@@ -3242,7 +3238,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 90,
+      "latency_ms": 105,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “cost”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
     },
     {
@@ -3257,7 +3253,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 100,
+      "latency_ms": 112,
       "response_preview": "Fonte selecionada: dataset `video_game_sales` (examples). Colunas relevantes disponíveis: year, na_sales, eu_sales, global_sales, jp_sales, other_sale…"
     },
     {
@@ -3272,7 +3268,7 @@
         "missing_source"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1813,
+      "latency_ms": 1948,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “1960”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
     },
     {
@@ -3287,7 +3283,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 103,
+      "latency_ms": 234,
       "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: country_name, country_code, NY_GNP_PCAP_CD, SE_ADT_1524_…"
     },
     {
@@ -3302,7 +3298,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 113,
+      "latency_ms": 130,
       "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: SP_POP_TOTL, region, country_name, country_code, year, N…"
     },
     {
@@ -3317,13 +3313,13 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 106,
+      "latency_ms": 113,
       "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
     },
     {
       "case_id": "P455",
       "prompt": "Qual foi o mês em que video_game_sales foi maior globalmente?",
-      "status": "failed",
+      "status": "completed",
       "passed": false,
       "failure_reasons": [
         "missing expected source option video_game_sales"
@@ -3331,9 +3327,9 @@
       "failure_categories": [
         "missing_source"
       ],
-      "terminal_state": "failed",
-      "latency_ms": 22197,
-      "response_preview": null
+      "terminal_state": "completed",
+      "latency_ms": 24574,
+      "response_preview": "Não foi possível obter o esquema deste dataset. Tente novamente mais tarde."
     },
     {
       "case_id": "P456",
@@ -3347,7 +3343,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 100,
+      "latency_ms": 118,
       "response_preview": "Fonte selecionada: dataset `cleaned_sales_data` (examples). Colunas relevantes disponíveis: order_date, price_each, sales, address_line1, address_line…"
     },
     {
@@ -3363,7 +3359,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1763,
+      "latency_ms": 1871,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “roi”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region, c…"
     },
     {
@@ -3378,7 +3374,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 104,
+      "latency_ms": 114,
       "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
     },
     {
@@ -3393,7 +3389,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 1517,
+      "latency_ms": 1571,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “entre”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales,…"
     },
     {
@@ -3409,7 +3405,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 115,
+      "latency_ms": 117,
       "response_preview": "Fonte selecionada: dataset `international_sales` (examples). Colunas relevantes disponíveis: profit, id, transaction_date, region, country, product_ca…"
     },
     {
@@ -3424,7 +3420,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 113,
+      "latency_ms": 120,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `international_sales` — banco examples; colunas: id, transaction_date, region…"
     },
     {
@@ -3439,7 +3435,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 102,
+      "latency_ms": 113,
       "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: AIRLINE, AIRLINE_DELAY, DAY, DAY_OF_WEEK, FLIGHT_NUMBER, SCHEDULED_DE…"
     },
     {
@@ -3454,7 +3450,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 97,
+      "latency_ms": 114,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “quantidade”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, s…"
     },
     {
@@ -3469,7 +3465,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 111,
+      "latency_ms": 120,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “vendas”:\n1. Dataset `cleaned_sales_data` — banco examples; colunas: order_date, price_each, sales…"
     },
     {
@@ -3484,7 +3480,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 102,
+      "latency_ms": 120,
       "response_preview": "Fonte selecionada: dataset `flights` (examples). Colunas relevantes disponíveis: DEPARTURE_DELAY, ARRIVAL_DELAY, AIR_SYSTEM_DELAY, SECURITY_DELAY, AIR…"
     },
     {
@@ -3499,7 +3495,7 @@
         "missing_column"
       ],
       "terminal_state": "awaiting_user_input",
-      "latency_ms": 100,
+      "latency_ms": 115,
       "response_preview": "Encontrei mais de uma fonte acessível relacionada a “receita”:\n1. Dataset `ai_test_p79` — banco examples; colunas: country, year, revenue, SP_POP_TOTL…"
     },
     {
@@ -3514,7 +3510,7 @@
         "missing_column"
       ],
       "terminal_state": "completed",
-      "latency_ms": 95,
+      "latency_ms": 108,
       "response_preview": "Fonte selecionada: dataset `ai_test_p79` (examples). Colunas relevantes disponíveis: revenue, revenue_per_capita, country, year, SP_POP_TOTL.  Nenhum…"
     },
     {
@@ -3532,9 +3528,9 @@
         "missing_source"
       ],
       "terminal_state": "completed",
-      "latency_ms": 111,
+      "latency_ms": 120,
       "response_preview": "Fonte selecionada: dataset `wb_health_population` (examples). Colunas relevantes disponíveis: SP_POP_TOTL, country_name, country_code, region, year, N…"
     }
   ],
-  "generated_at": "2026-07-17T18:11:07.362596+00:00"
+  "generated_at": "2026-07-22T03:04:58.176585+00:00"
 }

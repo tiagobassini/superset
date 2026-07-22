@@ -1,0 +1,240 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+x-superset-user: &superset-user root
+x-superset-env-file: &superset-env-file
+  - path: ./docker/.env-hom
+    required: true
+x-superset-volumes: &superset-volumes
+  - ./docker:/app/docker
+  - ./superset_config.py:/app/pythonpath/superset_config.py:ro
+  - superset_home:/app/superset_home
+  - superset_data:/app/data
+x-common-build: &common-build
+  context: .
+  target: ${SUPERSET_BUILD_TARGET:-dev}
+  cache_from:
+    - apache/superset-cache:3.10-slim-trixie
+  args:
+    DEV_MODE: "false"
+    INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
+    INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
+    BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
+
+services:
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: "0.5"
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    env_file: *superset-env-file
+    command:
+      [
+        "postgres",
+        "-c",
+        "max_connections=150",
+        "-c",
+        "shared_buffers=2GB",
+        "-c",
+        "effective_cache_size=8GB",
+        "-c",
+        "maintenance_work_mem=512MB",
+        "-c",
+        "checkpoint_completion_target=0.9",
+        "-c",
+        "wal_buffers=16MB",
+      ]
+    ports:
+      - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - db_home:/var/lib/postgresql/data
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 4g
+    mem_reservation: 1g
+    cpus: "1.5"
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-6144}
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}
+      OLLAMA_MAX_QUEUE: ${OLLAMA_MAX_QUEUE:-8}
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    mem_limit: 12g
+    mem_reservation: 6g
+    cpus: "5.0"
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama pull ${OLLAMA_MODEL:-qwen2.5:7b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: ollama:11434
+    volumes:
+      - ollama:/root/.ollama
+
+  superset:
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    env_file: *superset-env-file
+    restart: unless-stopped
+    ports:
+      - "${HOST_BIND_IP:-10.154.33.85}:${SUPERSET_PORT:-8088}:8088"
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: *superset-user
+    volumes: *superset-volumes
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8088$${SUPERSET_APP_ROOT:-}/health || exit 1",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    mem_limit: 4g
+    mem_reservation: 1g
+    cpus: "2.0"
+
+  superset-init:
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-init.sh"]
+    env_file: *superset-env-file
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    user: *superset-user
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    mem_limit: 3g
+    mem_reservation: 512m
+    cpus: "2.0"
+
+  superset-worker:
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file: *superset-env-file
+    environment:
+      CELERYD_CONCURRENCY: 2
+    restart: unless-stopped
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: *superset-user
+    volumes: *superset-volumes
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    mem_limit: 5g
+    mem_reservation: 1g
+    cpus: "2.0"
+
+  superset-worker-beat:
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    env_file: *superset-env-file
+    restart: unless-stopped
+    depends_on:
+      superset-worker:
+        condition: service_healthy
+    user: *superset-user
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: "0.5"
+
+volumes:
+  superset_home:
+    external: false
+  superset_data:
+    external: false
+  db_home:
+    external: false
+  redis:
+    external: false
+  ollama:
+    external: false

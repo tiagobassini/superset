@@ -120,6 +120,12 @@ http://localhost:8088
 
 docker cp scripts/ai/summarize_prompt_results.py superset-superset-1:/app/scripts/ai/summarize_prompt_results.py
 
+
+docker cp docs/ai-integration/ superset-superset-1:/app/docs/ai-integration
+
+docker cp scripts/ai superset-superset-1:/app/scripts/ai
+
+
 docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/summarize_prompt_results.py --input /tmp/ai_prompt_suite.jsonl --output /tmp/ai_prompt_suite_resume.jsonl'
 
 
@@ -138,6 +144,7 @@ python3 -c "import json; data = json.load(open('/tmp/ai_prompt_suite_resume.json
 
 docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/run_example_prompt_suite.py --output /tmp/ai_prompt_suite_500.jsonl' && docker exec superset-superset-1 bash -lc 'cd /app && .venv/bin/python scripts/ai/summarize_prompt_results.py --input /tmp/ai_prompt_suite_500.jsonl --output /tmp/results_500_resume.jsonl' && docker cp superset-superset-1:/tmp/results_500_resume.jsonl ./results_500_resume.jsonl
 
+docker cp superset-superset-1:/tmp/ai_prompt_suite_500.jsonl ./ai_prompt_suite_500.jsonl
 
 ## Cleanup
 
