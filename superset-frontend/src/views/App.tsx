@@ -46,6 +46,7 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { RootState, store } from 'src/views/store';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
+import { findPermission } from 'src/utils/findPermission';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -55,6 +56,13 @@ setupCodeOverrides();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
+const canUseAIChat =
+  isFeatureEnabled(FeatureFlag.EnableAiIntegration) &&
+  findPermission(
+    'can_use_ai_chat',
+    'AIAgentResource',
+    bootstrapData.user?.roles,
+  );
 
 let lastLocationPathname: string;
 
@@ -125,7 +133,7 @@ const AppContent = () => {
         </Switch>
       </ExtensionsStartup>
       <ToastContainer />
-      {isFeatureEnabled(FeatureFlag.EnableAiIntegration) && <AIChatPanel />}
+      {canUseAIChat && <AIChatPanel />}
     </>
   );
 };

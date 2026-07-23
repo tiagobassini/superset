@@ -11,12 +11,17 @@ oracledb.version = "8.3.0"
 sys.modules['cx_Oracle'] = oracledb
 
 FEATURE_FLAGS = {
+    "DASHBOARD_RBAC": True,
     "ENABLE_AI_INTEGRATION": os.getenv(
         "ENABLE_AI_INTEGRATION",
         "true",
     ).lower()
     in {"1", "true", "yes", "on"},
 }
+
+AUTH_ROLE_PUBLIC = "Public"
+PUBLIC_ROLE_LIKE = "Public"
+SESSION_COOKIE_NAME = "superset_session"
 
 # Pending AI actions must survive the request that creates them so the user can
 # explicitly approve them in a subsequent request. Redis is shared by the
